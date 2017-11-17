@@ -1,0 +1,32 @@
+#include <CppUTest/TestHarness_c.h>
+#include <CppUTest/UtestMacros.h>
+#include <CppUTest/Utest.h>
+
+TEST_GROUP_C_WRAPPER(SubscribeTests) {
+    TEST_GROUP_C_SETUP_WRAPPER(SubscribeTests);
+    TEST_GROUP_C_TEARDOWN_WRAPPER(SubscribeTests);
+};
+
+TEST_C_WRAPPER(SubscribeTests, SubscribeNullClient)
+TEST_C_WRAPPER(SubscribeTests, SubscribeNullTopic)
+TEST_C_WRAPPER(SubscribeTests, SubscribeNullSubscribeHandler)
+TEST_C_WRAPPER(SubscribeTests, SubscribeNullParams);
+TEST_C_WRAPPER(SubscribeTests, SubscribeNoConnection)
+TEST_C_WRAPPER(SubscribeTests, subscribeQoS0FailureOnNoSuback)
+TEST_C_WRAPPER(SubscribeTests, subscribeQoS1FailureOnNoSuback)
+TEST_C_WRAPPER(SubscribeTests, subscribeFailed)
+TEST_C_WRAPPER(SubscribeTests, subscribeQoS0Success)
+TEST_C_WRAPPER(SubscribeTests, subscribeQoS1Success)
+TEST_C_WRAPPER(SubscribeTests, subscribeQoS0WithDelayedSubackSuccess)
+TEST_C_WRAPPER(SubscribeTests, subscribeQoS1WithDelayedSubackSuccess)
+TEST_C_WRAPPER(SubscribeTests, subscribeQoS0MsgReceivedAndNoPubackSent)
+TEST_C_WRAPPER(SubscribeTests, subscribeQoS1MsgReceivedAndSendPuback)
+TEST_C_WRAPPER(SubscribeTests, subscribeMalformedResponse)
+TEST_C_WRAPPER(SubscribeTests, SubscribeToMultipleTopicsSuccess)
+TEST_C_WRAPPER(SubscribeTests, SubcribeToMaxAllowedTopicsSuccess)
+TEST_C_WRAPPER(SubscribeTests, SubcribeToMaxPlusOneAllowedTopicsFailure)
+TEST_C_WRAPPER(SubscribeTests, subscribeTopicWithHashkeyAllSubTopicSuccess)
+TEST_C_WRAPPER(SubscribeTests, subscribeTopicHashkeyMustBeTheLastFail)
+TEST_C_WRAPPER(SubscribeTests, subscribeTopicWithPluskeySuccess)
+TEST_C_WRAPPER(SubscribeTests, subscribeTopicPluskeyComesLastSuccess)
+

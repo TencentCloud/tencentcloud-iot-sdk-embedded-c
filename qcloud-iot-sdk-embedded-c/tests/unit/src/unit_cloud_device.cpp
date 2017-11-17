@@ -1,0 +1,29 @@
+#include <CppUTest/TestHarness_c.h>
+#include <CppUTest/UtestMacros.h>
+#include <CppUTest/Utest.h>
+
+TEST_GROUP_C_WRAPPER(CloudDeviceTests) {
+    TEST_GROUP_C_SETUP_WRAPPER(CloudDeviceTests);
+    TEST_GROUP_C_TEARDOWN_WRAPPER(CloudDeviceTests);
+};
+
+TEST_C_WRAPPER(CloudDeviceTests, GetTheFullJSONDocument)
+TEST_C_WRAPPER(CloudDeviceTests, DeleteTheJSONDocument)
+TEST_C_WRAPPER(CloudDeviceTests, UpdateTheJSONDocument)
+TEST_C_WRAPPER(CloudDeviceTests, GetTheFullJSONDocumentTimeout)
+TEST_C_WRAPPER(CloudDeviceTests, SubscribeToAcceptedRejectedOnGet)
+TEST_C_WRAPPER(CloudDeviceTests, UnSubscribeToAcceptedRejectedOnGetResponse)
+TEST_C_WRAPPER(CloudDeviceTests, UnSubscribeToAcceptedRejectedOnGetTimeout)
+TEST_C_WRAPPER(CloudDeviceTests, UnSubscribeToAcceptedRejectedOnGetTimeoutWithSticky)
+TEST_C_WRAPPER(CloudDeviceTests, WrongTokenInGetResponse)
+TEST_C_WRAPPER(CloudDeviceTests, NoTokenInGetResponse)
+TEST_C_WRAPPER(CloudDeviceTests, InvalidInboundJSONInGetResponse)
+TEST_C_WRAPPER(CloudDeviceTests, AcceptedSubFailsGetRequest)
+TEST_C_WRAPPER(CloudDeviceTests, RejectedSubFailsGetRequest)
+TEST_C_WRAPPER(CloudDeviceTests, PublishFailsGetRequest)
+TEST_C_WRAPPER(CloudDeviceTests, GetVersionFromAckStatus)
+TEST_C_WRAPPER(CloudDeviceTests, StickyNonStickyNeverConflict)
+TEST_C_WRAPPER(CloudDeviceTests, ACKWaitingMoreThanAllowed)
+TEST_C_WRAPPER(CloudDeviceTests, InboundDataTooBigForBuffer)
+TEST_C_WRAPPER(CloudDeviceTests, NoClientTokenForShadowAction)
+//TEST_C_WRAPPER(CloudDeviceTests, NoCallbackForShadowAction)

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="19" failures="0" disabled="0" errors="0" timestamp="2017-11-13T15:06:09" time="12.374" name="AllTests">
+  <testsuite name="SDKTest" tests="19" failures="0" disabled="0" errors="0" time="12.374">
+    <testcase name="Test_Asy_Pass_Connect" status="run" time="0.128" classname="SDKTest" />
+    <testcase name="Test_Sym_Pass_Connect" status="run" time="0.116" classname="SDKTest" />
+    <testcase name="Test_Sym_Fail_ErrorClientID" status="run" time="5.029" classname="SDKTest" />
+    <testcase name="Test_Sym_Fail_ErrorPSK" status="run" time="0.087" classname="SDKTest" />
+    <testcase name="Test_Asy_Fail_ErrorCA" status="run" time="0.004" classname="SDKTest" />
+    <testcase name="Test_Asy_Fail_ErrorCERT" status="run" time="0.003" classname="SDKTest" />
+    <testcase name="Test_Asy_Fail_ErrorKEY" status="run" time="0.004" classname="SDKTest" />
+    <testcase name="Test_Sym_Pass_SendTopicMessage" status="run" time="0.149" classname="SDKTest" />
+    <testcase name="Test_Sym_Pass_SendBigTopicMessage" status="run" time="0.144" classname="SDKTest" />
+    <testcase name="Test_Sym_Pass_SendSmallTopicMessage" status="run" time="0.153" classname="SDKTest" />
+    <testcase name="Test_Sym_Fail_SendNoPolicyTopicMessage" status="run" time="0.144" classname="SDKTest" />
+    <testcase name="Test_Sym_Pass_SendQOSZeroTopicMessage" status="run" time="0.129" classname="SDKTest" />
+    <testcase name="Test_Sym_Pass_SendQOSTwoTopicMessage" status="run" time="2.139" classname="SDKTest" />
+    <testcase name="Test_Sym_Pass_PolicyAllSendTopicMessage" status="run" time="0.156" classname="SDKTest" />
+    <testcase name="Test_Sym_Pass_Subscribe" status="run" time="0.151" classname="SDKTest" />
+    <testcase name="Test_Sym_Fail_NoPolicySubscribe" status="run" time="0.145" classname="SDKTest" />
+    <testcase name="Test_Sym_Pass_PolicyAllSubscribe" status="run" time="0.149" classname="SDKTest" />
+    <testcase name="Test_Sym_Pass_ShadowUpdate" status="run" time="3.372" classname="SDKTest" />
+    <testcase name="Test_Sym_Pass_ShadowGet" status="run" time="0.172" classname="SDKTest" />
+  </testsuite>
+</testsuites>
