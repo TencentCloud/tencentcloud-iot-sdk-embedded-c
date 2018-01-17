@@ -65,11 +65,13 @@ void 	utils_net_disconnect(Network *pNetwork);
 int 	utils_net_connect(Network *pNetwork);
 int 	utils_net_init(Network *pNetwork);
 
+#ifdef COAP_COMM_ENABLED
 int 	utils_udp_net_read(Network *pNetwork, unsigned char *data, size_t datalen, int timeout_ms, size_t *read_len);
 int 	utils_udp_net_write(Network *pNetwork, unsigned char *data, size_t datalen, int timeout_ms, size_t *written_len);
 void 	utils_udp_net_disconnect(Network *pNetwork);
 int 	utils_udp_net_connect(Network *pNetwork);
 int 	utils_udp_net_init(Network *pNetwork);
+#endif
     
 #ifdef __cplusplus
 }

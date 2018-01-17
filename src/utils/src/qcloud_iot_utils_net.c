@@ -160,6 +160,7 @@ int utils_net_init(Network *pNetwork)
     return rc;
 }
 
+#ifdef COAP_COMM_ENABLED
 static int utils_udp_net_connected(Network *pNetwork) {
     return pNetwork->handle;
 }
@@ -297,6 +298,8 @@ int utils_udp_net_init(Network *pNetwork)
 
     return rc;
 }
+
+#endif
 
 #ifdef __cplusplus
 }

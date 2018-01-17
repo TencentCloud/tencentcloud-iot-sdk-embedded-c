@@ -17,6 +17,7 @@
 extern "C" {
 #endif
 
+#ifdef COAP_COMM_ENABLED
 #include <stdint.h>
 #include <string.h>
 #include <errno.h>
@@ -358,6 +359,7 @@ int HAL_DTLS_Read(uintptr_t handle, unsigned char *data, size_t datalen, unsigne
     
     return rc;
 }
+#endif
     
 #ifdef __cplusplus
 }

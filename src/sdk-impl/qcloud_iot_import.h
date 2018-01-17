@@ -242,10 +242,11 @@ int HAL_TLS_Read(uintptr_t handle, unsigned char *data, size_t totalLen, int tim
 
 /********** DTLS network **********/
 
+#ifdef COAP_COMM_ENABLED
 typedef SSLConnectParams DTLSConnectParams;
 
 /**
- * @brief 为MQTT客户端建立TLS连接
+ * @brief 为CoAP客户端建立DTLS连接
  *
  * 主要步骤如下:
  *     1. 初始化工作, 例如mbedtls库初始化, 相关证书文件加载等
@@ -257,12 +258,18 @@ typedef SSLConnectParams DTLSConnectParams;
  */
 uintptr_t HAL_DTLS_Connect(DTLSConnectParams *pConnectParams);
 
+/**
+ * @brief 断开DTLS连接
+ *
+ * @param handle DTLS连接相关数据结构
+ * @return  返回0 表示DTLS连接成功
+ */
 void HAL_DTLS_Disconnect(uintptr_t handle);
 
 /**
- * @brief 通过TLS连接写数据
+ * @brief 通过DTLS连接写数据
  *
- * @param pParams     DTLS连接相关数据结构
+ * @param handle     DTLS连接相关数据结构
  * @param data         写入数据
  * @param datalen      写入数据长度
  * @param written_len 已写入数据长度
@@ -271,7 +278,7 @@ void HAL_DTLS_Disconnect(uintptr_t handle);
 int HAL_DTLS_Write(uintptr_t handle, const unsigned char *data, size_t datalen, size_t *written_len);
 
 /**
- * @brief 通过TLS连接读数据
+ * @brief 通过DTLS连接读数据
  *
  * @param handle     DTLS连接相关数据结构
  * @param data        读取数据
@@ -283,6 +290,7 @@ int HAL_DTLS_Write(uintptr_t handle, const unsigned char *data, size_t datalen, 
 int HAL_DTLS_Read(uintptr_t handle, unsigned char *data, size_t datalen, unsigned int timeout_ms,
                   size_t *read_len);
 
+#endif
 #endif
     
 #if defined(__cplusplus)
