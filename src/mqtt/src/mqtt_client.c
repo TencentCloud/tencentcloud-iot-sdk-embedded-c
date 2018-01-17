@@ -1,7 +1,23 @@
+/*
+ * Tencent is pleased to support the open source community by making IoT Hub available.
+ * Copyright (C) 2016 THL A29 Limited, a Tencent company. All rights reserved.
+
+ * Licensed under the MIT License (the "License"); you may not use this file except in
+ * compliance with the License. You may obtain a copy of the License at
+ * http://opensource.org/licenses/MIT
+
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is
+ * distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+ * either express or implied. See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -9,25 +25,32 @@ extern "C" {
 
 #include "mqtt_client.h"
 
-#include "qcloud_iot_utils_base64.h"
-#include "qcloud_iot_import.h"
+#include "ca.h"
 #include "device.h"
+#include "mqtt_client_json.h"
+#include "qcloud_iot_import.h"
+#include "qcloud_iot_export.h"
+#include "qcloud_iot_utils_base64.h"
+#include "qcloud_iot_utils_list.h"
 
-#define DECODE_STR_LENGTH 32
-static unsigned char dst_str[DECODE_STR_LENGTH];
-    
-static char *s_qcloud_iot_host = "connect.iot.qcloud.com";
+#define HOST_STR_LENGTH 64
+static char s_qcloud_iot_host[HOST_STR_LENGTH] = {0};
 static int s_qcloud_iot_port = 8883;
+
+static uint16_t _get_random_start_packet_id(void)
+{
+    srand((unsigned)time(NULL));
+    return rand() % 65536 + 1;
+}
 
 void* IOT_MQTT_Construct(MQTTInitParams *pParams)
 {
 	POINTER_SANITY_CHECK(pParams, NULL);
-	STRING_PTR_SANITY_CHECK(pParams->product_name, NULL);
+	STRING_PTR_SANITY_CHECK(pParams->product_id, NULL);
 	STRING_PTR_SANITY_CHECK(pParams->device_name, NULL);
-	STRING_PTR_SANITY_CHECK(pParams->client_id, NULL);
 
-	iot_device_info_init();
-	if (iot_device_info_set(pParams->product_name, pParams->device_name, pParams->client_id) != QCLOUD_ERR_SUCCESS)
+    iot_device_info_init();
+	if (iot_device_info_set(pParams->product_id, pParams->device_name) != QCLOUD_ERR_SUCCESS)
     {
         Log_e("faile to set device info!");
         return NULL;
@@ -49,34 +72,48 @@ void* IOT_MQTT_Construct(MQTTInitParams *pParams)
 	}
 
 	MQTTConnectParams connect_params = DEFAULT_MQTTCONNECT_PARAMS;
-	connect_params.client_id = pParams->client_id;
-	connect_params.username = pParams->username;
-	connect_params.password = pParams->password;
-	connect_params.keep_alive_interval = pParams->keep_alive_interval;
+	connect_params.client_id = iot_device_info_get()->client_id;
+	connect_params.keep_alive_interval = pParams->keep_alive_interval_ms / 1000;
 	connect_params.clean_session = pParams->clean_session;
 	connect_params.auto_connect_enable = pParams->auto_connect_enable;
-	connect_params.on_disconnect_handler = pParams->on_disconnect_handler;
 
 	rc = qcloud_iot_mqtt_connect(mqtt_client, &connect_params);
 	if (rc != QCLOUD_ERR_SUCCESS) {
-		Log_e("mqtt connect failed: %d", rc);
+		Log_e("mqtt connect with id: %s failed: %d", mqtt_client->options.conn_id, rc);
 		HAL_Free(mqtt_client);
 		return NULL;
+	}
+	else {
+		Log_i("mqtt connect with id: %s success", mqtt_client->options.conn_id);
 	}
 
 	return mqtt_client;
 }
 
 int IOT_MQTT_Destroy(void **pClient) {
-	POINTER_SANITY_CHECK(pClient, QCLOUD_ERR_INVAL);
+	POINTER_SANITY_CHECK(*pClient, QCLOUD_ERR_INVAL);
 
-	Qcloud_IoT_Client   *mqtt_client = (Qcloud_IoT_Client *)*pClient;
+	Qcloud_IoT_Client *mqtt_client = (Qcloud_IoT_Client *)(*pClient);
 
 	int rc = qcloud_iot_mqtt_disconnect(mqtt_client);
-	mqtt_client = NULL;
+
+#ifdef MQTT_RMDUP_MSG_ENABLED
+    reset_repeat_packet_id_buffer();
+#endif
+
+    HAL_MutexDestroy(mqtt_client->lock_generic);
+	HAL_MutexDestroy(mqtt_client->lock_write_buf);
+
+    HAL_MutexDestroy(mqtt_client->lock_list_sub);
+    HAL_MutexDestroy(mqtt_client->lock_list_pub);
+
+    list_destroy(mqtt_client->list_pub_wait_ack);
+    list_destroy(mqtt_client->list_sub_wait_ack);
 
     HAL_Free(*pClient);
     *pClient = NULL;
+
+    Log_i("mqtt release!");
 
 	return rc;
 }
@@ -110,21 +147,17 @@ int IOT_MQTT_Unsubscribe(void *pClient, char *topicFilter) {
 }
 
 bool IOT_MQTT_IsConnected(void *pClient) {
-    bool is_connected = false;
-
     IOT_FUNC_ENTRY;
 
-    if (pClient == NULL) {
-        IOT_FUNC_EXIT_RC(is_connected);
-    }
+    POINTER_SANITY_CHECK(pClient, QCLOUD_ERR_INVAL);
 
     Qcloud_IoT_Client   *mqtt_client = (Qcloud_IoT_Client *)pClient;
 
-    if (mqtt_client->is_connected == 1) {
-        is_connected = true;
-    }
+    IOT_FUNC_EXIT_RC(get_client_conn_state(mqtt_client) == 1)
+}
 
-    IOT_FUNC_EXIT_RC(is_connected);
+bool IOT_MQTT_JSON_GetAction(const char *pJsonDoc, int32_t tokenCount, char *pAction) {
+	return parse_action(pJsonDoc, tokenCount, pAction);
 }
 
 int qcloud_iot_mqtt_init(Qcloud_IoT_Client *pClient, MQTTInitParams *pParams) {
@@ -133,65 +166,96 @@ int qcloud_iot_mqtt_init(Qcloud_IoT_Client *pClient, MQTTInitParams *pParams) {
     POINTER_SANITY_CHECK(pClient, QCLOUD_ERR_INVAL);
     POINTER_SANITY_CHECK(pParams, QCLOUD_ERR_INVAL);
 
-    Log_d("client_id: %s", pParams->client_id);
-    Log_d("product_name: %s", pParams->product_name);
+    Log_d("product_id: %s", pParams->product_id);
     Log_d("device_name: %s", pParams->device_name);
+
 	memset(pClient, 0x0, sizeof(Qcloud_IoT_Client));
-	if (pParams->is_asymc_encryption) {
-	    bool certEmpty = (pParams->ca_file == NULL || pParams->cert_file == NULL || pParams->key_file == NULL);
-	    if (certEmpty) {
-	    	IOT_FUNC_EXIT_RC(QCLOUD_ERR_INVAL);
-	    }
-	    Log_d("ca file: %s", pParams->ca_file);
-	    Log_d("cert file: %s", pParams->cert_file);
-	    Log_d("key file: %s", pParams->key_file);
+
+    int size = HAL_Snprintf(s_qcloud_iot_host, HOST_STR_LENGTH, "%s", QCLOUD_IOT_MQTT_DIRECT_DOMAIN);
+    if (size < 0 || size > HOST_STR_LENGTH - 1) {
+		IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
 	}
-	else {
-	    bool pskEmpty = (pParams->psk == NULL);
-	    if (pskEmpty) {
-	    	IOT_FUNC_EXIT_RC(QCLOUD_ERR_INVAL);
-	    }
-	    Log_d("psk: %s", pParams->psk);
-	}
+
+#ifndef NOTLS_ENABLED
+    bool certEmpty = (pParams->cert_file == NULL || pParams->key_file == NULL);
+    if (certEmpty) {
+        IOT_FUNC_EXIT_RC(QCLOUD_ERR_INVAL);
+    }
+    Log_d("cert file: %s", pParams->cert_file);
+    Log_d("key file: %s", pParams->key_file);
+#endif
 
     int i = 0;
     for (i = 0; i < MAX_MESSAGE_HANDLERS; ++i) {
-        pClient->message_handlers[i].topicFilter = NULL;
-        pClient->message_handlers[i].messageHandler = NULL;
-        pClient->message_handlers[i].qos = QOS0;
-        pClient->message_handlers[i].pMessageHandlerData = NULL;
+        pClient->sub_handles[i].topic_filter = NULL;
+        pClient->sub_handles[i].message_handler = NULL;
+        pClient->sub_handles[i].qos = QOS0;
+        pClient->sub_handles[i].message_handler_data = NULL;
     }
 
+    if (pParams->command_timeout < MIN_COMMAND_TIMEOUT)
+    	pParams->command_timeout = MIN_COMMAND_TIMEOUT;
+    if (pParams->command_timeout > MAX_COMMAND_TIMEOUT)
+    	pParams->command_timeout = MAX_COMMAND_TIMEOUT;
     pClient->command_timeout_ms = pParams->command_timeout;
 
-    pClient->next_packetId = 1;
-    pClient->buf_size = QCLOUD_IOT_MQTT_TX_BUF_LEN;
+    // packet id 取随机数 1- 65536
+    pClient->next_packet_id = _get_random_start_packet_id();
+    pClient->write_buf_size = QCLOUD_IOT_MQTT_TX_BUF_LEN;
     pClient->read_buf_size = QCLOUD_IOT_MQTT_RX_BUF_LEN;
-    pClient->is_connected = 0;
     pClient->is_ping_outstanding = 0;
     pClient->was_manually_disconnected = 0;
     pClient->counter_network_disconnected = 0;
     
-    // TLS连接参数初始化
-    pClient->network_stack.tlsConnectParams.is_asymc_encryption = pParams->is_asymc_encryption;
-    pClient->network_stack.tlsConnectParams.ca_file = pParams->ca_file;
-    pClient->network_stack.tlsConnectParams.cert_file = pParams->cert_file;
-    pClient->network_stack.tlsConnectParams.key_file = pParams->key_file;
+    pClient->event_handle = pParams->event_handle;
 
-    pClient->network_stack.tlsConnectParams.psk_id = pParams->client_id;
-    // psk
-    if (pParams->psk != NULL) {
-        size_t src_len = strlen(pParams->psk);
-        size_t len;
-        memset(dst_str, 0x00, DECODE_STR_LENGTH);
-        qcloud_iot_utils_base64decode(dst_str, sizeof( dst_str ), &len, (unsigned char *)pParams->psk, src_len );
-        pClient->network_stack.tlsConnectParams.psk = (char *)dst_str;
-        pClient->network_stack.tlsConnectParams.psk_length = len;
+    pClient->lock_generic = HAL_MutexCreate();
+    if (NULL == pClient->lock_generic) {
+        IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
     }
 
-    pClient->network_stack.tlsConnectParams.host = s_qcloud_iot_host;
-    pClient->network_stack.tlsConnectParams.port = s_qcloud_iot_port;
-    pClient->network_stack.tlsConnectParams.timeout_ms = QCLOUD_IOT_TLS_HANDSHAKE_TIMEOUT;
+    set_client_conn_state(pClient, NOTCONNECTED);
+
+    if ((pClient->lock_write_buf = HAL_MutexCreate()) == NULL) {
+    	Log_e("create write buf lock failed.");
+    	goto error;
+    }
+    if ((pClient->lock_list_sub = HAL_MutexCreate()) == NULL) {
+    	Log_e("create sub list lock failed.");
+    	goto error;
+    }
+    if ((pClient->lock_list_pub = HAL_MutexCreate()) == NULL) {
+    	Log_e("create pub list lock failed.");
+    	goto error;
+    }
+
+    if ((pClient->list_pub_wait_ack = list_new()) == NULL) {
+    	Log_e("create pub wait list failed.");
+    	goto error;
+    }
+	pClient->list_pub_wait_ack->free = HAL_Free;
+
+    if ((pClient->list_sub_wait_ack = list_new()) == NULL) {
+    	Log_e("create sub wait list failed.");
+        goto error;
+    }
+	pClient->list_sub_wait_ack->free = HAL_Free;
+
+#ifndef NOTLS_ENABLED
+    // TLS连接参数初始化
+    pClient->network_stack.ssl_connect_params.is_asymc_encryption = 1;
+    pClient->network_stack.ssl_connect_params.cert_file = pParams->cert_file;
+    pClient->network_stack.ssl_connect_params.key_file = pParams->key_file;
+    pClient->network_stack.ssl_connect_params.ca_crt = iot_ca_get();
+    pClient->network_stack.ssl_connect_params.ca_crt_len = strlen(pClient->network_stack.ssl_connect_params.ca_crt);
+
+    pClient->network_stack.ssl_connect_params.host = s_qcloud_iot_host;
+    pClient->network_stack.ssl_connect_params.port = s_qcloud_iot_port;
+    pClient->network_stack.ssl_connect_params.timeout_ms = QCLOUD_IOT_TLS_HANDSHAKE_TIMEOUT;
+#else
+    pClient->network_stack.host = s_qcloud_iot_host;
+    pClient->network_stack.port = s_qcloud_iot_port;
+#endif
 
     // 底层网络操作相关的数据结构初始化
     qcloud_iot_mqtt_network_init(&(pClient->network_stack));
@@ -201,17 +265,34 @@ int qcloud_iot_mqtt_init(Qcloud_IoT_Client *pClient, MQTTInitParams *pParams) {
     InitTimer(&(pClient->reconnect_delay_timer));
 
     IOT_FUNC_EXIT_RC(QCLOUD_ERR_SUCCESS);
-}
 
-int qcloud_iot_mqtt_set_disconnect_handler(Qcloud_IoT_Client *pClient, OnDisconnectHandler on_disconnect_handler) {
-    IOT_FUNC_ENTRY;
+error:
+	if (pClient->list_pub_wait_ack) {
+		pClient->list_pub_wait_ack->free(pClient->list_pub_wait_ack);
+		pClient->list_pub_wait_ack = NULL;
+	}
+	if (pClient->list_sub_wait_ack) {
+		pClient->list_sub_wait_ack->free(pClient->list_sub_wait_ack);
+		pClient->list_sub_wait_ack = NULL;
+	}
+	if (pClient->lock_generic) {
+		HAL_MutexDestroy(pClient->lock_generic);
+		pClient->lock_generic = NULL;
+	}
+	if (pClient->lock_list_sub) {
+		HAL_MutexDestroy(pClient->lock_list_sub);
+		pClient->lock_list_sub = NULL;
+	}
+	if (pClient->lock_list_pub) {
+		HAL_MutexDestroy(pClient->lock_list_pub);
+		pClient->lock_list_pub = NULL;
+	}
+	if (pClient->lock_write_buf) {
+		HAL_MutexDestroy(pClient->lock_write_buf);
+		pClient->lock_write_buf = NULL;
+	}
 
-    if (pClient == NULL) {
-        IOT_FUNC_EXIT_RC(QCLOUD_ERR_INVAL);
-    }
-
-    pClient->options.on_disconnect_handler = on_disconnect_handler;
-    IOT_FUNC_EXIT_RC(QCLOUD_ERR_SUCCESS);
+	IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE)
 }
 
 int qcloud_iot_mqtt_set_autoreconnect(Qcloud_IoT_Client *pClient, bool value) {

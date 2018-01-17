@@ -1,125 +1,86 @@
-#This target is to ensure accidental execution of Makefile as a bash script will not execute commands like rm in unexpected directories and exit gracefully.
-.prevent_execution:
-	exit 0
+include make.settings
+include src/configs/default_settings.mk
+include src/scripts/parse_make_settings.mk
 
-#Set this to @ to keep the makefile quiet
-ifndef SILENCE
-	SILENCE = @ 
+# IoT SDK sources files defination
+COMP_LIB            := libiot_sdk.a
+COMP_LIB_COMPONENTS := \
+    src/utils/src \
+    src/device/src \
+    src/sdk-impl \
+
+$(call CompLib_Map, MQTT_COMM_ENABLED, \
+    src/mqtt/src \
+    external_libs/jsmn \
+)
+
+$(call CompLib_Map, MQTT_DEVICE_SHADOW, \
+	src/shadow/src \
+)
+
+$(call CompLib_Map, COAP_COMM_ENABLED, \
+	src/coap/src \
+)
+
+IOTSDK_SRC_FILES := \
+
+$(foreach v, \
+    $(COMP_LIB_COMPONENTS), \
+    $(eval \
+    	export IOTSDK_SRC_FILES += \
+    	$(wildcard $(TOP_DIR)/$(v)/*.c) \
+    ) \
+)
+
+# IoT Platform sources files defination
+PLATFORM_LIB		:= libiot_platform.a
+PLATFORM_LIB_COMPONENTS := \
+    src/platform/os/$(PLATFORM_OS) \
+    src/platform/ssl/mbedtls
+    
+ifeq (,$(filter -DNOTLS_ENABLED,$(CFLAGS)))
+	PLATFORM_LIB_COMPONENTS += \
+    src/platform/$(PLATFORM_OS)/mbedtls
 endif
+    
+IOTPLATFORM_SRC_FILES := \
 
-CC = gcc
-RM = rm
+$(foreach v, \
+    $(PLATFORM_LIB_COMPONENTS), \
+    $(eval \
+    	export IOTPLATFORM_SRC_FILES += \
+    	$(wildcard $(TOP_DIR)/$(v)/*.c) \
+    ) \
+)
 
-DEBUG =
+# IoT Include files defination
+COMP_LIB_COMPONENTS_INCLUDES := \
+    src/utils/include \
+    src/device/include \
+    src/sdk-impl \
+    src/sdk-impl/exports \
+    external_libs/jsmn \
+    external_libs/mbedtls/include \
+    
+$(call CompInc_Map, MQTT_COMM_ENABLED, \
+    src/mqtt/include \
+)
+$(call CompInc_Map, MQTT_DEVICE_SHADOW, src/shadow/include)
+$(call CompInc_Map, COAP_COMM_ENABLED, src/coap/include)
+    
+IOTSDK_INCLUDE_FILES := \
 
-#--- Inputs ----#
-COMPONENT_NAME = IotSdkC
+$(foreach v, \
+    $(COMP_LIB_COMPONENTS_INCLUDES), \
+    $(eval \
+    	export IOTSDK_INCLUDE_FILES += \
+    	-I$(TOP_DIR)/$(v) \
+    ) \
+)
 
-ALL_TARGETS := build-cpputest
-ALL_TARGETS_CLEAN :=
+CFLAGS += -Werror -Wall -Wno-error=sign-compare -Wno-error=format -Os ${IOTSDK_INCLUDE_FILES}
 
-CPPUTEST_USE_EXTENSIONS = Y
-CPP_PLATFORM = Gcc
-CPPUTEST_CFLAGS += -std=gnu99
-CPPUTEST_CFLAGS += -D__USE_BSD
-CPPUTEST_USE_GCOV = Y
-
-#IoT client directory
-PROJECT_ROOT_DIR = .
-
-APP_DIR = $(PROJECT_ROOT_DIR)/tests/unit
-APP_NAME = qcloud_iot_sdk_unit_tests
-APP_SRC_FILES = $(shell find $(APP_DIR)/src -name '*.cpp')
-APP_SRC_FILES = $(shell find $(APP_DIR)/src -name '*.c')
-APP_INCLUDE_DIRS = -I $(APP_DIR)/include
-
-CPPUTEST_DIR = $(PROJECT_ROOT_DIR)/libs/CppUTest
-
-# Provide paths for CppUTest to run Unit Tests otherwise build will fail
-ifndef CPPUTEST_INCLUDE
-    CPPUTEST_INCLUDE = $(CPPUTEST_DIR)/include
-endif
-
-ifndef CPPUTEST_BUILD_LIB
-    CPPUTEST_BUILD_LIB = $(CPPUTEST_DIR)/lib
-endif
-
-CPPUTEST_LDFLAGS += -ldl $(CPPUTEST_BUILD_LIB)/libCppUTest.a
-
-COMPILER_FLAGS += -DSTD_OUT
-
-EXTERNAL_LIBS += -L$(CPPUTEST_BUILD_LIB)
-
-#IoT client directory
-COMMON_DIR = $(PROJECT_ROOT_DIR)/common
-
-IOT_INCLUDE_DIRS = -I $(PROJECT_ROOT_DIR)/src/utils/include
-IOT_INCLUDE_DIRS += -I $(PROJECT_ROOT_DIR)/src/http/include
-IOT_INCLUDE_DIRS += -I $(PROJECT_ROOT_DIR)/src/shadow/include
-IOT_INCLUDE_DIRS += -I $(PROJECT_ROOT_DIR)/src/mqtt/include
-IOT_INCLUDE_DIRS += -I $(PROJECT_ROOT_DIR)/src/sdk-impl/
-IOT_INCLUDE_DIRS += -I $(PROJECT_ROOT_DIR)/src/sdk-impl/imports/
-IOT_INCLUDE_DIRS += -I $(PROJECT_ROOT_DIR)/src/sdk-impl/exports/
-IOT_INCLUDE_DIRS += -I $(PROJECT_ROOT_DIR)/tests/unit/tls_mock
-IOT_INCLUDE_DIRS += -I $(PROJECT_ROOT_DIR)/libs/jsmn
-IOT_INCLUDE_DIRS += -I $(PROJECT_ROOT_DIR)/libs/hostmatch
-
-IOT_SRC_FILES += $(shell find ./src/shadow/src/ -name '*.c')
-IOT_SRC_FILES += $(shell find ./src/utils/src/ -name '*.c')
-IOT_SRC_FILES += $(shell find ./src/http/src/ -name '*.c')
-IOT_SRC_FILES += $(shell find ./src/mqtt/src/ -name '*.c')
-IOT_SRC_FILES += $(shell find ./src/sdk-impl/ -name '*.c')
-IOT_SRC_FILES += $(shell find ./src/common/src/ -name '*.c')
-IOT_SRC_FILES += $(shell find ./libs/jsmn/ -name '*.c')
-IOT_SRC_FILES += $(shell find ./libs/hostmatch/ -name '*.c')
-IOT_SRC_FILES += $(shell find ./tests/unit/tls_mock/ -name '*.c')
-
-#Aggregate all include and src directories
-INCLUDE_DIRS += $(IOT_INCLUDE_DIRS)
-INCLUDE_DIRS += $(APP_INCLUDE_DIRS)
-INCLUDE_DIRS += $(CPPUTEST_INCLUDE)
-
-TEST_SRC_DIRS = $(APP_DIR)/src
-
-SRC_FILES += $(APP_SRC_FILES)
-SRC_FILES += $(IOT_SRC_FILES)
-
-COMPILER_FLAGS += -g
-COMPILER_FLAGS += $(LOG_FLAGS)
-PRE_MAKE_CMDS = cd $(CPPUTEST_DIR) &&
-PRE_MAKE_CMDS += ./configure &&
-PRE_MAKE_CMDS += make &&
-PRE_MAKE_CMDS += cd - &&
-PRE_MAKE_CMDS += pwd &&
-PRE_MAKE_CMDS += cp -f $(CPPUTEST_DIR)/lib/libCppUTest.a $(CPPUTEST_DIR)/libCppUTest.a &&
-PRE_MAKE_CMDS += cp -f $(CPPUTEST_DIR)/lib/libCppUTestExt.a $(CPPUTEST_DIR)/libCppUTestExt.a
-
-ISYSTEM_HEADERS += $(IOT_ISYSTEM_HEADERS)
-CPPUTEST_CPPFLAGS +=  $(ISYSTEM_HEADERS)
-CPPUTEST_CPPFLAGS +=  $(LOG_FLAGS)
-
-LCOV_EXCLUDE_PATTERN = "tests/unit/*"
-LCOV_EXCLUDE_PATTERN += "tests/integration/*"
-LCOV_EXCLUDE_PATTERN += "libs/*"
-
-#use this section for running a specific group of tests, comment this to run all
-#ONLY FOR TESTING PURPOSE
-#COMMAND_LINE_ARGUMENTS += -g CommonTests
-#COMMAND_LINE_ARGUMENTS += -v
-
-build-cpputest:
-	$(PRE_MAKE_CMDS)
-
-include CppUTestMakefileWorker.mk
-
-.PHONY: run-unit-tests
-run-unit-tests: $(ALL_TARGETS)
-	@echo $(ALL_TARGETS)
-
-.PHONY: clean
-clean:
-	$(MAKE) -C $(CPPUTEST_DIR) clean
-	$(RM) -rf build_output
-	$(RM) -rf gcov
-	$(RM) -rf objs
-	$(RM) -rf testLibs
+include src/scripts/rules.mk
+include samples/samples.mk
+include sdk-tests/unit_test/unit_test.mk
+include sdk-tests/multi_thread_test/multi_thread_test.mk

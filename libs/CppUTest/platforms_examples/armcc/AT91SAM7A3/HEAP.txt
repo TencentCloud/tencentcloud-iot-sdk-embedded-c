@@ -1,4 +1,0 @@
-Heap usage for initialization of std::cout is about 1496 bytes.
-Additional heap usage for std::cout << (double) is about 644 bytes.
-
-All heap usage for CRT + cpp + sample tests is about 10624 bytes.

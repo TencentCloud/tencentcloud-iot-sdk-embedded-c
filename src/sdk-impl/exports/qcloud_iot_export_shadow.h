@@ -1,32 +1,69 @@
-#ifndef QCLOUD_IOT_EXPORT_SHADOW_H
-#define QCLOUD_IOT_EXPORT_SHADOW_H
+/*
+ * Tencent is pleased to support the open source community by making IoT Hub available.
+ * Copyright (C) 2016 THL A29 Limited, a Tencent company. All rights reserved.
+
+ * Licensed under the MIT License (the "License"); you may not use this file except in
+ * compliance with the License. You may obtain a copy of the License at
+ * http://opensource.org/licenses/MIT
+
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is
+ * distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+ * either express or implied. See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
+#ifndef QCLOUD_IOT_EXPORT_SHADOW_H_
+#define QCLOUD_IOT_EXPORT_SHADOW_H_
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 #include "qcloud_iot_export_mqtt.h"
-#include "qcloud_iot_export_shadow_json.h"
 
 typedef struct {
-	/**
-	 * Shadow依赖MQTT，实际使用MQTT参数进行连接和消息发布订阅
-	 */
-	MQTTInitParams				mqtt;
+    /**
+     * 设备基础信息
+     */
+    char                        *product_id;            // 产品名称
+    char                        *device_name;           // 设备名称
 
-    OnMessageHandler 			onDocumentDelete;
+#ifndef NOTLS_ENABLED
+    /**
+     * 非对称加密使用
+     */
+    char                        *cert_file;              // 客户端证书文件路径
+    char                        *key_file;               // 客户端私钥文件路径
+#endif
+
+    uint32_t                    command_timeout;         // 发布订阅信令读写超时时间 ms
+    uint32_t                    keep_alive_interval_ms;  // 心跳周期, 单位: ms
+
+    uint8_t                     clean_session;           // 清理会话标志位
+
+    uint8_t                     auto_connect_enable;     // 是否开启自动重连 1:启用自动重连 0：不启用自动重连  建议为1
+
+    MQTTEventHandler            event_handle;            // 事件回调
 
 } ShadowInitParams;
 
-#define DEFAULT_SHAWDOW_INIT_PARAMS {DEFAULT_MQTTINIT_PARAMS, NULL}
+// #define DEFAULT_SHAWDOW_INIT_PARAMS {DEFAULT_MQTTINIT_PARAMS}
+
+#ifndef NOTLS_ENABLED
+    #define DEFAULT_SHAWDOW_INIT_PARAMS { NULL, NULL, NULL, NULL, 2000, 240, 1, 1, {0}}
+#else
+    #define DEFAULT_SHAWDOW_INIT_PARAMS { NULL, NULL, 2000, 240, 1, 1, {0}}
+#endif
 
 /**
  * @brief 请求响应返回的类型
  */
 typedef enum {
-    ACK_TIMEOUT,  // 请求超时
-    ACK_REJECTED, // 请求拒绝
-    ACK_ACCEPTED  // 请求接受
+    ACK_NONE = -3,      // 请求超时
+    ACK_TIMEOUT = -2,   // 请求超时
+    ACK_REJECTED = -1,  // 请求拒绝
+    ACK_ACCEPTED = 0    // 请求接受
 } RequestAck;
 
 /**
@@ -39,15 +76,41 @@ typedef enum {
 } Method;
 
 /**
+ * @brief JSON文档中支持的数据类型
+ */
+typedef enum {
+    JINT32,     // 32位有符号整型
+    JINT16,     // 16位有符号整型
+    JINT8,      // 8位有符号整型
+    JUINT32,    // 32位无符号整型
+    JUINT16,    // 16位无符号整型
+    JUINT8,     // 8位无符号整型
+    JFLOAT,     // 单精度浮点型
+    JDOUBLE,    // 双精度浮点型
+    JBOOL,      // 布尔型
+    JSTRING,    // 字符串
+    JOBJECT     // JSON对象
+} JsonDataType;
+
+/**
+ * @brief 定义设备的某个属性, 实际就是一个JSON文档节点
+ */
+typedef struct _JSONNode {
+    const char   *key;    // 该JSON节点的Key
+    void         *data;   // 该JSON节点的Value
+    JsonDataType type;    // 该JSON节点的数据类型
+} DeviceProperty;
+
+/**
  * @brief 每次文档请求响应的回调函数
  *
  * @param method         文档操作方式
  * @param requestAck     请求响应类型
  * @param pJsonDocument  云端响应返回的文档
- * @param pUserdata      用户数据
+ * @param userContext      用户数据
  *
  */
-typedef void (*OnRequestCallback)(Method method, RequestAck requestAck, const char *pJsonDocument, void *pUserdata);
+typedef void (*OnRequestCallback)(void *pClient, Method method, RequestAck requestAck, const char *pJsonDocument, void *userContext);
 
 /**
  * @brief 设备属性处理回调函数
@@ -56,7 +119,7 @@ typedef void (*OnRequestCallback)(Method method, RequestAck requestAck, const ch
  * @param valueLength      设备属性值长度
  * @param DeviceProperty   设备属性结构体
  */
-typedef void (*OnDeviceDropertyCallback)(const char *pJsonValueBuffer, uint32_t valueLength, DeviceProperty *pProperty);
+typedef void (*OnPropResigtCallback)(void *pClient, const char *pJsonValueBuffer, uint32_t valueLength, DeviceProperty *pProperty);
 
 /**
  * @brief 构造ShadowClient
@@ -68,12 +131,44 @@ typedef void (*OnDeviceDropertyCallback)(const char *pJsonValueBuffer, uint32_t 
 void* IOT_Shadow_Construct(ShadowInitParams *pParams);
 
 /**
+ * @brief 发布MQTT消息
+ *
+ * @param handle        Shadow客户端结构体
+ * @param topicName     主题名
+ * @param pParams       发布参数
+ * @return < 0  :   表示失败
+ *         >= 0 :   返回唯一的packet id 
+ */
+int IOT_Shadow_Publish(void *handle, char *topicName, PublishParams *pParams);
+
+/**
+ * @brief 订阅MQTT消息
+ *
+ * @param handle        Shadow客户端结构体
+ * @param topicName     主题名
+ * @param pParams       发布参数
+ * @return <  0  :   表示失败
+ *         >= 0 :   返回唯一的packet id
+ */
+int IOT_Shadow_Subscribe(void *handle, char *topicFilter, SubscribeParams *pParams);
+
+/**
+ * @brief 取消订阅MQTT消息
+ *
+ * @param handle        Shadow客户端结构体
+ * @param topicName     主题名
+ * @return <  0  :   表示失败
+ *         >= 0 :   返回唯一的packet id
+ */
+int IOT_Shadow_Unsubscribe(void *handle, char *topicFilter);
+
+/**
  * @brief 客户端目前是否已连接
  *
  * @param pClient Shadow Client结构体
  * @return 返回true, 表示客户端已连接
  */
-bool IOT_Shadow_IsConnected(void *pClient);
+bool IOT_Shadow_IsConnected(void *handle);
 
 /**
  * @brief 销毁ShadowClient 关闭MQTT连接
@@ -82,7 +177,7 @@ bool IOT_Shadow_IsConnected(void *pClient);
  *
  * @return 返回QCLOUD_ERR_SUCCESS, 表示成功
  */
-int IOT_Shadow_Destroy(void *pClient);
+int IOT_Shadow_Destroy(void *handle);
 
 /**
  * @brief 消息接收, 心跳包管理, 超时请求处理
@@ -90,82 +185,107 @@ int IOT_Shadow_Destroy(void *pClient);
  * @param timeout_ms 超时时间, 单位:ms
  * @return           返回QCLOUD_ERR_SUCCESS, 表示调用成功
  */
-int IOT_Shadow_Yield(void *pClient, uint32_t timeout_ms);
+int IOT_Shadow_Yield(void *handle, uint32_t timeout_ms);
 
 /**
- * @brief 更新设备影子文档
+ * @brief 异步方式更新设备影子文档
  *
- * @param pClient       Client结构体
- * @param pJsonDoc      更新到云端的设备文档
- * @param callback      请求响应处理回调函数
- * @param pUserdata     用户数据, 请求响应返回时通过回调函数返回
- * @param timeout_sec   请求超时时间, 单位:s
- * @return              返回QCLOUD_ERR_SUCCESS, 表示请求成功
+ * @param pClient           Client结构体
+ * @param pJsonDoc          更新到云端的设备文档
+ * @param sizeOfBuffer      文档长度
+ * @param callback          请求响应处理回调函数
+ * @param userContext       用户数据, 请求响应返回时通过回调函数返回
+ * @param timeout_ms        请求超时时间, 单位:ms
+ * @return                  返回QCLOUD_ERR_SUCCESS, 表示请求成功
  */
-int IOT_Shadow_Update(void *pClient, char *pJsonDoc, OnRequestCallback callback, void *pUserdata,
-		uint8_t timeout_sec);
+int IOT_Shadow_Update(void *handle, char *pJsonDoc, size_t sizeOfBuffer, OnRequestCallback callback, void *userContext, uint32_t timeout_ms);
+
+/**
+ * @brief 同步方式更新设备影子文档
+ *
+ * @param pClient           Client结构体
+ * @param pJsonDoc          更新到云端的设备文档
+ * @param sizeOfBuffer      文档长度
+ * @param timeout_ms        请求超时时间, 单位:ms
+ * @return                  QCLOUD_ERR_SUCCESS 请求成功
+ *                          QCLOUD_ERR_SHADOW_UPDATE_TIMEOUT 请求超时
+ *                          QCLOUD_ERR_SHADOW_UPDATE_REJECTED 请求被拒绝
+ */
+int IOT_Shadow_Update_Sync(void *handle, char *pJsonDoc, size_t sizeOfBuffer, uint32_t timeout_ms);
 
 /**
  * @brief 获取设备影子文档
  *
- * @param pClient       Client结构体
- * @param callback      请求响应处理回调函数
- * @param pUserdata     用户数据, 请求响应返回时通过回调函数返回
- * @param timeout_sec   请求超时时间, 单位:s
- * @return              返回QCLOUD_ERR_SUCCESS, 表示请求成功
+ * @param pClient           Client结构体
+ * @param callback          请求响应处理回调函数
+ * @param userContext       用户数据, 请求响应返回时通过回调函数返回
+ * @param timeout_ms        请求超时时间, 单位:s
+ * @return                  返回QCLOUD_ERR_SUCCESS, 表示请求成功
  */
-int IOT_Shadow_Get(void *pClient, OnRequestCallback callback, void *pUserdata, uint8_t timeout_sec);
+int IOT_Shadow_Get(void *handle, OnRequestCallback callback, void *userContext, uint32_t timeout_ms);
 
 /**
- * @brief 删除设备影子文档
+ * @brief 获取设备影子文档
  *
- * @param pClient       Client结构体
- * @param callback      请求响应处理回调函数
- * @param pUserdata     用户数据, 请求响应返回时通过回调函数返回
- * @param timeout_sec   请求超时时间, 单位:s
- * @return              返回QCLOUD_ERR_SUCCESS, 表示请求成功
+ * @param pClient           Client结构体
+ * @param timeout_ms        请求超时时间, 单位:s
+ * @return                  QCLOUD_ERR_SUCCESS 请求成功
+ *                          QCLOUD_ERR_SHADOW_GET_TIMEOUT 请求超时
+ *                          QCLOUD_ERR_SHADOW_GET_REJECTED 请求被拒绝
  */
-int IOT_Shadow_Delete(void *pClient, OnRequestCallback callback, void *pUserdata, uint8_t timeout_sec);
-
-/**
- * @brief 订阅设备影子文档更新成功的消息
- *
- * 当设备影子文件更新成功后, 服务器会发布`$shadow/update/documents`消息
- *
- * @param pClient       Client结构体
- * @param callback      消息回调处理函数
- * @return              返回QCLOUD_ERR_SUCCESS, 表示成功
- */
-int IOT_Shadow_Register_Update_Documents(void *pClient, OnMessageHandler callback);
+int IOT_Shadow_Get_Sync(void *handle, uint32_t timeout_ms);
 
 /**
  * @brief 注册当前设备的设备属性
  *
- * 如果客户端还未向云端订阅delta消息, 那么首先会向云端订阅该消息; 同时, SDK会保存设备属性,
- * 当云端发送delta消息给客户端时, SDK会检测delta消息中是否存在已登记属性的更新操作
- *
  * @param pClient    Client结构体
- * @param pProperty  设备属性, 例如灯的开关
+ * @param pProperty  设备属性
  * @param callback   设备属性更新回调处理函数
  * @return           返回QCLOUD_ERR_SUCCESS, 表示请求成功
  */
-int IOT_Shadow_Register_Property(void *pClient, DeviceProperty *pProperty, OnDeviceDropertyCallback callback);
+int IOT_Shadow_Register_Property(void *handle, DeviceProperty *pProperty, OnPropResigtCallback callback);
 
 /**
- * @brief 是否开启废弃旧的delta消息功能
- * @param enable 是否开启
- */
-void IOT_Shadow_Discard_Old_Delta(bool enable);
-
-/**
- * @brief 获取本地设备文档版本号
+ * @brief 删除已经注册过的设备属性
  *
- * @return 文档版本号
+ * @param pClient    Client结构体
+ * @param pProperty  设备属性
+ * @return           返回QCLOUD_ERR_SUCCESS, 表示请求成功
  */
-uint32_t IOT_Shadow_Get_Document_Version(void);
+int IOT_Shadow_UnRegister_Property(void *handle, DeviceProperty *pProperty);
+
+/**
+ * @brief 在JSON文档中添加reported字段
+ *
+ *
+ * @param jsonBuffer    为存储JSON文档准备的字符串缓冲区
+ * @param sizeOfBuffer  缓冲区大小
+ * @param count         可变参数的个数, 即需上报的设备属性的个数
+ * @return              返回QCLOUD_ERR_SUCCESS, 表示成功
+ */
+int IOT_Shadow_JSON_ConstructReport(void *handle, char *jsonBuffer, size_t sizeOfBuffer, uint8_t count, ...);
+
+/**
+ * @brief 在JSON文档中添加reported字段，同时清空desired字段
+ *
+ *
+ * @param jsonBuffer    为存储JSON文档准备的字符串缓冲区
+ * @param sizeOfBuffer  缓冲区大小
+ * @param count         可变参数的个数, 即需上报的设备属性的个数
+ * @return              返回QCLOUD_ERR_SUCCESS, 表示成功
+ */
+int IOT_Shadow_JSON_ConstructReportAndDesireAllNull(void *handle, char *jsonBuffer, size_t sizeOfBuffer, uint8_t count, ...);
+
+/**
+ * @brief 在JSON文档中添加 "desired": null 字段
+ *
+ * @param jsonBuffer   为存储JSON文档准备的字符串缓冲区
+ * @param sizeOfBuffer  缓冲区大小
+ */
+int IOT_Shadow_JSON_ConstructDesireAllNull(void *handle, char *jsonBuffer, size_t sizeOfBuffer);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* QCLOUD_IOT_EXPORT_SHADOW_H */
+#endif /* QCLOUD_IOT_EXPORT_SHADOW_H_ */

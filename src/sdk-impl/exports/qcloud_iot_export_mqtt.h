@@ -1,5 +1,20 @@
-#ifndef QCLOUD_IOT_EXPORT_MQTT_H
-#define QCLOUD_IOT_EXPORT_MQTT_H
+/*
+ * Tencent is pleased to support the open source community by making IoT Hub available.
+ * Copyright (C) 2016 THL A29 Limited, a Tencent company. All rights reserved.
+
+ * Licensed under the MIT License (the "License"); you may not use this file except in
+ * compliance with the License. You may obtain a copy of the License at
+ * http://opensource.org/licenses/MIT
+
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is
+ * distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+ * either express or implied. See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
+#ifndef QCLOUD_IOT_EXPORT_MQTT_H_
+#define QCLOUD_IOT_EXPORT_MQTT_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -28,23 +43,21 @@ typedef struct {
     uint8_t     retained;     // RETAIN 标识位
     uint8_t     dup;          // DUP 标识位
     uint16_t    id;           // MQTT 消息标识符
+    const char  *ptopic;      // MQTT topic
+    size_t      topic_len;    // topic 长度
     void        *payload;     // MQTT 消息负载
     size_t      payload_len;  // MQTT 消息负载长度
 } MQTTMessage;
 
 typedef MQTTMessage PublishParams;
 
-#define DefaultPubParams {QOS0, 0, 0, 0, NULL, 0}
+#define DEFAULT_PUB_PARAMS {QOS0, 0, 0, 0, NULL, 0, NULL, 0}
 
-/**
- * @brief MQTT 连接断开回调处理函数指针定义
- */
-typedef void (*OnDisconnectHandler)(void);
 
 /**
  * @brief MQTT PUBLISH 消息回调处理函数指针定义
  */
-typedef void (*OnMessageHandler)(char *topicName, uint16_t topicNameLen, MQTTMessage *message, void *pApplicationHandlerData);
+typedef void (*OnMessageHandler)(void *pClient, MQTTMessage *message, void *pApplicationHandlerData);
 
 /**
  * @brief 订阅主题的结构体定义
@@ -52,7 +65,7 @@ typedef void (*OnMessageHandler)(char *topicName, uint16_t topicNameLen, MQTTMes
 typedef struct {
     QoS                     qos;                    // 服务质量等级, 目前支持QOS0和QOS1
     OnMessageHandler        on_message_handler;     // 接收已订阅消息的回调函数
-    void                    *pUserdata;             // 用户数据, 通过callback返回
+    void                    *user_data;             // 用户数据, 通过callback返回
 } SubscribeParams;
 
 /**
@@ -60,46 +73,111 @@ typedef struct {
  */
 #define DEFAULT_SUB_PARAMS {QOS0, NULL, NULL}
 
+typedef enum {
+
+    /* 未定义事件 */
+    MQTT_EVENT_UNDEF = 0,
+
+    /* MQTT 断开连接 */
+    MQTT_EVENT_DISCONNECT = 1,
+
+    /* MQTT 重连 */
+    MQTT_EVENT_RECONNECT = 2,
+
+    /* 订阅成功 */
+    MQTT_EVENT_SUBCRIBE_SUCCESS = 3,
+
+    /* 订阅超时 */
+    MQTT_EVENT_SUBCRIBE_TIMEOUT = 4,
+
+    /* 订阅失败 */
+    MQTT_EVENT_SUBCRIBE_NACK = 5,
+
+    /* 取消订阅成功 */
+    MQTT_EVENT_UNSUBCRIBE_SUCCESS = 6,
+
+    /* 取消订阅超时 */
+    MQTT_EVENT_UNSUBCRIBE_TIMEOUT = 7,
+
+    /* 取消订阅失败 */
+    MQTT_EVENT_UNSUBCRIBE_NACK = 8,
+
+    /* 发布成功 */
+    MQTT_EVENT_PUBLISH_SUCCESS = 9,
+
+    /* 发布超时 */
+    MQTT_EVENT_PUBLISH_TIMEOUT = 10,
+
+    /* 发布失败 */
+    MQTT_EVENT_PUBLISH_NACK = 11,
+
+    /* SDK订阅的topic收到后台push消息 */
+    MQTT_EVENT_PUBLISH_RECVEIVED = 12,
+
+
+} MQTTEventType;
+
+
+typedef struct {
+    /* 事件类型 */
+    MQTTEventType  event_type;
+
+    void *msg;
+} MQTTEventMsg;
+
+/**
+ * @brief 定义了函数指针的数据类型. 当相关事件发生时，将调用这种类型的函数.
+ *
+ * @param context, the program context
+ * @param pclient, the MQTT client
+ * @param msg, the event message.
+ *
+ * @return none
+ */
+typedef void (*MQTTEventHandleFun)(void *pclient, void *handle_context, MQTTEventMsg *msg);
+
+
+/* The structure of MQTT event handle */
+typedef struct {
+    MQTTEventHandleFun      h_fp;
+    void                    *context;
+} MQTTEventHandler;
+
 typedef struct {
 	/**
 	 * 设备基础信息
 	 */
-    char            			*client_id;            	// 客户端标识符, 请保持唯一
-    char            			*username;             	// 用户名
-    char            			*password;             	// 密码
-    char 						*product_name;			// 产品名称
+    char 						*product_id;			// 产品名称
     char 						*device_name;			// 设备名称
 
+#ifndef NOTLS_ENABLED
 	/**
 	 * 非对称加密使用
 	 */
-    char                        *ca_file;                // 根证书文件路径, 用于校验服务端证书
     char                        *cert_file;              // 客户端证书文件路径
     char                        *key_file;               // 客户端私钥文件路径
 
-    /**
-     * 对称加密使用
-     */
-    char                      	*psk;                    // 对称加密密钥
+#endif
 
-    uint32_t					command_timeout;		 // 发布订阅信令读写超时时间
-    uint32_t					connect_timeout;		 // 连接超时时间，tls表示握手超时时间
-    uint16_t					keep_alive_interval;	 // 心跳周期, 单位: s
+    uint32_t					command_timeout;		 // 发布订阅信令读写超时时间 ms
+    uint32_t					keep_alive_interval_ms;	 // 心跳周期, 单位: ms
 
     uint8_t         			clean_session;			 // 清理会话标志位
 
     uint8_t                   	auto_connect_enable;     // 是否开启自动重连 1:启用自动重连 0：不启用自动重连  建议为1
 
-    bool						is_asymc_encryption;	 // 是否使用非对称加密 1:非对称 0:对称
-
-    OnDisconnectHandler       	on_disconnect_handler;   // 连接断开或丢失的回调函数指针
+    MQTTEventHandler            event_handle;            // 事件回调
 
 } MQTTInitParams;
 
 /**
  * MQTT初始化参数结构体默认值定义
  */
-#define DEFAULT_MQTTINIT_PARAMS { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 2000, 5000, 240, 1, 0, 0, NULL}
+#ifndef NOTLS_ENABLED
+	#define DEFAULT_MQTTINIT_PARAMS { NULL, NULL, NULL, NULL, 2000, 240 * 1000, 1, 1, {0}}
+#else
+	#define DEFAULT_MQTTINIT_PARAMS { NULL, NULL, 2000, 240 * 1000, 1, 1, {0}}
+#endif
 
 /**
  * @brief 构造MQTTClient并完成MQTT连接
@@ -136,7 +214,8 @@ int IOT_MQTT_Yield(void *pClient, uint32_t timeout_ms);
  * @param pClient MQTT客户端结构体
  * @param topicName 主题名
  * @param pParams 发布参数
- * @return 返回QCLOUD_ERR_SUCCESS, 表示成功
+ * @return < 0  :   表示失败
+ *         >= 0 :   返回唯一的packet id 
  */
 int IOT_MQTT_Publish(void *pClient, char *topicName, PublishParams *pParams);
 
@@ -146,7 +225,8 @@ int IOT_MQTT_Publish(void *pClient, char *topicName, PublishParams *pParams);
  * @param pClient MQTT客户端结构体
  * @param topicFilter 主题过滤器, 可参考MQTT协议说明 4.7
  * @param pParams 订阅参数
- * @return 返回QCLOUD_ERR_SUCCESS, 表示成功
+ * @return <  0  :   表示失败
+ *         >= 0 :   返回唯一的packet id 
  */
 int IOT_MQTT_Subscribe(void *pClient, char *topicFilter, SubscribeParams *pParams);
 
@@ -155,7 +235,8 @@ int IOT_MQTT_Subscribe(void *pClient, char *topicFilter, SubscribeParams *pParam
  *
  * @param pClient MQTT客户端结构体
  * @param topicFilter  主题过滤器, 可参考MQTT协议说明 4.7
- * @return 返回QCLOUD_ERR_SUCCESS, 表示成功
+ * @return <  0  :   表示失败
+ *         >= 0 :   返回唯一的packet id
  */
 int IOT_MQTT_Unsubscribe(void *pClient, char *topicFilter);
 
@@ -167,8 +248,18 @@ int IOT_MQTT_Unsubscribe(void *pClient, char *topicFilter);
  */
 bool IOT_MQTT_IsConnected(void *pClient);
 
+/**
+ * @brief 从JSON文档中解析出action字段
+ *
+ * @param pJsonDoc        待解析的JSON文档
+ * @param tokenCount      JSONToken的个数
+ * @param pAction         action字段
+ * @return                返回true, 表示解析成功
+ */
+bool IOT_MQTT_JSON_GetAction(const char *pJsonDoc, int32_t tokenCount, char *pAction);
+
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* QCLOUD_IOT_EXPORT_MQTT_H */
+#endif /* QCLOUD_IOT_EXPORT_MQTT_H_ */

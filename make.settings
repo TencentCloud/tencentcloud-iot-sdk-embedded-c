@@ -1,0 +1,18 @@
+BUILD_TYPE                  	= release 			#release
+
+PLATFORM_CC                 	= gcc
+PLATFORM_AR                 	= ar
+PLATFORM_OS                 	= linux
+
+#
+# Uncomment below and specify PATH to your toolchain when cross-compile SDK
+#
+# PLATFORM_CC                 = /home/shock/openwrt/packages/toolchain/mipsel-linux-gcc
+# PLATFORM_AR                 = /home/shock/openwrt/packages/toolchain/mipsel-linux-ar
+# PLATFORM_CC                 = armcc
+# PLATFORM_AR                 = armar
+
+FEATURE_MQTT_COMM_ENABLED   	= y
+FEATURE_COAP_COMM_ENABLED   	= y
+FEATURE_SDKTESTS_ENABLED		= n
+FEATURE_MQTT_RMDUP_MSG_ENABLED  = n

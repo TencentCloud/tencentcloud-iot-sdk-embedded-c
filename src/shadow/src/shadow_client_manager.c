@@ -1,3 +1,18 @@
+/*
+ * Tencent is pleased to support the open source community by making IoT Hub available.
+ * Copyright (C) 2016 THL A29 Limited, a Tencent company. All rights reserved.
+
+ * Licensed under the MIT License (the "License"); you may not use this file except in
+ * compliance with the License. You may obtain a copy of the License at
+ * http://opensource.org/licenses/MIT
+
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is
+ * distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+ * either express or implied. See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -9,36 +24,29 @@ extern "C" {
 
 #include "shadow_client.h"
 
-#include "qcloud_iot_export_shadow_json.h"
 #include "qcloud_iot_sdk_impl_internal.h"
-#include "qcloud_iot_json_utils.h"
+#include "qcloud_iot_utils_json.h"
 #include "qcloud_iot_import.h"
+#include "qcloud_iot_utils_list.h"
+#include "shadow_client_json.h"
 
 #define MAX_TOPICS_AT_ANY_GIVEN_TIME 2 * MAX_DEVICE_HANDLED_AT_ANY_GIVEN_TIME
 #define SUBSCRIBE_WAITING_TIME 2
+
+#define min(a,b) (a) < (b) ? (a) : (b)
 
 /**
  * @brief 代表一个文档请求
  */
 typedef struct {
-    char                   client_token[MAX_SIZE_OF_CLIENT_TOKEN];    // 标识该请求的clientToken字段
-    Method                 method;                                    // 文档操作方式
+    char                   client_token[MAX_SIZE_OF_CLIENT_TOKEN];          // 标识该请求的clientToken字段
+    Method                 method;                                          // 文档操作方式
 
-    void                   *user_data;                                // 用户数据
-    bool                   is_free;                                   // 标识是否为空闲状态
-    Timer                  timer;                                     // 请求超时定时器
+    void                   *user_context;                                   // 用户数据
+    Timer                  timer;                                           // 请求超时定时器
 
-    OnRequestCallback      callback;                                  // 文档操作请求返回处理函数
+    OnRequestCallback      callback;                                        // 文档操作请求返回处理函数
 } Request;
-
-/**
- * @brief 客户端订阅主题的结构体定义
- */
-typedef struct {
-    char       topic[MAX_SIZE_OF_CLOUD_TOPIC]; // 订阅主题名
-    uint8_t    count;                          // 该订阅主题的订阅次数
-    bool       is_free;                        // 该结构体是否处于空闲状态, 用遍历数组的时候判断元素是否被赋值
-} Subscription;
 
 /**
  * @brief 用于生成不同的主题
@@ -47,534 +55,598 @@ typedef enum {
     ACCEPTED, REJECTED, METHOD
 } RequestType;
 
-//Qcloud_IoT_Client *pMqttClient;
+static char cloud_rcv_buf[CLOUD_IOT_JSON_RX_BUF_LEN];
 
-/**
- * @brief 记录订阅的主题
- */
-static Subscription sg_subscriptions[MAX_TOPICS_AT_ANY_GIVEN_TIME];
-
-/**
- * @brief 保存所有设备注册属性的回调方法
- */
-static Request sg_pending_requests[MAX_APPENDING_REQUEST_AT_ANY_GIVEN_TIME];
-
-static char cloud_rcv_buf[CLOUD_RX_BUF_LEN];
-   
-/**
- * @brief 最近收到的文档的版本号
- */
-uint32_t json_document_version = 0;
-    
 bool discard_old_delta_flag = true;
-uint32_t client_token_num = 0;
-    
-/**
- * @brief 根据参数生成不同的topic
- *
- * 生成的topic如下:
- *     /get
- *     /get/accepted
- *     /get/rejected
- *     /update
- *     /update/accepted
- *     /update/rejected
- *     /delete
- *     /delete/accepted
- *     /delete/rejected
- *
- * @param pTopic         生成的topic
- * @param pDeviceName    操作设备的名称
- * @param method         文档操作方式
- * @param requestType    topic类型
- */
-static void _get_topic(char *pTopic, int topicSize, Method method, RequestType requestType) {
 
-    char methodStr[10];
-    char reqTypeStr[10];
+typedef void (*TraverseHandle)(Qcloud_IoT_Shadow *pShadow, ListNode **node, List *list, const char *pClientToken, const int32_t tokenCount, const char *pType);
 
-    if (method == GET) {
-        strcpy(methodStr, "get");
-    } else if (method == UPDATE) {
-        strcpy(methodStr, "update");
-    } else if (method == DELETE) {
-        strcpy(methodStr, "delete");
+static bool _is_need_to_update_version_num(const char *pTopic, const char *pType);
+
+static void _on_operation_result_handler(void *pClient, MQTTMessage *message, void *pUserdata);
+
+static void _handle_delta(Qcloud_IoT_Shadow *pShadow, const int32_t tokenCount);
+
+static int _set_shadow_json_type(char *pJsonDoc, size_t sizeOfBuffer, Method method);
+
+static int _publish_operation_to_cloud(Qcloud_IoT_Shadow *pShadow, Method method, char *pJsonDoc);
+
+static int _add_request_to_list(Qcloud_IoT_Shadow *pShadow, const char *pClientToken, RequestParams *pParams);
+
+static int _unsubscribe_operation_result_to_cloud(void *pClient);
+
+static void _traverse_list(Qcloud_IoT_Shadow *pShadow, List *list, const char *pClientToken, const int32_t tokenCount, const char *pType, TraverseHandle traverseHandle);
+
+static void _handle_request_callback(Qcloud_IoT_Shadow *pShadow, ListNode **node, List *list, const char *pClientToken, const int32_t tokenCount, const char *pType);
+
+static void _handle_expired_request_callback(Qcloud_IoT_Shadow *pShadow, ListNode **node, List *list, const char *pClientToken, const int32_t tokenCount, const char *pType);
+
+int qcloud_iot_shadow_init(Qcloud_IoT_Shadow *pShadow) {
+	IOT_FUNC_ENTRY;
+
+    POINTER_SANITY_CHECK(pShadow, QCLOUD_ERR_INVAL);
+
+    pShadow->inner_data.version = 0;
+
+    pShadow->mutex = HAL_MutexCreate();
+    if (pShadow->mutex == NULL)
+        IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
+
+    pShadow->inner_data.property_handle_list = list_new();
+    if (pShadow->inner_data.property_handle_list)
+    {
+        pShadow->inner_data.property_handle_list->free = HAL_Free;
+    }
+    else {
+    	Log_e("no memory to allocate property_handle_list");
+    	IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
     }
 
-    if (requestType == ACCEPTED) {
-        strcpy(reqTypeStr, "accepted");
-    } else if (requestType == REJECTED) {
-        strcpy(reqTypeStr, "rejected");
-    }
-
-    if (requestType == METHOD) {
-        stiching_shadow_topic(pTopic, topicSize, methodStr);
-    } else {
-        char str[MAX_SIZE_OF_CLOUD_TOPIC_WITHOUT_DEVICE_NAME];
-        sprintf(str, "%s/%s",methodStr, reqTypeStr);
-        stiching_shadow_topic(pTopic, topicSize, str);
-    }
-}
-
-/**
- * 获取某个主题在已订阅主题列表中的索引位置
- *
- * @param pTopic 查询的主题名
- * @return 索引位置
- */
-static int16_t _get_index_in_subscription_list(const char *pTopic) {
-
-    uint8_t i;
-
-    for (i = 0; i < MAX_TOPICS_AT_ANY_GIVEN_TIME; i++) {
-        if (!sg_subscriptions[i].is_free) {
-            if ((strcmp(pTopic, sg_subscriptions[i].topic) == 0)) {
-                return i;
-            }
-        }
-    }
-
-    return -1;
-}
-
-/**
- * 是否需要更新 本设备 的文档版本号
- *
- * @param pTopicName
- * @return
- */
-static bool _is_need_update_version_for_self(const char *pTopicName) {
-
-    if (strstr(pTopicName, iot_device_info_get()->device_name) != NULL) {
-        if (strstr(pTopicName, "get/accepted") != NULL || strstr(pTopicName, "delta") != NULL) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-/**
- * 若某个文档请求之前有请求过, 则增加相应topic的订阅次数
- *
- * @param method      文档操作方式
- */
-static void _increment_subscription_cnt(Method method) {
-
-    uint8_t i;
-    char accepted_topic[MAX_SIZE_OF_CLOUD_TOPIC] = {0};
-    char rejected_topic[MAX_SIZE_OF_CLOUD_TOPIC] = {0};
-
-    _get_topic(accepted_topic, sizeof(accepted_topic), method, ACCEPTED);
-    _get_topic(rejected_topic, sizeof(rejected_topic), method, REJECTED);
-
-    for (i = 0; i < MAX_TOPICS_AT_ANY_GIVEN_TIME; i++) {
-        if (!sg_subscriptions[i].is_free) {
-            if ((strcmp(accepted_topic, sg_subscriptions[i].topic) == 0)) {
-                Log_d("increment accepted_topic count=%d", ++(sg_subscriptions[i].count));
-            }
-            else if ((strcmp(rejected_topic, sg_subscriptions[i].topic) == 0)) {
-            	Log_d("increment rejected_topic count=%d", ++(sg_subscriptions[i].count));
-            }
-        }
-    }
-}
-
-/**
- * 文档请求之前有请求过, 减少相应topic的订阅次数
- *
- * @param index      pending request index，使用该index取出request，再构建topic找到subscription
- */
-static void _decrement_subscription_cnt(uint8_t index) {
-
-    char accepted_topic[MAX_SIZE_OF_CLOUD_TOPIC];
-    char rejected_topic[MAX_SIZE_OF_CLOUD_TOPIC];
-
-    Request request = sg_pending_requests[index];
-    _get_topic(accepted_topic, sizeof(accepted_topic), request.method, ACCEPTED);
-    _get_topic(rejected_topic, sizeof(rejected_topic), request.method, REJECTED);
-
-    int16_t i = _get_index_in_subscription_list(accepted_topic);
-    if (i >= 0) {
-		sg_subscriptions[i].count--;
-		Log_d("decrement accepted_topic count=%d", sg_subscriptions[i].count);
-    }
-
-    i = _get_index_in_subscription_list(rejected_topic);
-    if (i >= 0) {
-		sg_subscriptions[i].count--;
-		Log_d("decrement rejected_topic count=%d", sg_subscriptions[i].count);
-    }
-}
-
-
-/**
- * 文档操作请求响应回调函数
- * 成功订阅accepted和rejected主题之后，如果收到对应的accept/rejected消息则调用此方法 
- *
- * @param params
- */
-static void _on_accepted_rejected_message_handler(char *topicName, uint16_t topicNameLen, MQTTMessage *params, void *pUserdata) {
-    int32_t tokenCount;
-    uint8_t i;
-    char client_token[MAX_SIZE_OF_CLIENT_TOKEN];
-
-    STRING_PTR_SANITY_CHECK_RTN(topicName);
-	POINTER_SANITY_CHECK_RTN(params);
-	NUMBERIC_SANITY_CHECK_RTN(topicNameLen);
-    if (params->payload_len > CLOUD_RX_BUF_LEN) {
-        return;
-    }
-
-    memcpy(cloud_rcv_buf, params->payload, params->payload_len);
-    cloud_rcv_buf[params->payload_len] = '\0';    // jsmn_parse relies on a string
-
-    if (!check_and_parse_json(cloud_rcv_buf, &tokenCount, NULL)) {
-        Log_w("Received JSON is not valid");
-        return;
-    }
-    
-    if (_is_need_update_version_for_self(topicName)) {
-        uint32_t version_num = 0;
-        if (parse_version_num(cloud_rcv_buf, tokenCount, &version_num)) {
-            if (version_num > json_document_version) {
-                json_document_version = version_num;
-            }
-        }
-    }
-
-    if (!parse_client_token(cloud_rcv_buf, tokenCount, client_token)) return;
-
-	for (i = 0; i < MAX_APPENDING_REQUEST_AT_ANY_GIVEN_TIME; i++) {
-
-		if (!sg_pending_requests[i].is_free && (strcmp(sg_pending_requests[i].client_token, client_token) == 0)) {
-			RequestAck status = ACK_TIMEOUT;
-			if (strstr(topicName, "accepted") != NULL) {
-				status = ACK_ACCEPTED;
-			} else if (strstr(topicName, "rejected") != NULL) {
-				status = ACK_REJECTED;
-			}
-			if (status == ACK_ACCEPTED || status == ACK_REJECTED) {
-				if (sg_pending_requests[i].callback != NULL) {
-					sg_pending_requests[i].callback(sg_pending_requests[i].method, status, cloud_rcv_buf, sg_pending_requests[i].user_data);
-				}
-				sg_pending_requests[i].is_free = true;
-
-				_decrement_subscription_cnt(i);
-			}
-		}
+	pShadow->inner_data.request_list = list_new();
+	if (pShadow->inner_data.request_list)
+	{
+		pShadow->inner_data.request_list->free = HAL_Free;
+	} else {
+		Log_e("no memory to allocate request_list");
+		IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
 	}
+
+	IOT_FUNC_EXIT_RC(QCLOUD_ERR_SUCCESS);
 }
 
-/**
- * 获取已订阅主题列表中的空闲位置
- *
- * @return
- */
-static int16_t _get_free_index_in_subscription_list(void) {
-    uint8_t i;
+void qcloud_iot_shadow_reset(void *pClient) {
+    POINTER_SANITY_CHECK_RTN(pClient);
 
-    for (i = 0; i < MAX_TOPICS_AT_ANY_GIVEN_TIME; i++) {
-        if (sg_subscriptions[i].is_free) {
-            sg_subscriptions[i].is_free = false;
-            return i;
-        }
-    }
-    return -1;
-}
-
-
-/**
- * 判断相应文档请求对应的ACCEPT和REJECT主题是否已经被订阅
- *
- * @param Method            文档操作方式
- */
-static bool _has_subscribe_accept_reject_to_cloud(Method method) {
-
-    uint8_t i = 0;
-    bool accepted = false;
-    bool rejected = false;
-    char accepted_topic[MAX_SIZE_OF_CLOUD_TOPIC] = {0};
-    char rejected_topic[MAX_SIZE_OF_CLOUD_TOPIC] = {0};
-
-    _get_topic(accepted_topic, sizeof(accepted_topic), method, ACCEPTED);
-    _get_topic(rejected_topic, sizeof(rejected_topic), method, REJECTED);
-
-    for (i = 0; i < MAX_TOPICS_AT_ANY_GIVEN_TIME; i++) {
-        if (!sg_subscriptions[i].is_free) {
-            if ((strcmp(accepted_topic, sg_subscriptions[i].topic) == 0)) {
-                accepted = true;
-            } else if ((strcmp(rejected_topic, sg_subscriptions[i].topic) == 0)) {
-                rejected = true;
-            }
-        }
+    Qcloud_IoT_Shadow *shadow_client = (Qcloud_IoT_Shadow *)pClient;
+    if (shadow_client->inner_data.property_handle_list) {
+        list_destroy(shadow_client->inner_data.property_handle_list);
     }
 
-    return (rejected && accepted);
-}
+    _unsubscribe_operation_result_to_cloud(shadow_client->mqtt);
 
-/**
- * 订阅相应设备的文档accepted和rejected主题
- *
- * @param pClient	   Qcloud_IoT_Client对象
- * @param method       文档操作方式
- * @return             返回QCLOUD_ERR_SUCCESS表示订阅成功
- */
-static int _subscribe_accepted_rejected_to_cloud(void* pClient, Method method) {
-
-    IOT_FUNC_ENTRY;
-    int rc = QCLOUD_ERR_SUCCESS;
-    SubscribeParams subscribe_params = DEFAULT_SUB_PARAMS;
-    subscribe_params.on_message_handler = _on_accepted_rejected_message_handler;
-    subscribe_params.qos = QOS0;
-
-    bool is_subscribe_success = false;
-    int16_t index_accepted_topic = _get_free_index_in_subscription_list();
-
-    if (index_accepted_topic >= 0) {
-        _get_topic(sg_subscriptions[index_accepted_topic].topic, MAX_SIZE_OF_CLOUD_TOPIC, method, ACCEPTED);
-
-        rc = IOT_MQTT_Subscribe(pClient, sg_subscriptions[index_accepted_topic].topic, &subscribe_params);
-        if (rc == QCLOUD_ERR_SUCCESS) {
-            sg_subscriptions[index_accepted_topic].count = 1;
-        }
-        else {
-        	Log_e("subscribe topic: %s failed: %d.", sg_subscriptions[index_accepted_topic].topic, rc);
-        }
-    }
-
-    int16_t index_rejected_topic = _get_free_index_in_subscription_list();
-
-    if (index_rejected_topic >= 0 && rc == QCLOUD_ERR_SUCCESS) {
-        _get_topic(sg_subscriptions[index_rejected_topic].topic, MAX_SIZE_OF_CLOUD_TOPIC, method, REJECTED);
-
-		rc = IOT_MQTT_Subscribe(pClient, sg_subscriptions[index_rejected_topic].topic, &subscribe_params);
-		if (rc == QCLOUD_ERR_SUCCESS) {
-			sg_subscriptions[index_rejected_topic].count = 1;
-			is_subscribe_success = true;
-
-			// wait for SUBSCRIBE_WAITING_TIME seconds to let the subscription take effect
-			Timer subWaitTimer;
-			InitTimer(&subWaitTimer);
-			countdown(&subWaitTimer, SUBSCRIBE_WAITING_TIME);
-			while (!expired(&subWaitTimer));
-		}
-		else {
-			Log_e("subscribe topic: %s failed: %d.", sg_subscriptions[index_rejected_topic].topic, rc);
-		}
-    }
-
-
-    if (!is_subscribe_success) {
-
-        if (index_accepted_topic >= 0) {
-            sg_subscriptions[index_accepted_topic].is_free = true;
-        }
-
-        if (index_rejected_topic >= 0) {
-            sg_subscriptions[index_rejected_topic].is_free = true;
-        }
-
-        if (sg_subscriptions[index_accepted_topic].count == 1) {
-            IOT_MQTT_Unsubscribe(pClient, sg_subscriptions[index_accepted_topic].topic);
-        }
-    }
-
-    IOT_FUNC_EXIT_RC(rc);
-}
-
-/**
- * @brief 取消订阅相应设备的文档accepted和rejected主题
- *
- * @param pClient Qcloud_IoT_Client对象
- * @param 订阅的主题的index
- *
- */
-static void _unsubscribe_accepted_rejected_to_cloud(void *pClient, uint8_t index) {
-
-    char accepted_topic[MAX_SIZE_OF_CLOUD_TOPIC] = {0};
-    char rejected_topic[MAX_SIZE_OF_CLOUD_TOPIC] = {0};
-
-    Request request = sg_pending_requests[index];
-    _get_topic(accepted_topic, sizeof(accepted_topic), request.method, ACCEPTED);
-    _get_topic(rejected_topic, sizeof(rejected_topic), request.method, REJECTED);
-
-    int16_t i = _get_index_in_subscription_list(accepted_topic);
-    if (i >= 0) {
-		IOT_MQTT_Unsubscribe(pClient, accepted_topic);
-    }
-
-    i = _get_index_in_subscription_list(rejected_topic);
-    if (i >= 0) {
-		IOT_MQTT_Unsubscribe(pClient, rejected_topic);
+    if (shadow_client->inner_data.request_list)
+    {
+        list_destroy(shadow_client->inner_data.request_list);
     }
 }
 
-/**
- * @brief 发布文档请求到物联云
- *
- * @param pClient 				Qcloud_IoT_Client对象
- * @param method                文档操作方式
- * @param pJsonDocumentToBeSent 等待发送的文档
- * @return 返回QCLOUD_ERR_SUCCESS, 表示发布文档请求成功
- */
-static int _shadow_publish_to_cloud(void *pClient, Method method, const char *pJsonDocumentToBeSent) {
-
-    IOT_FUNC_ENTRY;
-    int rc;
-    char topic_name[MAX_SIZE_OF_CLOUD_TOPIC] = {0};
-    _get_topic(topic_name, sizeof(topic_name), method, METHOD);
-    PublishParams pubParams = DefaultPubParams;
-    pubParams.qos = QOS0;
-    pubParams.payload_len = strlen(pJsonDocumentToBeSent);
-    pubParams.payload = (char *) pJsonDocumentToBeSent;
-    rc = IOT_MQTT_Publish(pClient, topic_name, &pubParams);
-    IOT_FUNC_EXIT_RC(rc);
-}
-
-/**
- * 返回请求列表中的第一个空闲位置索引
- *
- * @return -1 表示没有空闲位置
- */
-static int16_t _get_free_index_in_request_list() {
-
-    IOT_FUNC_ENTRY;
-    uint8_t i;
-
-    for (i = 0; i < MAX_APPENDING_REQUEST_AT_ANY_GIVEN_TIME; i++) {
-        if (sg_pending_requests[i].is_free) {
-            IOT_FUNC_EXIT_RC(i);
-        }
-    }
-
-    IOT_FUNC_EXIT_RC(-1);
-}
-
-/**
- * 添加操作请求到appending请求列表中
- *
- * @param index         插入的位置
- * @param pClientToken  请求的clientToken
- * @param pParams       请求参数
- */
-static void _add_to_request_list(uint8_t index, const char *pClientToken, RequestParams *pParams) {
-    sg_pending_requests[index].callback = pParams->request_callback;
-
-    strncpy(sg_pending_requests[index].client_token, pClientToken, MAX_SIZE_OF_CLIENT_TOKEN);
-
-    sg_pending_requests[index].user_data = pParams->user_data;
-    sg_pending_requests[index].method = pParams->method;
-
-    InitTimer(&(sg_pending_requests[index].timer));
-    countdown(&(sg_pending_requests[index].timer), pParams->timeout_sec);
-    sg_pending_requests[index].is_free = false;
-}
-
-void init_request_manager()
-{
-    client_token_num = 0;
-    uint32_t i;
-
-    for (i = 0; i < MAX_APPENDING_REQUEST_AT_ANY_GIVEN_TIME; i++) {
-        sg_pending_requests[i].is_free = true;
-    }
-
-    for (i = 0; i < MAX_TOPICS_AT_ANY_GIVEN_TIME; i++) {
-        sg_subscriptions[i].is_free = true;
-        sg_subscriptions[i].count = 0;
-    }
-}
-    
-void reset_requset_manager(void *pClient)
-{
-    client_token_num = 0;
-    uint32_t i;
-    
-    // 取消订阅所有accept和reject主题
-    for (i = 0; i < MAX_APPENDING_REQUEST_AT_ANY_GIVEN_TIME; i++) {
-        _unsubscribe_accepted_rejected_to_cloud(pClient, i);
-    }
-
-    for (i = 0; i < MAX_APPENDING_REQUEST_AT_ANY_GIVEN_TIME; i++) {
-        sg_pending_requests[i].is_free = true;
-    }
-
-    for (i = 0; i < MAX_TOPICS_AT_ANY_GIVEN_TIME; i++) {
-        sg_subscriptions[i].is_free = true;
-        sg_subscriptions[i].count = 0;
-    }
-}
-
-void handle_expired_request() {
+void handle_expired_request(Qcloud_IoT_Shadow *pShadow) {
     IOT_FUNC_ENTRY;
 
-    uint8_t i;
-    for (i = 0; i < MAX_APPENDING_REQUEST_AT_ANY_GIVEN_TIME; i++) {
-        if (!sg_pending_requests[i].is_free) {
-            if (expired(&(sg_pending_requests[i].timer))) {
-                if (sg_pending_requests[i].callback != NULL) {
-                    sg_pending_requests[i].callback(sg_pending_requests[i].method, ACK_TIMEOUT, cloud_rcv_buf, sg_pending_requests[i].user_data);
-                }
-                sg_pending_requests[i].is_free = true;
-                _decrement_subscription_cnt(i);
-            }
-        }
-    }
+    _traverse_list(pShadow, pShadow->inner_data.request_list, NULL, 0, NULL, _handle_expired_request_callback);
 
     IOT_FUNC_EXIT;
 }
 
-int do_shadow_request(void *pClient, RequestParams *pParams, char *pJsonDoc) {
-
+int do_shadow_request(Qcloud_IoT_Shadow *pShadow, RequestParams *pParams, char *pJsonDoc, size_t sizeOfBuffer)
+{
     IOT_FUNC_ENTRY;
     int rc = QCLOUD_ERR_SUCCESS;
 
+    POINTER_SANITY_CHECK(pShadow, QCLOUD_ERR_INVAL);
     POINTER_SANITY_CHECK(pJsonDoc, QCLOUD_ERR_INVAL);
     POINTER_SANITY_CHECK(pParams, QCLOUD_ERR_INVAL);
 
     char client_token[MAX_SIZE_OF_CLIENT_TOKEN];
     int32_t tokenCount = 0;
-    int16_t index_for_insert;
 
     // 解析文档中的clientToken, 如果解析失败, 直接返回错误
     if (!parse_client_token(pJsonDoc, tokenCount, client_token)) {
+        Log_e("fail to parse client token!");
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_INVAL);
     }
-    
-    // 获取请求列表中第一个空闲位置索引
-    index_for_insert = _get_free_index_in_request_list();
 
-    if (index_for_insert < 0) IOT_FUNC_EXIT_RC(QCLOUD_ERR_MAX_APPENDING_REQUEST);
+    if (rc != QCLOUD_ERR_SUCCESS)
+        IOT_FUNC_EXIT_RC(rc);
 
-	if (_has_subscribe_accept_reject_to_cloud(pParams->method)) {
-		_increment_subscription_cnt(pParams->method);
-	} else {
-		rc = _subscribe_accepted_rejected_to_cloud(pClient, pParams->method);
-	}
+    rc = _set_shadow_json_type(pJsonDoc, sizeOfBuffer, pParams->method);
+    if (rc != QCLOUD_ERR_SUCCESS)
+        IOT_FUNC_EXIT_RC(rc);
 
-    // 相应的accepted/rejected Topic订阅成功或已经订阅
+    // 相应的 operation topic 订阅成功或已经订阅
     if (rc == QCLOUD_ERR_SUCCESS) {
-        rc = _shadow_publish_to_cloud(pClient, pParams->method, pJsonDoc);
+        rc = _publish_operation_to_cloud(pShadow, pParams->method, pJsonDoc);
     }
 
     if (rc == QCLOUD_ERR_SUCCESS) {
-        _add_to_request_list((uint8_t) index_for_insert, client_token, pParams);
+        rc = _add_request_to_list(pShadow, client_token, pParams);
     }
 
     IOT_FUNC_EXIT_RC(rc);
 }
 
-
-int stiching_shadow_topic(char *topic, int buf_size, const char *action) 
+int subscribe_operation_result_to_cloud(Qcloud_IoT_Shadow *pShadow)
 {
-    int size = HAL_Snprintf(topic, buf_size, "$shadow/%s/%s/%s", action, iot_device_info_get()->product_name, iot_device_info_get()->device_name);
-    if (size < 0 || size > buf_size - 1)
-    {
-        Log_e("buf_size < topic length!");
-        return QCLOUD_ERR_FAILURE;
+    IOT_FUNC_ENTRY;
+
+    int rc;
+
+    if (pShadow->inner_data.result_topic == NULL) {
+        char *operation_result_topic = (char *)HAL_Malloc(MAX_SIZE_OF_CLOUD_TOPIC * sizeof(char));
+        if (operation_result_topic == NULL) IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
+
+        memset(operation_result_topic, 0x0, MAX_SIZE_OF_CLOUD_TOPIC);
+        int size = HAL_Snprintf(operation_result_topic, MAX_SIZE_OF_CLOUD_TOPIC, "$shadow/operation/result/%s/%s", iot_device_info_get()->product_id, iot_device_info_get()->device_name);
+        if (size < 0 || size > MAX_SIZE_OF_CLOUD_TOPIC - 1)
+        {
+            Log_e("buf size < topic length!");
+            HAL_Free(operation_result_topic);
+            IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
+        }
+        pShadow->inner_data.result_topic = operation_result_topic;
     }
-    return QCLOUD_ERR_SUCCESS;
+
+    SubscribeParams subscribe_params = DEFAULT_SUB_PARAMS;
+    subscribe_params.on_message_handler = _on_operation_result_handler;
+    subscribe_params.qos = QOS0;
+
+    rc = IOT_MQTT_Subscribe(pShadow->mqtt, pShadow->inner_data.result_topic, &subscribe_params);
+    if (rc < 0) {
+        Log_e("subscribe topic: %s failed: %d.", pShadow->inner_data.result_topic, rc);
+    }
+
+    IOT_FUNC_EXIT_RC(rc);
+}
+
+/**
+ * @brief 是否需要更新本地设备的文档版本号
+ */
+static bool _is_need_to_update_version_num(const char *pTopic, const char *pType)
+{
+    IOT_FUNC_ENTRY;
+
+    if (strcmp(pType, "get") == 0 || 
+        strcmp(pType, "update") == 0 ||
+        strcmp(pType, "delta") == 0)
+    {
+        if (strstr(pTopic, iot_device_info_get()->device_name) != NULL)
+            IOT_FUNC_EXIT_RC(true);
+    }
+
+    IOT_FUNC_EXIT_RC(false);
+}
+
+/**
+ * @brief 发布文档请求到物联云
+ *
+ * @param pClient                   Qcloud_IoT_Client对象
+ * @param method                    文档操作方式
+ * @param pJsonDoc                  等待发送的文档
+ * @return 返回QCLOUD_ERR_SUCCESS, 表示发布文档请求成功
+ */
+static int _publish_operation_to_cloud(Qcloud_IoT_Shadow *pShadow, Method method, char *pJsonDoc)
+{
+    IOT_FUNC_ENTRY;
+    int rc = QCLOUD_ERR_SUCCESS;
+
+    char topic[MAX_SIZE_OF_CLOUD_TOPIC] = {0};
+    int size = HAL_Snprintf(topic, MAX_SIZE_OF_CLOUD_TOPIC, "$shadow/operation/%s/%s", iot_device_info_get()->product_id, iot_device_info_get()->device_name);
+    if (size < 0 || size > MAX_SIZE_OF_CLOUD_TOPIC - 1)
+    {
+        Log_e("buf size < topic length!");
+        IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
+    }
+
+    PublishParams pubParams = DEFAULT_PUB_PARAMS;
+    pubParams.qos = QOS0;
+    pubParams.payload_len = strlen(pJsonDoc);
+    pubParams.payload = (char *) pJsonDoc;
+
+    rc = IOT_MQTT_Publish(pShadow->mqtt, topic, &pubParams);
+
+    IOT_FUNC_EXIT_RC(rc);
+}
+
+/**
+ * @brief 文档操作请求结果的回调函数
+ * 客户端先订阅 $shadow/operation/result/{ProductId}/{DeviceName}, 收到该topic的消息则会调用该回调函数
+ * 在这个回调函数中, 解析出各个设备影子文档操作的结果
+ */
+static void _on_operation_result_handler(void *pClient, MQTTMessage *message, void *pUserdata)
+{
+    IOT_FUNC_ENTRY;
+
+    POINTER_SANITY_CHECK_RTN(pClient);
+    POINTER_SANITY_CHECK_RTN(message);
+
+    Qcloud_IoT_Client *mqtt_client = (Qcloud_IoT_Client *)pClient;
+    Qcloud_IoT_Shadow *shadow_client = (Qcloud_IoT_Shadow*)mqtt_client->event_handle.context;
+
+    const char *topic = message->ptopic;
+    size_t topic_len = message->topic_len;
+    if (NULL == topic || topic_len <= 0) {
+        IOT_FUNC_EXIT;
+    }
+
+    int32_t token_count = 0;
+    char *client_token = (char *)HAL_Malloc(sizeof(char) * MAX_SIZE_OF_CLIENT_TOKEN);
+    if (NULL == client_token) 
+        IOT_FUNC_EXIT;
+    memset(client_token, 0x0, MAX_SIZE_OF_CLIENT_TOKEN);
+
+    char *type_str = (char *)HAL_Malloc(sizeof(char) * MAX_SIZE_OF_CLIENT_TOKEN);
+    if (NULL == type_str) {
+        HAL_Free(client_token);
+        IOT_FUNC_EXIT;
+    }
+    memset(type_str, 0x0, MAX_SIZE_OF_CLIENT_TOKEN);
+
+    if (message->payload_len > CLOUD_IOT_JSON_RX_BUF_LEN) {
+        Log_e("The length of the received message exceeds the specified length!");
+        goto End;
+    }
+
+    int cloud_rcv_len = min(CLOUD_IOT_JSON_RX_BUF_LEN - 1, message->payload_len);
+    memcpy(cloud_rcv_buf, message->payload, cloud_rcv_len + 1);
+    cloud_rcv_buf[cloud_rcv_len] = '\0';    // jsmn_parse relies on a string
+
+    if (!check_and_parse_json(cloud_rcv_buf, &token_count, NULL)) {
+        Log_e("Received JSON is not valid");
+        goto End;
+    }
+
+    if (!parse_shadow_operation_type(cloud_rcv_buf, token_count, type_str))
+    {   
+        Log_e("Fail to parse type!");
+        goto End;
+    }
+
+    if (strcmp(type_str, "delta") != 0) {
+        if (!parse_client_token(cloud_rcv_buf, token_count, client_token)) {
+            Log_e("Fail to parse client token! Json=%s", cloud_rcv_buf);
+            goto End;
+        }
+    }
+
+    if (_is_need_to_update_version_num(topic, type_str)) {
+        uint32_t version_num = 0;
+        if (parse_version_num(cloud_rcv_buf, token_count, &version_num)) {
+            if (version_num > shadow_client->inner_data.version) {
+            	shadow_client->inner_data.version = version_num;
+            }
+        }
+    }
+
+    if (strcmp(type_str, "delta") == 0)
+    {
+        HAL_MutexLock(shadow_client->mutex);
+        _handle_delta(shadow_client, token_count);
+        HAL_MutexUnlock(shadow_client->mutex);
+        goto End;
+    }
+    
+    if (shadow_client != NULL)
+        _traverse_list(shadow_client, shadow_client->inner_data.request_list, client_token, token_count, type_str, _handle_request_callback);
+
+End:
+    HAL_Free(type_str);
+    HAL_Free(client_token);
+
+    IOT_FUNC_EXIT;
+}
+
+/**
+ * @brief 处理注册属性的回调函数
+ * 当订阅的$shadow/operation/result/{ProductId}/{DeviceName}返回消息时，
+ * 若对应的type为delta, 则执行该函数
+ * 
+ */
+static void _handle_delta(Qcloud_IoT_Shadow *pShadow, const int32_t tokenCount)
+{
+    IOT_FUNC_ENTRY;
+    if (pShadow->inner_data.property_handle_list->len) {
+        ListIterator *iter;
+        ListNode *node = NULL;
+        PropertyHandler *property_handle = NULL;
+
+        if (NULL == (iter = list_iterator_new(pShadow->inner_data.property_handle_list, LIST_TAIL))) {
+            HAL_MutexUnlock(pShadow->mutex);
+            IOT_FUNC_EXIT;
+        }
+
+        for (;;) {
+            node = list_iterator_next(iter);
+            if (NULL == node) {
+                break;
+            }
+
+            property_handle = (PropertyHandler *)(node->val);
+            if (NULL == property_handle) {
+                Log_e("node's value is invalid!");
+                continue;
+            }
+
+            if (property_handle->property != NULL) {
+                uint32_t dataLength;
+                int32_t DataPosition;
+
+                if (update_value_if_key_match(cloud_rcv_buf, tokenCount, property_handle->property, &dataLength, &DataPosition))
+                {
+                    if (property_handle->callback != NULL)
+                    {
+                        char *property_json = (char *)HAL_Malloc(sizeof(char) * dataLength);
+                        strncpy(property_json, cloud_rcv_buf + DataPosition, dataLength);
+                        property_json[dataLength] = '\0';
+
+                        property_handle->callback(pShadow, cloud_rcv_buf + DataPosition, dataLength, property_handle->property);
+                    }
+                    // 注册的属性执行完回调不销毁，除非手动执行销毁
+                    // list_remove(pShadow->inner_data.property_handle_list, node);
+                    node = NULL;
+                }
+            }
+
+        }
+
+        list_iterator_destroy(iter);
+    }
+
+    IOT_FUNC_EXIT;
+}
+
+static void _insert(char *str, char *pch, int pos) {
+    int len = strlen(str);
+    int nlen = strlen(pch);
+    int i;
+    for (i = len - 1; i >= pos; --i) {
+        *(str + i + nlen) = *(str + i);
+    }
+
+    int n;
+    for (n = 0; n < nlen; n++)
+        *(str + pos + n) = *pch++;
+    *(str + len + nlen) = 0;
+}
+
+/**
+ * @brief 根据RequestParams、Method来给json填入type字段的值
+ */
+static int _set_shadow_json_type(char *pJsonDoc, size_t sizeOfBuffer, Method method)
+{
+    IOT_FUNC_ENTRY;
+
+    int rc = QCLOUD_ERR_SUCCESS;
+
+    POINTER_SANITY_CHECK(pJsonDoc, QCLOUD_ERR_INVAL);
+    char *type_str = NULL;
+    switch (method) {
+      case GET:
+        type_str = "get";
+        break;
+      case UPDATE:
+        type_str = "update";
+        break;
+      case DELETE:
+        type_str = "delete";
+        break;
+      default:
+        Log_e("unexpected method!");
+        rc = QCLOUD_ERR_INVAL;
+        break;
+    }
+    if (rc != QCLOUD_ERR_SUCCESS)
+        IOT_FUNC_EXIT_RC(rc);
+
+    size_t json_len = strlen(pJsonDoc);
+    size_t remain_size = sizeOfBuffer - json_len;
+
+    char json_node_str[64] = {0};
+    sprintf(json_node_str, "\"type\":\"%s\", ", type_str);
+    size_t json_node_len = strlen(json_node_str);
+    if (json_node_len >= remain_size - 1) {
+        rc = QCLOUD_ERR_INVAL;
+    } else {
+        _insert(pJsonDoc, json_node_str, 1);
+    }
+
+    // /* 在json中插入type字段 */
+    // DeviceProperty pJsonNode;
+    // pJsonNode.key = "type";
+    // pJsonNode.data = (void *)type_str;
+    // pJsonNode.type = JSTRING;
+    // rc = put_json_node(pJsonDoc, remain_size, pJsonNode.key, pJsonNode.data, pJsonNode.type);
+
+    IOT_FUNC_EXIT_RC(rc);
+}
+
+/**
+ * @brief 取消订阅topic: $shadow/operation/result/{ProductId}/{DeviceName}
+ */
+static int _unsubscribe_operation_result_to_cloud(void* pClient)
+{
+    IOT_FUNC_ENTRY;
+    int rc = QCLOUD_ERR_SUCCESS;
+
+    char operation_result_topic[MAX_SIZE_OF_CLOUD_TOPIC] = {0};
+    int size = HAL_Snprintf(operation_result_topic, MAX_SIZE_OF_CLOUD_TOPIC, "$shadow/operation/result/%s/%s", iot_device_info_get()->product_id, iot_device_info_get()->device_name);
+
+    if (size < 0 || size > MAX_SIZE_OF_CLOUD_TOPIC - 1)
+    {
+        Log_e("buf size < topic length!");
+        IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
+    }
+
+    IOT_MQTT_Unsubscribe(pClient, operation_result_topic);
+    if (rc != QCLOUD_ERR_SUCCESS) {
+        Log_e("unsubscribe topic: %s failed: %d.", operation_result_topic, rc);
+    }
+
+    IOT_FUNC_EXIT_RC(rc);
+}
+
+/**
+ * @brief 将设备影子文档的操作请求保存在列表中
+ */
+static int _add_request_to_list(Qcloud_IoT_Shadow *pShadow, const char *pClientToken, RequestParams *pParams)
+{
+    IOT_FUNC_ENTRY;
+
+    HAL_MutexLock(pShadow->mutex);
+    if (pShadow->inner_data.request_list->len >= MAX_APPENDING_REQUEST_AT_ANY_GIVEN_TIME)
+    {
+        HAL_MutexUnlock(pShadow->mutex);
+        IOT_FUNC_EXIT_RC(QCLOUD_ERR_MAX_APPENDING_REQUEST);
+    }
+
+    Request *request = (Request *)HAL_Malloc(sizeof(Request));
+    if (NULL == request) {
+        HAL_MutexUnlock(pShadow->mutex);
+        Log_e("run memory malloc is error!");
+        IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
+    }
+
+    request->callback = pParams->request_callback;
+    strncpy(request->client_token, pClientToken, MAX_SIZE_OF_CLIENT_TOKEN);
+
+    request->user_context = pParams->user_context;
+    request->method = pParams->method;
+
+    InitTimer(&(request->timer));
+    countdown(&(request->timer), pParams->timeout_sec);
+
+    ListNode *node = list_node_new(request);
+    if (NULL == node) {
+        HAL_MutexUnlock(pShadow->mutex);
+        Log_e("run list_node_new is error!");
+        IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
+    }
+
+    list_rpush(pShadow->inner_data.request_list, node);
+
+    HAL_MutexUnlock(pShadow->mutex);
+
+    IOT_FUNC_EXIT_RC(QCLOUD_ERR_SUCCESS);
+}
+
+/**
+ * @brief 遍历列表, 对列表每个节点都执行一次传入的函数traverseHandle
+ */
+static void _traverse_list(Qcloud_IoT_Shadow *pShadow, List *list, const char *pClientToken, 
+                            const int32_t tokenCount, const char *pType, TraverseHandle traverseHandle)
+{
+    IOT_FUNC_ENTRY;
+
+    HAL_MutexLock(pShadow->mutex);
+
+    if (list->len) {
+        ListIterator *iter;
+        ListNode *node = NULL;
+
+        if (NULL == (iter = list_iterator_new(list, LIST_TAIL))) {
+            HAL_MutexUnlock(pShadow->mutex);
+            IOT_FUNC_EXIT;
+        }
+
+        for (;;) {
+            node = list_iterator_next(iter);
+            if (NULL == node) {
+                break;
+            }
+
+            if (NULL == node->val) {
+                Log_e("node's value is invalid!");
+                continue;
+            }
+
+            traverseHandle(pShadow, &node, list, pClientToken, tokenCount, pType);
+        }
+
+        list_iterator_destroy(iter);
+    }
+    HAL_MutexUnlock(pShadow->mutex);
+
+    IOT_FUNC_EXIT;
+}
+
+/**
+ * @brief 执行设备影子操作的回调函数
+ */
+static void _handle_request_callback(Qcloud_IoT_Shadow *pShadow, ListNode **node, List *list, const char *pClientToken, const int32_t tokenCount, const char *pType)
+{
+    IOT_FUNC_ENTRY;
+
+    Request *request = (Request *)(*node)->val;
+    if (NULL == request)
+        IOT_FUNC_EXIT;
+
+    if (strcmp(request->client_token, pClientToken) == 0) 
+    {
+        RequestAck status = ACK_NONE;
+
+        // 通过 payload 包体的 result 来确定对应的操作是否成功
+        // 当result=0时，payload不为空，result非0时，代表update失败
+        int16_t result_code = 0;
+        
+        parse_shadow_operation_result_code(cloud_rcv_buf, tokenCount, &result_code);
+
+        if (result_code == 0) {
+            status = ACK_ACCEPTED;
+        } else {
+            status = ACK_REJECTED;
+        }
+
+        if ((strcmp(pType, "get") == 0 && status == ACK_ACCEPTED) ||
+            (strcmp(pType, "update") && status == ACK_REJECTED))
+        {
+            bool is_has_delta_key = parse_shadow_operation_delta(cloud_rcv_buf, tokenCount, NULL);
+            if (is_has_delta_key == true)
+                _handle_delta(pShadow, tokenCount);
+        }
+        
+        if (request->callback != NULL) {
+            request->callback(pShadow, request->method, status, cloud_rcv_buf, request->user_context);
+        }
+
+        list_remove(list, *node);
+        *node = NULL;
+
+    }
+
+    IOT_FUNC_EXIT;
+}
+
+/**
+ * @brief 执行过期的设备影子操作的回调函数
+ */
+static void _handle_expired_request_callback(Qcloud_IoT_Shadow *pShadow, ListNode **node, List *list, const char *pClientToken, const int32_t tokenCount, const char *pType)
+{
+    IOT_FUNC_ENTRY;
+
+    Request *request = (Request *)(*node)->val;
+    if (NULL == request)
+        IOT_FUNC_EXIT;
+
+    if (expired(&request->timer)) 
+    {
+        if (request->callback != NULL) {
+            request->callback(pShadow, request->method, ACK_TIMEOUT, cloud_rcv_buf, request->user_context);
+        }
+
+        list_remove(list, *node);
+        *node = NULL;
+    }
+
+    IOT_FUNC_EXIT;
 }
 
 #ifdef __cplusplus

@@ -1,5 +1,20 @@
-#ifndef __QCLOUD_IOT_IMPORT_H__
-#define __QCLOUD_IOT_IMPORT_H__
+/*
+ * Tencent is pleased to support the open source community by making IoT Hub available.
+ * Copyright (C) 2016 THL A29 Limited, a Tencent company. All rights reserved.
+
+ * Licensed under the MIT License (the "License"); you may not use this file except in
+ * compliance with the License. You may obtain a copy of the License at
+ * http://opensource.org/licenses/MIT
+
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is
+ * distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+ * either express or implied. See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
+#ifndef QCLOUD_IOT_IMPORT_H_
+#define QCLOUD_IOT_IMPORT_H_
 #if defined(__cplusplus)
 extern "C" {
 #endif
@@ -143,20 +158,20 @@ void HAL_Timer_init(Timer *timer);
  * @return 当前时间格式化字符串
  */
 char* HAL_Timer_current(void);
-    
 
-/********** network **********/
-
+#ifndef NOTLS_ENABLED
 /**
  * @brief TLS连接相关参数定义
  *
  * 在初始化时, 必须要将ca证书、客户端证书、客户端私钥文件及服务器域名带上来
  */
 typedef struct {
+    const char		 *ca_crt;
+    uint16_t 		 ca_crt_len;
+
 	/**
 	 * 非对称加密
 	 */
-    const char       *ca_file;              // ca证书文件路径, 用于认证服务端证书
     const char       *cert_file;            // 客户端证书
     const char       *key_file;             // 客户端私钥
 
@@ -173,8 +188,11 @@ typedef struct {
     unsigned int     timeout_ms;            // SSL握手超时时间
 
     bool             is_asymc_encryption;   // 加密方式 0:对称加密 1:非对称加密
+} SSLConnectParams;
 
-} TLSConnectParams;
+/********** tls network **********/
+
+typedef SSLConnectParams TLSConnectParams;
 
 /**
  * @brief 为MQTT客户端建立TLS连接
@@ -185,7 +203,6 @@ typedef struct {
  *     3. 建立SSL连接, 包括握手, 服务器证书检查等
  *
  * @param pConnectParams TLS连接初始化参数
- * @param pDataParams    TLS连接相关数据结构
  * @return  返回0 表示TLS连接成功
  */
 uintptr_t HAL_TLS_Connect(TLSConnectParams *pConnectParams);
@@ -200,31 +217,76 @@ void HAL_TLS_Disconnect(uintptr_t handle);
 /**
  * @brief 通过TLS连接写数据
  *
- * @param pParams     TLS连接相关数据结构
- * @param msg         写入数据
+ * @param handle     TLS连接相关数据结构
+ * @param data         写入数据
  * @param totalLen    写入数据长度
  * @param timeout_ms  超时时间, 单位:ms
  * @param written_len 已写入数据长度
  * @return 若写数据成功, 则返回写入数据的长度
  */
-int HAL_TLS_Write(uintptr_t handle, unsigned char *msg, size_t totalLen, int timeout_ms,
+int HAL_TLS_Write(uintptr_t handle, unsigned char *data, size_t totalLen, int timeout_ms,
                                  size_t *written_len);
 
 /**
  * @brief 通过TLS连接读数据
  *
- * @param pParams    TLS连接相关数据结构
- * @param msg        读取数据
+ * @param handle    TLS连接相关数据结构
+ * @param data        读取数据
  * @param totalLen   读取数据的长度
  * @param timeout_ms 超时时间, 单位:ms
  * @param read_len   已读取数据的长度
  * @return 若读数据成功, 则返回读取数据的长度
  */
-int HAL_TLS_Read(uintptr_t handle, unsigned char *msg, size_t totalLen, int timeout_ms,
+int HAL_TLS_Read(uintptr_t handle, unsigned char *data, size_t totalLen, int timeout_ms,
                                 size_t *read_len);    
+
+/********** DTLS network **********/
+
+typedef SSLConnectParams DTLSConnectParams;
+
+/**
+ * @brief 为MQTT客户端建立TLS连接
+ *
+ * 主要步骤如下:
+ *     1. 初始化工作, 例如mbedtls库初始化, 相关证书文件加载等
+ *     2. 建立UDP socket连接
+ *     3. 建立SSL连接, 包括握手, 服务器证书检查等
+ *
+ * @param pConnectParams DTLS连接初始化参数
+ * @return  返回0 表示DTLS连接成功
+ */
+uintptr_t HAL_DTLS_Connect(DTLSConnectParams *pConnectParams);
+
+void HAL_DTLS_Disconnect(uintptr_t handle);
+
+/**
+ * @brief 通过TLS连接写数据
+ *
+ * @param pParams     DTLS连接相关数据结构
+ * @param data         写入数据
+ * @param datalen      写入数据长度
+ * @param written_len 已写入数据长度
+ * @return 若写数据成功, 则返回写入数据的长度
+ */
+int HAL_DTLS_Write(uintptr_t handle, const unsigned char *data, size_t datalen, size_t *written_len);
+
+/**
+ * @brief 通过TLS连接读数据
+ *
+ * @param handle     DTLS连接相关数据结构
+ * @param data        读取数据
+ * @param timeout_ms 超时时间, 单位:ms
+ * @param datalen   	   读取数据的长度
+ * @param read_len   已读取数据的长度
+ * @return 若读数据成功, 则返回读取数据的长度
+ */
+int HAL_DTLS_Read(uintptr_t handle, unsigned char *data, size_t datalen, unsigned int timeout_ms,
+                  size_t *read_len);
+
+#endif
     
 #if defined(__cplusplus)
 }
 #endif
-#endif  /* __QCLOUD_IOT_IMPORT_H__ */
+#endif  /* QCLOUD_IOT_IMPORT_H_ */
 

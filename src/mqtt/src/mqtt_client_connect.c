@@ -85,9 +85,9 @@ typedef enum {
 static uint32_t _get_packet_connect_rem_len(MQTTConnectParams *options) {
     size_t len = 0;
     /* variable depending on MQTT or MQIsdp */
-    if (3 == options->MQTTVersion) {
+    if (3 == options->mqtt_version) {
         len = 12;
-    } else if (4 == options->MQTTVersion) {
+    } else if (4 == options->mqtt_version) {
         len = 10;
     }
 
@@ -95,10 +95,6 @@ static uint32_t _get_packet_connect_rem_len(MQTTConnectParams *options) {
 
     if (options->username) {
         len += strlen(options->username) + 2;
-    }
-
-    if (options->password) {
-        len += strlen(options->password) + 2;
     }
 
     return (uint32_t) len;
@@ -109,14 +105,12 @@ static void _copy_connect_params(MQTTConnectParams *destination, MQTTConnectPara
 	POINTER_SANITY_CHECK_RTN(destination);
 	POINTER_SANITY_CHECK_RTN(source);
 
-    destination->MQTTVersion = source->MQTTVersion;
+    destination->mqtt_version = source->mqtt_version;
     destination->client_id = source->client_id;
     destination->username = source->username;
-    destination->password = source->password;
     destination->keep_alive_interval = source->keep_alive_interval;
     destination->clean_session = source->clean_session;
     destination->auto_connect_enable = source->auto_connect_enable;
-    destination->on_disconnect_handler = source->on_disconnect_handler;
 }
 
 /**
@@ -141,10 +135,10 @@ static int _serialize_connect_packet(unsigned char *buf, size_t buf_len, MQTTCon
     uint32_t rem_len = 0;
     int rc;
 
-    // TODO: appid逻辑暂时先注释等后台稳定再打开
-    int username_len = strlen(options->client_id) + strlen(QCLOUD_IOT_DEVICE_SDK_APPID) + 2;
+    int username_len = strlen(options->client_id) + strlen(QCLOUD_IOT_DEVICE_SDK_APPID) + MAX_CONN_ID_LEN + 3;
     options->username = (char*)HAL_Malloc(username_len);
-	sprintf(options->username, "%s;%s", options->client_id, QCLOUD_IOT_DEVICE_SDK_APPID);
+    get_next_conn_id(options);
+	HAL_Snprintf(options->username, username_len, "%s;%s;%s", options->client_id, QCLOUD_IOT_DEVICE_SDK_APPID, options->conn_id);
 
     rem_len = _get_packet_connect_rem_len(options);
     if (get_mqtt_packet_len(rem_len) > buf_len) {
@@ -163,7 +157,7 @@ static int _serialize_connect_packet(unsigned char *buf, size_t buf_len, MQTTCon
     ptr += mqtt_write_packet_rem_len(ptr, rem_len);
 
     // 报文可变头部协议名 + 协议版本号
-    if (4 == options->MQTTVersion) {
+    if (4 == options->mqtt_version) {
         mqtt_write_utf8_string(&ptr, "MQTT");
         mqtt_write_char(&ptr, (unsigned char) 4);
     } else {
@@ -177,10 +171,19 @@ static int _serialize_connect_packet(unsigned char *buf, size_t buf_len, MQTTCon
 
     if (options->username != NULL) {
         flags.bits.username = 1;
+    } else {
+        flags.bits.username = 0;
     }
+
+    /* 后台重构版本不需要填写密码，这里置位0
     if (options->password != NULL) {
         flags.bits.password = 1;
+    } else {
+        flags.bits.password = 0;
     }
+    */
+    flags.bits.password = 0;
+    
     mqtt_write_char(&ptr, flags.all);
 
     // 报文可变头部心跳周期/保持连接, 一个以秒为单位的时间间隔, 表示为一个16位的字
@@ -190,14 +193,14 @@ static int _serialize_connect_packet(unsigned char *buf, size_t buf_len, MQTTCon
     mqtt_write_utf8_string(&ptr, options->client_id);
 
     // 用户名
-    if (flags.bits.username) {
+    if (flags.bits.username && options->username != NULL) {
         mqtt_write_utf8_string(&ptr, options->username);
     }
 
     // 密码
-    if (flags.bits.password) {
-        mqtt_write_utf8_string(&ptr, options->password);
-    }
+    // if (flags.bits.password && options->password != NULL) {
+    //     mqtt_write_utf8_string(&ptr, options->password);
+    // }
 
     *serialized_len = (uint32_t) (ptr - buf);
     
@@ -307,26 +310,34 @@ static int _mqtt_connect(Qcloud_IoT_Client *pClient, MQTTConnectParams *options)
         _copy_connect_params(&(pClient->options), options);
     }
 
+#ifndef NOTLS_ENABLE
+    pClient->network_stack.ssl_connect_params.psk_id = pClient->options.client_id;
+#endif
+
     // 建立TLS连接
     rc = pClient->network_stack.connect(&(pClient->network_stack));
     if (QCLOUD_ERR_SUCCESS != rc) {
         IOT_FUNC_EXIT_RC(rc);
     }
 
+    HAL_MutexLock(pClient->lock_write_buf);
     // 序列化CONNECT报文
-    rc = _serialize_connect_packet(pClient->buf, pClient->buf_size, &pClient->options, &len);
+    rc = _serialize_connect_packet(pClient->write_buf, pClient->write_buf_size, &(pClient->options), &len);
     if (QCLOUD_ERR_SUCCESS != rc || 0 == len) {
+    	HAL_MutexUnlock(pClient->lock_write_buf);
         IOT_FUNC_EXIT_RC(rc);
     }
 
     // 发送CONNECT报文
     rc = send_mqtt_packet(pClient, len, &connect_timer);
     if (QCLOUD_ERR_SUCCESS != rc) {
+    	HAL_MutexUnlock(pClient->lock_write_buf);
         IOT_FUNC_EXIT_RC(rc);
     }
+    HAL_MutexUnlock(pClient->lock_write_buf);
 
     // 阻塞等待CONNACK的报文,
-    rc = wait_for_read(pClient, CONNACK, &connect_timer);
+    rc = wait_for_read(pClient, CONNACK, &connect_timer, 0);
     if (QCLOUD_ERR_SUCCESS != rc) {
         IOT_FUNC_EXIT_RC(rc);
     }
@@ -341,10 +352,12 @@ static int _mqtt_connect(Qcloud_IoT_Client *pClient, MQTTConnectParams *options)
         IOT_FUNC_EXIT_RC(connack_rc);
     }
 
-    pClient->is_connected = 1;
+    set_client_conn_state(pClient, CONNECTED);
+    HAL_MutexLock(pClient->lock_generic);
     pClient->was_manually_disconnected = 0;
     pClient->is_ping_outstanding = 0;
     countdown(&pClient->ping_timer, pClient->options.keep_alive_interval);
+    HAL_MutexUnlock(pClient->lock_generic);
 
     IOT_FUNC_EXIT_RC(QCLOUD_ERR_SUCCESS);
 }
@@ -357,7 +370,7 @@ int qcloud_iot_mqtt_connect(Qcloud_IoT_Client *pClient, MQTTConnectParams *pPara
     POINTER_SANITY_CHECK(pParams, QCLOUD_ERR_INVAL);
 
     // 如果MQTT连接已经建立, 不要重复发送CONNECT报文
-    if (pClient->is_connected == 1) {
+    if (get_client_conn_state(pClient)) {
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_MQTT_ALREADY_CONNECTED);
     }
 
@@ -380,13 +393,13 @@ int qcloud_iot_mqtt_attempt_reconnect(Qcloud_IoT_Client *pClient) {
 
     Log_i("attempt to reconnect %s = %p", pClient, pClient);
 
-    if (pClient->is_connected == 1) {
+    if (get_client_conn_state(pClient)) {
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_MQTT_ALREADY_CONNECTED);
     }
 
     rc = qcloud_iot_mqtt_connect(pClient, &pClient->options);
 
-    if (pClient->is_connected == 0) {
+    if (!get_client_conn_state(pClient)) {
         IOT_FUNC_EXIT_RC(rc);
     }
 
@@ -408,12 +421,12 @@ int qcloud_iot_mqtt_disconnect(Qcloud_IoT_Client *pClient) {
     Timer timer;
     uint32_t serialized_len = 0;
 
-    if (pClient->is_connected == 0) {
+    if (get_client_conn_state(pClient) == 0) {
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_MQTT_NO_CONN);
     }
 
     // 1. 组disconnect包
-    rc = serialize_packet_with_zero_payload(pClient->buf, pClient->buf_size, DISCONNECT, &serialized_len);
+    rc = serialize_packet_with_zero_payload(pClient->write_buf, pClient->write_buf_size, DISCONNECT, &serialized_len);
     if (rc != QCLOUD_ERR_SUCCESS) {
         IOT_FUNC_EXIT_RC(rc);
     }
@@ -431,8 +444,10 @@ int qcloud_iot_mqtt_disconnect(Qcloud_IoT_Client *pClient) {
 
     // 3. 断开底层TCP连接, 并修改相关标识位
     pClient->network_stack.disconnect(&(pClient->network_stack));
-    pClient->is_connected = 0;
+    set_client_conn_state(pClient, NOTCONNECTED);
     pClient->was_manually_disconnected = 1;
+
+    Log_i("mqtt disconnect!");
 
     IOT_FUNC_EXIT_RC(QCLOUD_ERR_SUCCESS);
 }

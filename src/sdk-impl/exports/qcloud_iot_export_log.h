@@ -1,5 +1,20 @@
-#ifndef QCLOUD_IOT_EXPORT_LOG_H
-#define QCLOUD_IOT_EXPORT_LOG_H
+/*
+ * Tencent is pleased to support the open source community by making IoT Hub available.
+ * Copyright (C) 2016 THL A29 Limited, a Tencent company. All rights reserved.
+
+ * Licensed under the MIT License (the "License"); you may not use this file except in
+ * compliance with the License. You may obtain a copy of the License at
+ * http://opensource.org/licenses/MIT
+
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is
+ * distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+ * either express or implied. See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
+#ifndef QCLOUD_IOT_EXPORT_LOG_H_
+#define QCLOUD_IOT_EXPORT_LOG_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -64,7 +79,7 @@ void Log_writter(const char *file, const char *func, const int line, const int l
 #define Log_w(args...) Log_writter(__FILE__, __FUNCTION__, __LINE__, WARN, args)
 #define Log_e(args...) Log_writter(__FILE__, __FUNCTION__, __LINE__, ERROR, args)
 
-#ifdef IOT_SDK_TRACE
+#ifdef IOT_DEBUG
 	#define IOT_FUNC_ENTRY    \
 		{\
 		printf("FUNC_ENTRY:   %s L#%d \n", __FUNCTION__, __LINE__);  \
@@ -72,15 +87,19 @@ void Log_writter(const char *file, const char *func, const int line, const int l
 	#define IOT_FUNC_EXIT    \
 		{\
 		printf("FUNC_EXIT:   %s L#%d \n", __FUNCTION__, __LINE__);  \
+		return;\
 		}
 	#define IOT_FUNC_EXIT_RC(x)    \
 		{\
-		printf("FUNC_EXIT:   %s L#%d Return Code : %d \n", __FUNCTION__, __LINE__, x);  \
+		printf("FUNC_EXIT:   %s L#%d Return Code : %ld \n", __FUNCTION__, __LINE__, (long)(x));  \
 		return x; \
 		}
 #else
 	#define IOT_FUNC_ENTRY
-	#define IOT_FUNC_EXIT
+	#define IOT_FUNC_EXIT 			\
+		{\
+			return;\
+		}
 	#define IOT_FUNC_EXIT_RC(x)     \
 		{\
 			return x; \
@@ -91,4 +110,4 @@ void Log_writter(const char *file, const char *func, const int line, const int l
 }
 #endif
 
-#endif /* QCLOUD_IOT_EXPORT_LOG_H */
+#endif /* QCLOUD_IOT_EXPORT_LOG_H_ */

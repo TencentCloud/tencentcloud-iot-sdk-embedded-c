@@ -89,32 +89,6 @@ static int _serialize_unsubscribe_packet(unsigned char *buf, size_t buf_len,
     IOT_FUNC_EXIT_RC(QCLOUD_ERR_SUCCESS);
 }
 
-
-/**
-  * Deserializes the supplied (wire) buffer into unsuback data
-  * @param packet_id returned integer - the MQTT packet identifier
-  * @param buf the raw buffer data, of the correct length determined by the remaining length field
-  * @param buf_len the length in bytes of the data in the supplied buffer
-  * @return int indicating function execution status
-  */
-static int _deserialize_unsuback_packet(uint16_t *packet_id, unsigned char *buf, size_t buf_len) {
-    IOT_FUNC_ENTRY;
-
-    POINTER_SANITY_CHECK(buf, QCLOUD_ERR_INVAL);
-    POINTER_SANITY_CHECK(packet_id, QCLOUD_ERR_INVAL);
-
-    unsigned char type = 0;
-    unsigned char dup = 0;
-    int rc;
-
-    rc = deserialize_ack_packet(&type, &dup, packet_id, buf, buf_len);
-    if (QCLOUD_ERR_SUCCESS == rc && UNSUBACK != type) {
-        rc = QCLOUD_ERR_FAILURE;
-    }
-
-    IOT_FUNC_EXIT_RC(rc);
-}
-
 int qcloud_iot_mqtt_unsubscribe(Qcloud_IoT_Client *pClient, char *topicFilter) {
     IOT_FUNC_ENTRY;
     int rc;
@@ -125,59 +99,76 @@ int qcloud_iot_mqtt_unsubscribe(Qcloud_IoT_Client *pClient, char *topicFilter) {
     int i = 0;
     Timer timer;
     uint32_t len = 0;
-    uint16_t packet_id;
-    bool subscriptionExists = false;
-    
+    uint16_t packet_id = 0;
+    bool suber_exists = false;
+
+    ListNode *node = NULL;
+
     size_t topicLen = strlen(topicFilter);
     if (topicLen > MAX_SIZE_OF_CLOUD_TOPIC) {
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_MAX_TOPIC_LENGTH);
     }
     
-    Log_d("topicName=%s", topicFilter);
-
     /* Remove from message handler array */
+    HAL_MutexLock(pClient->lock_generic);
     for (i = 0; i < MAX_MESSAGE_HANDLERS; ++i) {
-        if (pClient->message_handlers[i].topicFilter != NULL &&
-            (strcmp(pClient->message_handlers[i].topicFilter, topicFilter) == 0)) {
-            pClient->message_handlers[i].topicFilter = NULL;
+        Log_d("sub_handles topic=%s|unsub topic=%s", pClient->sub_handles[i].topic_filter, topicFilter);
+        if (pClient->sub_handles[i].topic_filter != NULL && !strcmp(pClient->sub_handles[i].topic_filter, topicFilter)) {
+            pClient->sub_handles[i].topic_filter = NULL;
             /* We don't want to break here, if the same topic is registered
              * with 2 callbacks. Unlikely scenario */
-            subscriptionExists = true;
+            suber_exists = true;
         }
     }
+    HAL_MutexUnlock(pClient->lock_generic);
 
-    if (subscriptionExists == false) {
+    if (suber_exists == false) {
+        Log_e("subscription does not exists: %s", topicFilter);
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
     }
 
-
-    if (!pClient->is_connected) {
+    if (!get_client_conn_state(pClient)) {
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_MQTT_NO_CONN);
     }
 
     InitTimer(&timer);
     countdown_ms(&timer, pClient->command_timeout_ms);
 
-    rc = _serialize_unsubscribe_packet(pClient->buf, pClient->buf_size, 0, get_next_packet_id(pClient), 1, &topicFilter,
+    HAL_MutexLock(pClient->lock_write_buf);
+    packet_id = get_next_packet_id(pClient);
+    rc = _serialize_unsubscribe_packet(pClient->write_buf, pClient->write_buf_size, 0, packet_id, 1, &topicFilter,
                                        &len);
     if (QCLOUD_ERR_SUCCESS != rc) {
+    	HAL_MutexUnlock(pClient->lock_write_buf);
+        IOT_FUNC_EXIT_RC(rc);
+    }
+
+    SubTopicHandle sub_handle;
+    sub_handle.topic_filter = topicFilter;
+    sub_handle.message_handler = NULL;
+    sub_handle.message_handler_data = NULL;
+
+    rc = push_sub_info_to(pClient, len, (unsigned int)packet_id, UNSUBSCRIBE, &sub_handle, &node);
+    if (QCLOUD_ERR_SUCCESS != rc) {
+        Log_e("push publish into to pubInfolist failed: %d", rc);
+        HAL_MutexUnlock(pClient->lock_write_buf);
         IOT_FUNC_EXIT_RC(rc);
     }
 
     /* send the unsubscribe packet */
     rc = send_mqtt_packet(pClient, len, &timer);
     if (QCLOUD_ERR_SUCCESS != rc) {
+        HAL_MutexLock(pClient->lock_list_sub);
+        list_remove(pClient->list_sub_wait_ack, node);
+        HAL_MutexUnlock(pClient->lock_list_sub);
+
+    	HAL_MutexUnlock(pClient->lock_write_buf);
         IOT_FUNC_EXIT_RC(rc);
     }
 
-    rc = wait_for_read(pClient, UNSUBACK, &timer);
-    if (QCLOUD_ERR_SUCCESS != rc) {
-        IOT_FUNC_EXIT_RC(rc);
-    }
+    HAL_MutexUnlock(pClient->lock_write_buf);
 
-    rc = _deserialize_unsuback_packet(&packet_id, pClient->read_buf, pClient->read_buf_size);
-
-    IOT_FUNC_EXIT_RC(rc);
+    IOT_FUNC_EXIT_RC(packet_id);
 }
 
 #ifdef __cplusplus

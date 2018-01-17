@@ -23,6 +23,8 @@ extern "C" {
 
 #include "mqtt_client.h"
 
+#include "qcloud_iot_utils_list.h"
+
 /**
  * @param mqttstring the MQTTString structure into which the data is to be read
  * @param pptr pointer to the output buffer - incremented by the number of bytes used & returned
@@ -63,6 +65,59 @@ static uint32_t _get_publish_packet_len(uint8_t qos, char *topicName, size_t pay
     return (uint32_t) len;
 }
 
+static int _mask_push_pubInfo_to(Qcloud_IoT_Client *c, int len, unsigned short msgId, ListNode **node)
+{
+    IOT_FUNC_ENTRY;
+
+    if (!c || !node) {
+        Log_e("the param of c is error!");
+        IOT_FUNC_EXIT_RC(QCLOUD_ERR_MQTT_PUSH_TO_LIST_FAILED);
+    }
+
+    if ((len < 0) || (len > c->write_buf_size)) {
+        Log_e("the param of len is error!");
+        IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
+    }
+
+    HAL_MutexLock(c->lock_list_pub);
+
+    if (c->list_pub_wait_ack->len >= MAX_REPUB_NUM) {
+        HAL_MutexUnlock(c->lock_list_pub);
+        Log_e("more than %u elements in republish list. List overflow!", c->list_pub_wait_ack->len);
+        IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
+    }
+
+    QcloudIotPubInfo *repubInfo = (QcloudIotPubInfo *)HAL_Malloc(sizeof(QcloudIotPubInfo) + len);
+    if (NULL == repubInfo) {
+        HAL_MutexUnlock(c->lock_list_pub);
+        Log_e("run iot memory malloc is error!");
+        IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
+    }
+
+    repubInfo->node_state = MQTT_NODE_STATE_NORMANL;
+    repubInfo->msg_id = msgId;
+    repubInfo->len = len;
+    InitTimer(&repubInfo->pub_start_time);
+    countdown_ms(&repubInfo->pub_start_time, c->command_timeout_ms);
+
+    repubInfo->buf = (unsigned char *)repubInfo + sizeof(QcloudIotPubInfo);
+
+    memcpy(repubInfo->buf, c->write_buf, len);
+
+    *node = list_node_new(repubInfo);
+    if (NULL == *node) {
+        HAL_MutexUnlock(c->lock_list_pub);
+        Log_e("run list_node_new is error!");
+        IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
+    }
+
+    list_rpush(c->list_pub_wait_ack, *node);
+
+    HAL_MutexUnlock(c->lock_list_pub);
+
+    IOT_FUNC_EXIT_RC(QCLOUD_ERR_SUCCESS);
+}
+
 /**
   * Deserializes the supplied (wire) buffer into publish data
   * @param dup returned integer - the MQTT dup flag
@@ -77,7 +132,8 @@ static uint32_t _get_publish_packet_len(uint8_t qos, char *topicName, size_t pay
   * @return error code.  1 is success
   */
 int deserialize_publish_packet(uint8_t *dup, QoS *qos, uint8_t *retained, uint16_t *packet_id, char **topicName,
-                               uint16_t *topicNameLen,unsigned char **payload, size_t *payload_len, unsigned char *buf, size_t buf_len) {
+                               uint16_t *topicNameLen,unsigned char **payload, size_t *payload_len, unsigned char *buf, size_t buf_len) 
+{
     IOT_FUNC_ENTRY;
 
     POINTER_SANITY_CHECK(dup, QCLOUD_ERR_INVAL);
@@ -238,24 +294,23 @@ int qcloud_iot_mqtt_publish(Qcloud_IoT_Client *pClient, char *topicName, Publish
 
     Timer timer;
     uint32_t len = 0;
-    uint8_t waitForAck = 0;
-    uint8_t packetType = PUBACK;
-    uint16_t packet_id;
-    uint8_t dup, type;
     int rc;
+
+    ListNode *node = NULL;
     
     size_t topicLen = strlen(topicName);
     if (topicLen > MAX_SIZE_OF_CLOUD_TOPIC) {
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_MAX_TOPIC_LENGTH);
     }
 
-    if (!pClient->is_connected) {
+    if (!get_client_conn_state(pClient)) {
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_MQTT_NO_CONN);
     }
 
     InitTimer(&timer);
     countdown_ms(&timer, pClient->command_timeout_ms);
 
+    HAL_MutexLock(pClient->lock_write_buf);
     if (pParams->qos == QOS1 || pParams->qos == QOS2) {
         pParams->id = get_next_packet_id(pClient);
         if (IOT_Log_Get_Level() <= DEBUG) {
@@ -264,44 +319,48 @@ int qcloud_iot_mqtt_publish(Qcloud_IoT_Client *pClient, char *topicName, Publish
         else {
         	Log_i("publish topic seq=%d|topicName=%s", pParams->id, topicName);
         }
-        waitForAck = 1;
-        if (pParams->qos == QOS2) {
-            packetType = PUBCOMP;
-        }
     }
     else {
     	if (IOT_Log_Get_Level() <= DEBUG) {
-    		Log_d("publish topic topicName=%s|payload=%s", topicName, (char *)pParams->payload);
-		}
-		else {
-			Log_i("publish topic topicName=%s", topicName);
-		}
+    		Log_d("publish packetID=%d|topicName=%s|payload=%s", pParams->id, topicName, (char *)pParams->payload);
+  		}
+  		else {
+  			Log_i("publish packetID=%d|topicName=%s", pParams->id, topicName);
+  		}
     }
 
-    rc = _serialize_publish_packet(pClient->buf, pClient->buf_size, 0, pParams->qos, pParams->retained, pParams->id,
+    rc = _serialize_publish_packet(pClient->write_buf, pClient->write_buf_size, 0, pParams->qos, pParams->retained, pParams->id,
                                    topicName, (unsigned char *) pParams->payload, pParams->payload_len, &len);
     if (QCLOUD_ERR_SUCCESS != rc) {
+    	HAL_MutexUnlock(pClient->lock_write_buf);
         IOT_FUNC_EXIT_RC(rc);
     }
 
+    if (pParams->qos > QOS0) {
+        rc = _mask_push_pubInfo_to(pClient, len, pParams->id, &node);
+        if (QCLOUD_ERR_SUCCESS != rc) {
+            Log_e("push publish into to pubInfolist failed!");
+            HAL_MutexUnlock(pClient->lock_write_buf);
+            IOT_FUNC_EXIT_RC(rc);
+        }
+    }
+
+    /* send the publish packet */
     rc = send_mqtt_packet(pClient, len, &timer);
-    if (QCLOUD_ERR_SUCCESS != rc) {
-        IOT_FUNC_EXIT_RC(rc);
-    }
+	if (QCLOUD_ERR_SUCCESS != rc) {
+		if (pParams->qos > QOS0) {
+			HAL_MutexLock(pClient->lock_list_pub);
+			list_remove(pClient->list_pub_wait_ack, node);
+			HAL_MutexUnlock(pClient->lock_list_pub);
+		}
 
-    if (waitForAck == 1) {
-        rc = wait_for_read(pClient, packetType, &timer);
-        if (QCLOUD_ERR_SUCCESS != rc) {
-            IOT_FUNC_EXIT_RC(rc);
-        }
+		HAL_MutexUnlock(pClient->lock_write_buf);
+		IOT_FUNC_EXIT_RC(rc);
+	}
 
-        rc = deserialize_ack_packet(&type, &dup, &packet_id, pClient->read_buf, pClient->read_buf_size);
-        if (QCLOUD_ERR_SUCCESS != rc) {
-            IOT_FUNC_EXIT_RC(rc);
-        }
-    }
+	HAL_MutexUnlock(pClient->lock_write_buf);
 
-    IOT_FUNC_EXIT_RC(QCLOUD_ERR_SUCCESS);
+  IOT_FUNC_EXIT_RC(pParams->id);
 }
 
 #ifdef __cplusplus

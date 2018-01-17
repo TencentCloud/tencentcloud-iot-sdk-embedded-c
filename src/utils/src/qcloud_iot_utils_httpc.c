@@ -1,3 +1,18 @@
+/*
+ * Tencent is pleased to support the open source community by making IoT Hub available.
+ * Copyright (C) 2016 THL A29 Limited, a Tencent company. All rights reserved.
+
+ * Licensed under the MIT License (the "License"); you may not use this file except in
+ * compliance with the License. You may obtain a copy of the License at
+ * http://opensource.org/licenses/MIT
+
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is
+ * distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+ * either express or implied. See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -11,6 +26,7 @@ extern "C" {
 #include <netdb.h>
 #include <string.h>
     
+#include "ca.h"
 #include "qcloud_iot_utils_timer.h"
 #include "qcloud_iot_export_log.h"
 #include "qcloud_iot_export_error.h"
@@ -184,12 +200,10 @@ static int _http_client_parse_host(const char *url, char *host, uint32_t host_ma
     pro_len = host_ptr - url;
 
     path_ptr = strchr(host_ptr, '/');
-    if (host_len == 0) {
-        if (path_ptr != NULL)
-            host_len = path_ptr - host_ptr;
-        else
-            host_len = strlen(url) - pro_len;
-    }
+    if (path_ptr != NULL)
+        host_len = path_ptr - host_ptr;
+    else
+        host_len = strlen(url) - pro_len;
 
     if (host_max_len < host_len + 1) {
         Log_e("Host str is too small (%d >= %d)", host_max_len, host_len + 1);
@@ -359,10 +373,10 @@ static int _http_client_send_header(http_client_t *client, const char *url, int 
     if (written_len > 0) {
         Log_d("Written %lu bytes", written_len);
     } else if (written_len == 0) {
-        Log_e("rc == 0,Connection was closed by server");
+        Log_e("written_len == 0,Connection was closed by server");
         return QCLOUD_ERR_HTTP_CLOSED; /* Connection was closed by server */
     } else {
-        Log_e("Connection error (send returned %lu)", written_len);
+        Log_e("Connection error (send returned %d)", rc);
         return QCLOUD_ERR_HTTP_CONN;
     }
     
@@ -377,14 +391,12 @@ static int _http_client_send_header(http_client_t *client, const char *url, int 
  * @return              返回QCLOUD_ERR_SUCCESS, 表示设置成功
  */
 static int _http_client_send_userdata(http_client_t *client, http_client_data_t *client_data)
-{
-    int rc = 0;
-    
+{    
     if (client_data->post_buf && client_data->post_buf_len) {
         Log_d("client_data->post_buf: %s", client_data->post_buf);
         {
             size_t written_len = 0;
-            rc = client->network_stack.write(&client->network_stack, (unsigned char *)client_data->post_buf, client_data->post_buf_len, 5000,  &written_len);
+            int rc = client->network_stack.write(&client->network_stack, (unsigned char *)client_data->post_buf, client_data->post_buf_len, 5000,  &written_len);
             if (written_len > 0) {
                 Log_d("Written %d bytes", rc);
             } else if (written_len == 0) {
@@ -717,8 +729,12 @@ static int _http_client_response_parse(http_client_t *client, char *data, int le
         if (n == 2) {
             Log_d("Read header : %s: %s", key, value);
             if (!strcmp(key, "Content-Length")) {
-                sscanf(value, "%d", &(client_data->response_content_len));
-                client_data->retrieve_len = client_data->response_content_len;
+                if (sscanf(value, "%d", &(client_data->response_content_len)) > 0)
+                {
+                    client_data->retrieve_len = client_data->response_content_len;
+                } else {
+                    client_data->retrieve_len = 0;
+                }
             } else if (!strcmp(key, "Transfer-Encoding")) {
                 if (!strcmp(value, "Chunked") || !strcmp(value, "chunked")) {
                     client_data->is_chunked = true;
@@ -833,11 +849,16 @@ static void _get_ip_addr(const char *host_name, char *ip_addr)
         return;
     }
     
-    int i;
-    for (i = 0; host->h_addr_list[i]; i++)
+    // int i;
+    // for (i = 0; host->h_addr_list[i]; i++)
+    // {
+    //     strcpy(ip_addr, inet_ntoa( * (struct in_addr*) host->h_addr_list[i]));
+    //     break;
+    // }
+
+    if (host->h_addr_list[0] != NULL)
     {
-        strcpy(ip_addr, inet_ntoa( * (struct in_addr*) host->h_addr_list[i]));
-        break;
+        strcpy(ip_addr, inet_ntoa( * (struct in_addr*) host->h_addr_list[0]));
     }
 }
 
@@ -852,11 +873,16 @@ static int _qcloud_iot_http_network_init(Network *pNetwork, const char *host, in
     if (pNetwork == NULL) {
         return QCLOUD_ERR_INVAL;
     }
-    
-    pNetwork->tlsConnectParams.host = host;
-    pNetwork->tlsConnectParams.port = port;
-    pNetwork->tlsConnectParams.ca_file = ca_crt_dir;
-    pNetwork->tlsConnectParams.is_asymc_encryption = true;
+#ifndef NOTLS_ENABLED
+    pNetwork->ssl_connect_params.host = host;
+    pNetwork->ssl_connect_params.port = port;
+    pNetwork->ssl_connect_params.ca_crt = iot_ca_get();
+    pNetwork->ssl_connect_params.ca_crt_len = strlen(pNetwork->ssl_connect_params.ca_crt);
+    pNetwork->ssl_connect_params.is_asymc_encryption = true;
+#else
+    pNetwork->host = host;
+    pNetwork->port = port;
+#endif
     
     rc = utils_net_init(pNetwork);
     
@@ -869,8 +895,8 @@ int qcloud_http_client_common(http_client_t *client, const char *url, int port, 
 {
     Timer timer;
     int rc = 0;
-    char host[HTTP_CLIENT_MAX_HOST_LEN] = {0};
     if (client->network_stack.handle == 0) {
+        char host[HTTP_CLIENT_MAX_HOST_LEN] = {0};
         _http_client_parse_host(url, host, sizeof(host));
         
         char ip_addr[16] = {0};
