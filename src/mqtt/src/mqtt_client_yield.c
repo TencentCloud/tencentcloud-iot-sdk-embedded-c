@@ -315,7 +315,7 @@ int qcloud_iot_mqtt_pub_info_proc(Qcloud_IoT_Client *pClient)
             if (NULL != pClient->event_handle.h_fp) {
                 MQTTEventMsg msg;
                 msg.event_type = MQTT_EVENT_PUBLISH_TIMEOUT;
-                msg.msg = (void *)(uintptr_t)pClient->next_packet_id;
+                msg.msg = (void *)(uintptr_t)repubInfo->msg_id;
                 pClient->event_handle.h_fp(pClient, pClient->event_handle.context, &msg);
             }
         }
