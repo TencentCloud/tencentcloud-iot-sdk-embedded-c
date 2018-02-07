@@ -15,7 +15,7 @@ programs: lib
 	$(MAKE) -s -C programs
 
 lib:
-	$(MAKE) -s -C library
+	$(MAKE) -C library
 
 tests: lib
 	$(MAKE) -C tests

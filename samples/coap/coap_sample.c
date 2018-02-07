@@ -29,14 +29,21 @@
 #define QCLOUD_IOT_MY_DEVICE_NAME           "YOUR_DEVICE_NAME"
 
 #ifndef NOTLS_ENABLED
-	/* 客户端证书文件名  非对称加密使用*/
-	#define QCLOUD_IOT_CERT_FILENAME          "YOUR_DEVICE_NAME_cert.crt"
-	/* 客户端私钥文件名 非对称加密使用*/
-	#define QCLOUD_IOT_KEY_FILENAME           "YOUR_DEVICE_NAME_private.key"
 
-	static char sg_cert_file[PATH_MAX + 1];		//客户端证书全路径
-	static char sg_key_file[PATH_MAX + 1];		//客户端密钥全路径
+#ifdef ASYMC_ENCRYPTION_ENABLED
+    /* 客户端证书文件名  非对称加密使用*/
+    #define QCLOUD_IOT_CERT_FILENAME          "YOUR_DEVICE_NAME_cert.crt"
+    /* 客户端私钥文件名 非对称加密使用*/
+    #define QCLOUD_IOT_KEY_FILENAME           "YOUR_DEVICE_NAME_private.key"
+
+    static char sg_cert_file[PATH_MAX + 1];      //客户端证书全路径
+    static char sg_key_file[PATH_MAX + 1];       //客户端密钥全路径
+
+#else
+    #define QCLOUD_IOT_PSK                  "YOUR_IOT_PSK"
 #endif
+#endif
+
 
 void event_handler(void *pcontext, CoAPEventMessage *message)
 {
@@ -75,6 +82,8 @@ int main(int argc, char **argv)
 	init_params.device_name = QCLOUD_IOT_MY_DEVICE_NAME;
 
 #ifndef NOTLS_ENABLED
+
+#ifdef ASYMC_ENCRYPTION_ENABLED
 	// 获取CA证书、客户端证书以及私钥文件的路径
 	char certs_dir[PATH_MAX + 1] = "certs";
 	char current_path[PATH_MAX + 1];
@@ -89,6 +98,10 @@ int main(int argc, char **argv)
 
 	init_params.cert_file = sg_cert_file;
 	init_params.key_file = sg_key_file;
+#else
+	init_params.psk = QCLOUD_IOT_PSK;
+#endif
+
 #endif
 
 	init_params.command_timeout = QCLOUD_IOT_MQTT_COMMAND_TIMEOUT;

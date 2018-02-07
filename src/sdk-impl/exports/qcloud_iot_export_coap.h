@@ -86,11 +86,15 @@ typedef struct {
 typedef struct {
     /* 设备基础信息 */
     char                        *product_id;              // 产品名称
-    char                        *device_name;               // 设备名称
+    char                        *device_name;             // 设备名称
 
 #ifndef NOTLS_ENABLED
+#ifdef ASYMC_ENCRYPTION_ENABLED
     char                        *cert_file;              // 客户端证书文件路径
     char                        *key_file;               // 客户端私钥文件路径
+#else
+    char                        *psk;                    // 对称加密密钥
+#endif
 #endif
 
     uint32_t					command_timeout;		 // coap消息等待回包ACK/RESP超时
@@ -102,7 +106,13 @@ typedef struct {
 } CoAPInitParams;
 
 #ifndef NOTLS_ENABLED
+
+#ifdef ASYMC_ENCRYPTION_ENABLED
 	#define DEFAULT_COAPINIT_PARAMS { NULL, NULL, NULL, NULL, 2000, 5, {0}}
+#else
+    #define DEFAULT_COAPINIT_PARAMS { NULL, NULL, NULL, 2000, 5, {0}}
+#endif
+
 #else
 	#define DEFAULT_COAPINIT_PARAMS { NULL, NULL, 0, 2000, 5, {0}}
 #endif

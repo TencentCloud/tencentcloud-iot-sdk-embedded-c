@@ -29,13 +29,20 @@
 #define QCLOUD_IOT_MY_DEVICE_NAME           "YOUR_DEVICE_NAME"
 
 #ifndef NOTLS_ENABLED
-	/* 客户端证书文件名  非对称加密使用*/
-	#define QCLOUD_IOT_CERT_FILENAME          "YOUR_DEVICE_NAME_cert.crt"
-	/* 客户端私钥文件名 非对称加密使用*/
-	#define QCLOUD_IOT_KEY_FILENAME           "YOUR_DEVICE_NAME_private.key"
 
-	static char sg_cert_file[PATH_MAX + 1];		//客户端证书全路径
-	static char sg_key_file[PATH_MAX + 1];		//客户端密钥全路径
+#ifdef ASYMC_ENCRYPTION_ENABLED
+    /* 客户端证书文件名  非对称加密使用*/
+    #define QCLOUD_IOT_CERT_FILENAME          "YOUR_DEVICE_NAME_cert.crt"
+    /* 客户端私钥文件名 非对称加密使用*/
+    #define QCLOUD_IOT_KEY_FILENAME           "YOUR_DEVICE_NAME_private.key"
+
+    static char sg_cert_file[PATH_MAX + 1];      //客户端证书全路径
+    static char sg_key_file[PATH_MAX + 1];       //客户端密钥全路径
+
+#else
+    #define QCLOUD_IOT_PSK                  "YOUR_IOT_PSK"
+#endif
+
 #endif
 
 #define MAX_LENGTH_OF_UPDATE_JSON_BUFFER 200
@@ -79,7 +86,8 @@ bool _is_value_equal(float left, float right)
 /**
  * 模拟室内温度
  */
-static void _simulate_room_temperature(float *roomTemperature) {
+static void _simulate_room_temperature(float *roomTemperature) 
+{
     float delta_change = 0;
 
     if (!sg_airconditioner_openned) {
@@ -99,7 +107,8 @@ static void _simulate_room_temperature(float *roomTemperature) {
 /**
  * 文档操作请求返回回调函数
  */
-static void on_request_handler(void *pClient, Method method, RequestAck status, const char *jsonDoc, void *userData) {
+static void on_request_handler(void *pClient, Method method, RequestAck status, const char *jsonDoc, void *userData) 
+{
 
     char *shadow_status = NULL;
     char *shadow_method = NULL;
@@ -139,7 +148,8 @@ static void on_request_handler(void *pClient, Method method, RequestAck status, 
 /**
  * MQTT消息接收处理函数
  */
-static void on_message_callback(void *pClient, MQTTMessage *message, void *userData) {
+static void on_message_callback(void *pClient, MQTTMessage *message, void *userData) 
+{
     int32_t token_count = 0;
     char field_value[100];
 
@@ -177,7 +187,8 @@ static void on_message_callback(void *pClient, MQTTMessage *message, void *userD
 /**
  * delta消息回调处理函数
  */
-static void on_temperature_actuate_callback(void *pClient, const char *jsonResponse, uint32_t responseLen, DeviceProperty *context) {
+static void on_temperature_actuate_callback(void *pClient, const char *jsonResponse, uint32_t responseLen, DeviceProperty *context) 
+{
     Log_i("actuate callback jsonString=%s|dataLen=%u", jsonResponse, responseLen);
 
     if (context != NULL) {
@@ -238,7 +249,8 @@ static void event_handler(void *pclient, void *handle_context, MQTTEventMsg *msg
 /**
  * report energy consumption
  */
-static int _do_report_energy_consumption(void *client) {
+static int _do_report_energy_consumption(void *client) 
+{
     int rc = IOT_Shadow_JSON_ConstructReport(client, sg_document_buffer, sg_document_buffersize, 1, &sg_energy_consumption_prop);
 
     if (rc != QCLOUD_ERR_SUCCESS) {
@@ -257,7 +269,8 @@ static int _do_report_energy_consumption(void *client) {
     return rc;
 }
 
-static int _do_report_temperature_desire(void *client) {
+static int _do_report_temperature_desire(void *client) 
+{
     /*
      * 如果收到delta消息，或者get时有desired内容，那么需要将 所有 的属性执行完毕之后，上报清空desried消息，否则后台的记录一直存在。
      * 如果没有执行变更属性值操作，那么不用上报desired字段。
@@ -293,6 +306,7 @@ static int _setup_connect_init_params(ShadowInitParams* initParams)
 	initParams->product_id = QCLOUD_IOT_MY_PRODUCT_ID;
 
 #ifndef NOTLS_ENABLED
+#ifdef ASYMC_ENCRYPTION_ENABLED
     // 获取CA证书、客户端证书以及私钥文件的路径
     char certs_dir[PATH_MAX + 1] = "certs";
     char current_path[PATH_MAX + 1];
@@ -307,6 +321,9 @@ static int _setup_connect_init_params(ShadowInitParams* initParams)
 
     initParams->cert_file = sg_cert_file;
     initParams->key_file = sg_key_file;
+#else
+    initParams->psk = QCLOUD_IOT_PSK;
+#endif
 #endif
 
 	initParams->auto_connect_enable = 1;

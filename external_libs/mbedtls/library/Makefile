@@ -1,4 +1,4 @@
-
+include ../../../src/scripts/internal_make_funcs.mk
 # Also see "include/mbedtls/config.h"
 
 CFLAGS	?= -O2
@@ -90,9 +90,8 @@ shared: libmbedcrypto.$(DLEXT) libmbedx509.$(DLEXT) libmbedtls.$(DLEXT)
 
 # tls
 libmbedtls.a: $(OBJS_TLS)
-	echo "  AR    $@"
+	$(call AR_Log)
 	$(AR) -rc $@ $(OBJS_TLS)
-	echo "  RL    $@"
 	$(AR) -s $@
 
 libmbedtls.$(SOEXT_TLS): $(OBJS_TLS) libmbedx509.so
@@ -113,9 +112,8 @@ libmbedtls.dll: $(OBJS_TLS) libmbedx509.dll
 
 # x509
 libmbedx509.a: $(OBJS_X509)
-	echo "  AR    $@"
+	$(call AR_Log)
 	$(AR) -rc $@ $(OBJS_X509)
-	echo "  RL    $@"
 	$(AR) -s $@
 
 libmbedx509.$(SOEXT_X509): $(OBJS_X509) libmbedcrypto.so
@@ -136,9 +134,8 @@ libmbedx509.dll: $(OBJS_X509) libmbedcrypto.dll
 
 # crypto
 libmbedcrypto.a: $(OBJS_CRYPTO)
-	echo "  AR    $@"
+	$(call AR_Log)
 	$(AR) -rc $@ $(OBJS_CRYPTO)
-	echo "  RL    $@"
 	$(AR) -s $@
 
 libmbedcrypto.$(SOEXT_CRYPTO): $(OBJS_CRYPTO)
@@ -158,7 +155,8 @@ libmbedcrypto.dll: $(OBJS_CRYPTO)
 	$(CC) -shared -Wl,-soname,$@ -Wl,--out-implib,$@.a -o $@ $(OBJS_CRYPTO) -lws2_32 -lwinmm -lgdi32 -static-libgcc $(LOCAL_LDFLAGS) $(LDFLAGS)
 
 .c.o:
-#	echo "  CC    $<"
+#	echo "  CC  $@  $<"
+	$(call CC_Log)
 	@ \
 	$(CC) $(LOCAL_CFLAGS) $(CFLAGS) -c $<
 

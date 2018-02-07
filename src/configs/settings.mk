@@ -25,5 +25,10 @@ TESTS_DIR		:= $(TOP_DIR)/sdk-tests
 
 # Settings of makefile echo
 #
-Q               := @
-TOP_Q           := @
+ifeq ($(DEBUG_MAKEFILE),n)
+    Q               := @
+    TOP_Q           := @
+else
+    Q               :=
+    TOP_Q           :=
+endif

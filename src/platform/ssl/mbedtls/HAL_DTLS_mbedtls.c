@@ -39,7 +39,9 @@ extern "C" {
     
 #define DEBUG_LEVEL 0
     
+#ifndef ASYMC_ENCRYPTION_ENABLED
 static const int ciphersuites[] = { MBEDTLS_TLS_PSK_WITH_AES_128_CBC_SHA, MBEDTLS_TLS_PSK_WITH_AES_256_CBC_SHA, 0 };
+#endif
 
     
 typedef struct
@@ -108,44 +110,52 @@ static int _mbedtls_client_init(DTLSDataParams *pDataParams, DTLSConnectParams *
 
 	mbedtls_ssl_conf_authmode(&pDataParams->ssl_conf, MBEDTLS_SSL_VERIFY_NONE );
 
-	if ((ret = mbedtls_x509_crt_parse(&(pDataParams->ca_cert), (const unsigned char *)pConnectParams->ca_crt,
-			(pConnectParams->ca_crt_len + 1)))) {
-		Log_e("mbedtls_x509_crt_parse ca crt failed returned -0x%x", -ret);
-		return QCLOUD_ERR_SSL_CERT;
+    if (pConnectParams->ca_crt != NULL)
+    {
+        if ((ret = mbedtls_x509_crt_parse(&(pDataParams->ca_cert), (const unsigned char *)pConnectParams->ca_crt,
+            (pConnectParams->ca_crt_len + 1)))) {
+            Log_e("parse ca crt failed returned -0x%04x", -ret);
+            return QCLOUD_ERR_SSL_CERT;
+        }
+    }
+
+#ifdef ASYMC_ENCRYPTION_ENABLED
+    if (pConnectParams->cert_file != NULL && pConnectParams->key_file != NULL) {
+            if ((ret = mbedtls_x509_crt_parse_file(&(pDataParams->client_cert), pConnectParams->cert_file)) != 0) {
+            Log_e("load client cert file failed returned -0x%x", ret);
+            return QCLOUD_ERR_SSL_CERT;
+        }
+
+        if ((ret = mbedtls_pk_parse_keyfile(&(pDataParams->private_key), pConnectParams->key_file, "")) != 0) {
+            Log_e("load client key file failed returned -0x%x", ret);
+            return QCLOUD_ERR_SSL_CERT;
+        }
+
+        if (0 == ret) {
+            mbedtls_ssl_conf_ca_chain(&(pDataParams->ssl_conf), &(pDataParams->ca_cert), NULL);
+            if ((ret = mbedtls_ssl_conf_own_cert(&(pDataParams->ssl_conf), &(pDataParams->client_cert), &(pDataParams->private_key))) != 0) {
+                Log_e("mbedtls_ssl_conf_own_cert failed returned -0x%x", -ret);
+                return QCLOUD_ERR_SSL_CERT;
+            }
+        }
+    } else {
+        Log_d("cert_file/key_file is empty!|cert_file=%s|key_file=%s", pConnectParams->cert_file, pConnectParams->key_file);
+    }
+    
+#else
+    if (pConnectParams->psk != NULL && pConnectParams->psk_id !=NULL) {
+        const char *psk_id = pConnectParams->psk_id;
+        ret = mbedtls_ssl_conf_psk(&(pDataParams->ssl_conf), (unsigned char *)pConnectParams->psk, pConnectParams->psk_length,
+                                    (const unsigned char *) psk_id, strlen( psk_id ));
+    } else {
+        Log_d("psk/pskid is empty!|psk=%s|psd_id=%s", pConnectParams->psk, pConnectParams->psk_id);
+    }
+	
+	if (0 != ret) {
+		Log_e("mbedtls_ssl_conf_psk fail: -0x%x", -ret);
+		return ret;
 	}
-
-	if (pConnectParams->is_asymc_encryption) {
-		 if ((ret = mbedtls_x509_crt_parse_file(&(pDataParams->client_cert), pConnectParams->cert_file)) != 0) {
-			Log_e("load client cert file failed returned -0x%x", ret);
-			return QCLOUD_ERR_SSL_CERT;
-		 }
-
-		 if ((ret = mbedtls_pk_parse_keyfile(&(pDataParams->private_key), pConnectParams->key_file, "")) != 0) {
-			Log_e("load client key file failed returned -0x%x", ret);
-			return QCLOUD_ERR_SSL_CERT;
-		 }
-
-		if (0 == ret) {
-			mbedtls_ssl_conf_ca_chain(&(pDataParams->ssl_conf), &(pDataParams->ca_cert), NULL);
-			if ((ret = mbedtls_ssl_conf_own_cert(&(pDataParams->ssl_conf), &(pDataParams->client_cert), &(pDataParams->private_key))) != 0) {
-				Log_e("mbedtls_ssl_conf_own_cert failed returned -0x%x", -ret);
-				return QCLOUD_ERR_SSL_CERT;
-			}
-		}
-	}
-	else
-	{
-		POINTER_SANITY_CHECK(pConnectParams->psk, QCLOUD_ERR_SSL_CERT);
-		POINTER_SANITY_CHECK(pConnectParams->psk_id, QCLOUD_ERR_SSL_CERT);
-
-		const char *psk_id = pConnectParams->psk_id;
-		ret = mbedtls_ssl_conf_psk(&(pDataParams->ssl_conf), (unsigned char *)pConnectParams->psk, pConnectParams->psk_length,
-									  (const unsigned char *) psk_id, strlen( psk_id ));
-		if (0 != ret) {
-			Log_e("mbedtls_ssl_conf_psk fail: -0x%x", -ret);
-			return ret;
-		}
-	}
+#endif
 
     return ret;
 }
@@ -216,9 +226,11 @@ uintptr_t HAL_DTLS_Connect(DTLSConnectParams *pConnectParams)
 
     mbedtls_ssl_conf_dtls_cookies(&pDataParams->ssl_conf, mbedtls_ssl_cookie_write, mbedtls_ssl_cookie_check, &pDataParams->cookie_ctx);
 
-    if(pConnectParams->is_asymc_encryption == false) {
+#ifndef ASYMC_ENCRYPTION_ENABLED
+    // if(pConnectParams->is_asymc_encryption == false) {
         mbedtls_ssl_conf_ciphersuites(&(pDataParams->ssl_conf), ciphersuites);
-    }
+    // }
+#endif        
     
 #ifdef MBEDTLS_SSL_PROTO_DTLS
     if (pDataParams->ssl_conf.transport == MBEDTLS_SSL_TRANSPORT_DATAGRAM)

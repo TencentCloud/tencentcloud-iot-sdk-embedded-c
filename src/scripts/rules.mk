@@ -4,8 +4,11 @@ iot_platform_objects = $(patsubst %.c,%.o, $(IOTPLATFORM_SRC_FILES))
 .PHONY: config mbedtls clean final-out final tests
 
 all: config mbedtls ${COMP_LIB} ${PLATFORM_LIB} final-out final tests cleans
+	@sed -i 's///g' `find . -name *.sh`
+	$(call Compile_Result)
 
 ${COMP_LIB}: ${iot_sdk_objects}
+	$(call Brief_Log,"AR")
 	$(TOP_Q) \
 	$(AR) rcs $@ $(iot_sdk_objects)
 	
@@ -13,6 +16,7 @@ ${COMP_LIB}: ${iot_sdk_objects}
 	rm ${iot_sdk_objects}
 	
 ${PLATFORM_LIB}: ${iot_platform_objects}
+	$(call Brief_Log,"AR")
 	$(TOP_Q) \
 	$(AR) rcs $@ $(iot_platform_objects)
 	
@@ -39,10 +43,12 @@ mbedtls:
 						&& $(AR) x libmbedcrypto.a
 
 ${iot_sdk_objects}:%.o:%.c
+	$(call Brief_Log,"CC")
 	$(TOP_Q) \
 	$(PLATFORM_CC) $(CFLAGS) -c $^ -o $@
 	
 ${iot_platform_objects}:%.o:%.c
+	$(call Brief_Log,"CC")
 	$(TOP_Q) \
 	$(PLATFORM_CC) $(CFLAGS) -c $^ -o $@
 	

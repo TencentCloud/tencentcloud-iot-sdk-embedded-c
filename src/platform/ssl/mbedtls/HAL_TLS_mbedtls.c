@@ -32,7 +32,9 @@ extern "C" {
 #include "mbedtls/net_sockets.h"
 #include "mbedtls/ctr_drbg.h"
 
-const int ciphersuites[] = { MBEDTLS_TLS_PSK_WITH_AES_128_CBC_SHA, MBEDTLS_TLS_PSK_WITH_AES_256_CBC_SHA, 0 };
+#ifndef ASYMC_ENCRYPTION_ENABLED
+static const int ciphersuites[] = { MBEDTLS_TLS_PSK_WITH_AES_128_CBC_SHA, MBEDTLS_TLS_PSK_WITH_AES_256_CBC_SHA, 0 };
+#endif
     
 /**
  * @brief 用于保存SSL连接相关数据结构
@@ -95,36 +97,44 @@ static int _mbedtls_client_init(TLSDataParams *pDataParams, TLSConnectParams *pC
         return QCLOUD_ERR_SSL_INIT;
     }
 
-    if ((ret = mbedtls_x509_crt_parse(&(pDataParams->ca_cert), (const unsigned char *)pConnectParams->ca_crt,
-    		(pConnectParams->ca_crt_len + 1)))) {
-		Log_e("parse ca crt failed returned -0x%04x", -ret);
-		return QCLOUD_ERR_SSL_CERT;
-    }
-
-    if (pConnectParams->is_asymc_encryption)
+    if (pConnectParams->ca_crt != NULL)
     {
-		if ((ret = mbedtls_x509_crt_parse_file(&(pDataParams->client_cert), pConnectParams->cert_file)) != 0) {
-			Log_e("load client cert file failed returned -0x%04x", -ret);
-			return QCLOUD_ERR_SSL_CERT;
-		}
-
-		if ((ret = mbedtls_pk_parse_keyfile(&(pDataParams->private_key), pConnectParams->key_file, "")) != 0) {
-			Log_e("load client key file failed returned -0x%04x", -ret);
-			return QCLOUD_ERR_SSL_CERT;
-		}
+        if ((ret = mbedtls_x509_crt_parse(&(pDataParams->ca_cert), (const unsigned char *)pConnectParams->ca_crt,
+            (pConnectParams->ca_crt_len + 1)))) {
+            Log_e("parse ca crt failed returned -0x%04x", -ret);
+            return QCLOUD_ERR_SSL_CERT;
+        }
     }
-    else {
-    	POINTER_SANITY_CHECK(pConnectParams->psk, QCLOUD_ERR_SSL_CERT);
-    	POINTER_SANITY_CHECK(pConnectParams->psk_id, QCLOUD_ERR_SSL_CERT);
 
+#ifdef ASYMC_ENCRYPTION_ENABLED
+    if (pConnectParams->cert_file != NULL && pConnectParams->key_file != NULL) {
+            if ((ret = mbedtls_x509_crt_parse_file(&(pDataParams->client_cert), pConnectParams->cert_file)) != 0) {
+            Log_e("load client cert file failed returned -0x%x", ret);
+            return QCLOUD_ERR_SSL_CERT;
+        }
+
+        if ((ret = mbedtls_pk_parse_keyfile(&(pDataParams->private_key), pConnectParams->key_file, "")) != 0) {
+            Log_e("load client key file failed returned -0x%x", ret);
+            return QCLOUD_ERR_SSL_CERT;
+        }
+    } else {
+        Log_d("cert_file/key_file is empty!|cert_file=%s|key_file=%s", pConnectParams->cert_file, pConnectParams->key_file);
+    }
+#else
+	if (pConnectParams->psk != NULL && pConnectParams->psk_id !=NULL) {
         const char *psk_id = pConnectParams->psk_id;
         ret = mbedtls_ssl_conf_psk(&(pDataParams->ssl_conf), (unsigned char *)pConnectParams->psk, pConnectParams->psk_length,
-                             (const unsigned char *) psk_id, strlen( psk_id ));
-        if (0 != ret) {
-			Log_e("mbedtls_ssl_conf_psk fail: -0x%x", -ret);
-			return ret;
-		}
+                                    (const unsigned char *) psk_id, strlen( psk_id ));
+    } else {
+        Log_d("psk/pskid is empty!|psk=%s|psd_id=%s", pConnectParams->psk, pConnectParams->psk_id);
     }
+	
+	if (0 != ret) {
+		Log_e("mbedtls_ssl_conf_psk fail: -0x%x", -ret);
+		return ret;
+	}
+#endif
+    // }
 
     return QCLOUD_ERR_SUCCESS;
 }
@@ -221,10 +231,10 @@ uintptr_t HAL_TLS_Connect(TLSConnectParams *pConnectParams)
         goto error;
     }
 
+#ifndef ASYMC_ENCRYPTION_ENABLED
     // 选择加密套件代码，以后不通加密方式合并端口的时候可以用到
-    if(pConnectParams->is_asymc_encryption == false) {
-        mbedtls_ssl_conf_ciphersuites(&(pDataParams->ssl_conf), ciphersuites);
-    }
+    mbedtls_ssl_conf_ciphersuites(&(pDataParams->ssl_conf), ciphersuites);
+#endif  
 
     // Set the hostname to check against the received server certificate and sni
     if ((ret = mbedtls_ssl_set_hostname(&(pDataParams->ssl), pConnectParams->host)) != 0) {

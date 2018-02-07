@@ -30,11 +30,18 @@ typedef struct {
     char                        *device_name;           // 设备名称
 
 #ifndef NOTLS_ENABLED
+#ifdef ASYMC_ENCRYPTION_ENABLED
     /**
      * 非对称加密使用
      */
     char                        *cert_file;              // 客户端证书文件路径
     char                        *key_file;               // 客户端私钥文件路径
+#else
+    /**
+     * 对称加密
+     */
+    char                        *psk;                    // 对称加密密钥
+#endif
 #endif
 
     uint32_t                    command_timeout;         // 发布订阅信令读写超时时间 ms
@@ -51,7 +58,11 @@ typedef struct {
 // #define DEFAULT_SHAWDOW_INIT_PARAMS {DEFAULT_MQTTINIT_PARAMS}
 
 #ifndef NOTLS_ENABLED
+#ifdef ASYMC_ENCRYPTION_ENABLED
     #define DEFAULT_SHAWDOW_INIT_PARAMS { NULL, NULL, NULL, NULL, 2000, 240, 1, 1, {0}}
+#else
+    #define DEFAULT_SHAWDOW_INIT_PARAMS { NULL, NULL, NULL, 2000, 240, 1, 1, {0}}
+#endif
 #else
     #define DEFAULT_SHAWDOW_INIT_PARAMS { NULL, NULL, 2000, 240, 1, 1, {0}}
 #endif

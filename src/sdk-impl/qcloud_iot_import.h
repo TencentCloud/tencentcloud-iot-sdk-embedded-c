@@ -117,16 +117,16 @@ typedef struct Timer Timer;
 /**
  * @brief 判断定时器时间是否已经过期
  *
- * @param timer 定时器结构体
- * @return 返回1, 表示定时器已过期
+ * @param timer     定时器结构体
+ * @return          返回1, 表示定时器已过期
  */
 char HAL_Timer_expired(Timer *timer);
 
 /**
  * @brief 根据定时器开始计时, 单位:ms
  *
- * @param timer 定时器结构体
- * @param timeout_ms 超时时间, 单位:ms
+ * @param timer         定时器结构体
+ * @param timeout_ms    超时时间, 单位:ms
  */
 void HAL_Timer_countdown_ms(Timer *timer, unsigned int timeout_ms);
 
@@ -141,8 +141,8 @@ void HAL_Timer_countdown(Timer *timer, unsigned int timeout);
 /**
  * @brief 检查给定定时器还剩下多少时间
  *
- * @param timer 定时器结构体
- * @return 返回剩余时间
+ * @param timer     定时器结构体
+ * @return          返回剩余时间
  */
 int HAL_Timer_remain(Timer *timer);
 
@@ -170,17 +170,20 @@ typedef struct {
     const char		 *ca_crt;
     uint16_t 		 ca_crt_len;
 
+#ifdef ASYMC_ENCRYPTION_ENABLED
 	/**
 	 * 非对称加密
 	 */
     const char       *cert_file;            // 客户端证书
     const char       *key_file;             // 客户端私钥
-
+#else
     /**
      * 对称加密
      */
     const char       *psk;                  // 对称加密密钥
     const char       *psk_id;               // psk密钥ID
+#endif
+    
     size_t           psk_length;            // psk长度
 
     const char       *host;                 // 服务器地址
@@ -188,7 +191,6 @@ typedef struct {
 
     unsigned int     timeout_ms;            // SSL握手超时时间
 
-    bool             is_asymc_encryption;   // 加密方式 0:对称加密 1:非对称加密
 } SSLConnectParams;
 
 /********** tls network **********/
@@ -218,12 +220,12 @@ void HAL_TLS_Disconnect(uintptr_t handle);
 /**
  * @brief 通过TLS连接写数据
  *
- * @param handle     TLS连接相关数据结构
- * @param data         写入数据
- * @param totalLen    写入数据长度
- * @param timeout_ms  超时时间, 单位:ms
- * @param written_len 已写入数据长度
- * @return 若写数据成功, 则返回写入数据的长度
+ * @param handle        TLS连接相关数据结构
+ * @param data          写入数据
+ * @param totalLen      写入数据长度
+ * @param timeout_ms    超时时间, 单位:ms
+ * @param written_len   已写入数据长度
+ * @return              若写数据成功, 则返回写入数据的长度
  */
 int HAL_TLS_Write(uintptr_t handle, unsigned char *data, size_t totalLen, int timeout_ms,
                                  size_t *written_len);
@@ -231,12 +233,12 @@ int HAL_TLS_Write(uintptr_t handle, unsigned char *data, size_t totalLen, int ti
 /**
  * @brief 通过TLS连接读数据
  *
- * @param handle    TLS连接相关数据结构
- * @param data        读取数据
- * @param totalLen   读取数据的长度
- * @param timeout_ms 超时时间, 单位:ms
- * @param read_len   已读取数据的长度
- * @return 若读数据成功, 则返回读取数据的长度
+ * @param handle        TLS连接相关数据结构
+ * @param data          读取数据
+ * @param totalLen      读取数据的长度
+ * @param timeout_ms    超时时间, 单位:ms
+ * @param read_len      已读取数据的长度
+ * @return              若读数据成功, 则返回读取数据的长度
  */
 int HAL_TLS_Read(uintptr_t handle, unsigned char *data, size_t totalLen, int timeout_ms,
                                 size_t *read_len);    
@@ -270,23 +272,23 @@ void HAL_DTLS_Disconnect(uintptr_t handle);
 /**
  * @brief 通过DTLS连接写数据
  *
- * @param handle     DTLS连接相关数据结构
- * @param data         写入数据
- * @param datalen      写入数据长度
- * @param written_len 已写入数据长度
- * @return 若写数据成功, 则返回写入数据的长度
+ * @param pParams           DTLS连接相关数据结构
+ * @param data              写入数据
+ * @param datalen           写入数据长度
+ * @param written_len       已写入数据长度
+ * @return                  若写数据成功, 则返回写入数据的长度
  */
 int HAL_DTLS_Write(uintptr_t handle, const unsigned char *data, size_t datalen, size_t *written_len);
 
 /**
  * @brief 通过DTLS连接读数据
  *
- * @param handle     DTLS连接相关数据结构
- * @param data        读取数据
- * @param timeout_ms 超时时间, 单位:ms
- * @param datalen   	   读取数据的长度
- * @param read_len   已读取数据的长度
- * @return 若读数据成功, 则返回读取数据的长度
+ * @param handle            DTLS连接相关数据结构
+ * @param data              读取数据
+ * @param timeout_ms        超时时间, 单位:ms
+ * @param datalen   	    读取数据的长度
+ * @param read_len          已读取数据的长度
+ * @return                  若读数据成功, 则返回读取数据的长度
  */
 int HAL_DTLS_Read(uintptr_t handle, unsigned char *data, size_t datalen, unsigned int timeout_ms,
                   size_t *read_len);

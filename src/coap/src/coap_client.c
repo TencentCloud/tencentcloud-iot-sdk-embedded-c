@@ -37,6 +37,11 @@ extern "C" {
 static char s_qcloud_iot_host[HOST_STR_LENGTH] = {0};
 static int s_qcloud_iot_port = 5683;
 
+#ifndef ASYMC_ENCRYPTION_ENABLED
+#define DECODE_PSK_LENGTH 32
+static unsigned char sg_psk_str[DECODE_PSK_LENGTH];
+#endif
+
 static uint16_t _get_random_start_packet_id(void)
 {
     srand((unsigned)time(NULL));
@@ -261,15 +266,6 @@ int qcloud_iot_coap_init(CoAPClient *pClient, CoAPInitParams *pParams) {
 
     pClient->is_authed = -1;
 
-#ifndef NOTLS_ENABLED
-	bool certEmpty = (pParams->cert_file == NULL || pParams->key_file == NULL);
-	if (certEmpty) {
-		IOT_FUNC_EXIT_RC(QCLOUD_ERR_INVAL);
-	}
-	Log_d("cert file: %s", pParams->cert_file);
-	Log_d("key file: %s", pParams->key_file);
-#endif
-
     if (pParams->command_timeout < MIN_COMMAND_TIMEOUT)
     	pParams->command_timeout = MIN_COMMAND_TIMEOUT;
     if (pParams->command_timeout > MAX_COMMAND_TIMEOUT)
@@ -277,14 +273,35 @@ int qcloud_iot_coap_init(CoAPClient *pClient, CoAPInitParams *pParams) {
     pClient->command_timeout_ms = pParams->command_timeout;
 
 #ifndef NOTLS_ENABLED
+#ifdef ASYMC_ENCRYPTION_ENABLED
+    bool certEmpty = (pParams->cert_file == NULL || pParams->key_file == NULL);
+	if (certEmpty) {
+		Log_e("cert file or key file is empty!");
+		IOT_FUNC_EXIT_RC(QCLOUD_ERR_INVAL);
+	}
+	Log_d("cert file: %s", pParams->cert_file);
+	Log_d("key file: %s", pParams->key_file);
+
     // TLS连接参数初始化
-	pClient->network_stack.ssl_connect_params.is_asymc_encryption = 1;
 	pClient->network_stack.ssl_connect_params.cert_file = pParams->cert_file;
 	pClient->network_stack.ssl_connect_params.key_file = pParams->key_file;
     pClient->network_stack.ssl_connect_params.ca_crt = iot_ca_get();
     pClient->network_stack.ssl_connect_params.ca_crt_len = strlen(pClient->network_stack.ssl_connect_params.ca_crt);
 
+#else
     pClient->network_stack.ssl_connect_params.psk_id = iot_device_info_get()->client_id;
+    if (pParams->psk != NULL) {
+        size_t src_len = strlen(pParams->psk);
+        size_t len;
+        memset(sg_psk_str, 0x00, DECODE_PSK_LENGTH);
+        qcloud_iot_utils_base64decode(sg_psk_str, sizeof( sg_psk_str ), &len, (unsigned char *)pParams->psk, src_len );
+        pClient->network_stack.ssl_connect_params.psk = (char *)sg_psk_str;
+        pClient->network_stack.ssl_connect_params.psk_length = len;
+    } else {
+        Log_e("psk is empty!");
+        IOT_FUNC_EXIT_RC(QCLOUD_ERR_INVAL);
+    }
+#endif	
 
     pClient->network_stack.ssl_connect_params.host = s_qcloud_iot_host;
     pClient->network_stack.ssl_connect_params.port = s_qcloud_iot_port;

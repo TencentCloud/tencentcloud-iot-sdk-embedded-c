@@ -151,12 +151,15 @@ typedef struct {
     char 						*device_name;			// 设备名称
 
 #ifndef NOTLS_ENABLED
+#ifdef ASYMC_ENCRYPTION_ENABLED
 	/**
 	 * 非对称加密使用
 	 */
     char                        *cert_file;              // 客户端证书文件路径
     char                        *key_file;               // 客户端私钥文件路径
-
+#else
+    char                        *psk;
+#endif
 #endif
 
     uint32_t					command_timeout;		 // 发布订阅信令读写超时时间 ms
@@ -174,7 +177,11 @@ typedef struct {
  * MQTT初始化参数结构体默认值定义
  */
 #ifndef NOTLS_ENABLED
+#ifdef ASYMC_ENCRYPTION_ENABLED
 	#define DEFAULT_MQTTINIT_PARAMS { NULL, NULL, NULL, NULL, 2000, 240 * 1000, 1, 1, {0}}
+#else
+    #define DEFAULT_MQTTINIT_PARAMS { NULL, NULL, NULL, 2000, 240 * 1000, 1, 1, {0}}
+#endif
 #else
 	#define DEFAULT_MQTTINIT_PARAMS { NULL, NULL, 2000, 240 * 1000, 1, 1, {0}}
 #endif

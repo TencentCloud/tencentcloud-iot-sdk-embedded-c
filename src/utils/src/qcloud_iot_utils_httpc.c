@@ -878,7 +878,6 @@ static int _qcloud_iot_http_network_init(Network *pNetwork, const char *host, in
     pNetwork->ssl_connect_params.port = port;
     pNetwork->ssl_connect_params.ca_crt = iot_ca_get();
     pNetwork->ssl_connect_params.ca_crt_len = strlen(pNetwork->ssl_connect_params.ca_crt);
-    pNetwork->ssl_connect_params.is_asymc_encryption = true;
 #else
     pNetwork->host = host;
     pNetwork->port = port;

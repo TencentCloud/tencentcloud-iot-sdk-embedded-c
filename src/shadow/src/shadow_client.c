@@ -96,8 +96,12 @@ static void _copy_shadow_init_params_to_mqtt(MQTTInitParams *pMqttInitParams, Sh
 	pMqttInitParams->device_name = shadowInitParams->device_name;
     pMqttInitParams->product_id = shadowInitParams->product_id;
 #ifndef NOTLS_ENABLED
+#ifdef ASYMC_ENCRYPTION_ENABLED
 	pMqttInitParams->cert_file = shadowInitParams->cert_file;
 	pMqttInitParams->key_file = shadowInitParams->key_file;
+#else
+	pMqttInitParams->psk = shadowInitParams->psk;
+#endif
 
 	pMqttInitParams->command_timeout = shadowInitParams->command_timeout;
     pMqttInitParams->keep_alive_interval_ms = shadowInitParams->keep_alive_interval_ms;

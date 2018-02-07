@@ -310,9 +310,11 @@ static int _mqtt_connect(Qcloud_IoT_Client *pClient, MQTTConnectParams *options)
         _copy_connect_params(&(pClient->options), options);
     }
 
-#ifndef NOTLS_ENABLE
-    pClient->network_stack.ssl_connect_params.psk_id = pClient->options.client_id;
-#endif
+// #ifndef NOTLS_ENABLE
+// #ifndef ASYMC_ENCRYPTION_ENABLED
+//     pClient->network_stack.ssl_connect_params.psk_id = pClient->options.client_id;
+// #endif
+// #endif
 
     // 建立TLS连接
     rc = pClient->network_stack.connect(&(pClient->network_stack));

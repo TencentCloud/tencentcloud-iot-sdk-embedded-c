@@ -29,13 +29,20 @@
 #define QCLOUD_IOT_MY_DEVICE_NAME           "YOUR_DEVICE_NAME"
 
 #ifndef NOTLS_ENABLED
-	/* 客户端证书文件名  非对称加密使用*/
-	#define QCLOUD_IOT_CERT_FILENAME          "YOUR_DEVICE_NAME_cert.crt"
-	/* 客户端私钥文件名 非对称加密使用*/
-	#define QCLOUD_IOT_KEY_FILENAME           "YOUR_DEVICE_NAME_private.key"
 
-	static char sg_cert_file[PATH_MAX + 1];		//客户端证书全路径
-	static char sg_key_file[PATH_MAX + 1];		//客户端密钥全路径
+#ifdef ASYMC_ENCRYPTION_ENABLED
+    /* 客户端证书文件名  非对称加密使用*/
+    #define QCLOUD_IOT_CERT_FILENAME          "YOUR_DEVICE_NAME_cert.crt"
+    /* 客户端私钥文件名 非对称加密使用*/
+    #define QCLOUD_IOT_KEY_FILENAME           "YOUR_DEVICE_NAME_private.key"
+
+    static char sg_cert_file[PATH_MAX + 1];      //客户端证书全路径
+    static char sg_key_file[PATH_MAX + 1];       //客户端密钥全路径
+
+#else
+    #define QCLOUD_IOT_PSK                  "YOUR_IOT_PSK"
+#endif
+
 #endif
 
 #define MAX_LENGTH_OF_UPDATE_JSON_BUFFER 200
@@ -144,7 +151,8 @@ static void event_handler(void *pclient, void *handle_context, MQTTEventMsg *msg
  * @param message           已订阅消息的结构
  * @param userData         消息负载
  */
-static void on_message_callback(void *pClient, MQTTMessage *message, void *userData) {
+static void on_message_callback(void *pClient, MQTTMessage *message, void *userData) 
+{
     int32_t token_count = 0;
     char field_value[100];
 
@@ -195,6 +203,7 @@ static int _setup_connect_init_params(ShadowInitParams* initParams)
 	initParams->product_id = QCLOUD_IOT_MY_PRODUCT_ID;
 
 #ifndef NOTLS_ENABLED
+#ifdef ASYMC_ENCRYPTION_ENABLED
     // 获取CA证书、客户端证书以及私钥文件的路径
     char certs_dir[PATH_MAX + 1] = "certs";
     char current_path[PATH_MAX + 1];
@@ -209,6 +218,9 @@ static int _setup_connect_init_params(ShadowInitParams* initParams)
 
     initParams->cert_file = sg_cert_file;
     initParams->key_file = sg_key_file;
+#else
+    initParams->psk = QCLOUD_IOT_PSK;
+#endif
 #endif
 
     initParams->auto_connect_enable = 1;
