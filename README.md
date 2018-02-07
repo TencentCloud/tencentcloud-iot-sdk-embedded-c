@@ -40,8 +40,12 @@
 `git clone https://github.com/tencentyun/qcloud-iot-sdk-embedded-c.git`
 
 #### 2. 填入设备信息
-编辑 samples/mqtt/mqtt_example.c 文件和 samples/coap/coap_sample.c 文件中如下代码段, 填入之前创建产品和设备步骤中得到的 **产品ID**，**设备名称**，填写 **CERT_FILENAME** 和 **KEY_FILENAME** 并将文件放置在根目录下 certs 目录中:
-![](http://qzonestyle.gtimg.cn/qzone/vas/opensns/res/doc/mqttsampleconfig.png
+编辑 samples/mqtt/mqtt_example.c 文件和 samples/coap/coap_sample.c 文件中如下代码段, 填入之前创建产品和设备步骤中得到的 **产品ID**，**设备名称**，
+
+1. 若使用**非对称**加密方式，填写 **QCLOUD_IOT_CERT_FILENAME** 和 **QCLOUD_IOT_CERT_FILENAME** 并将文件放置在根目录下 certs 目录中，
+2. 若使用**对称**加密方式，填写 **QCLOUD_IOT_PSK**
+
+![](https://mc.qcloudimg.com/static/img/8bacb4e2ac9e0b149b7fade396c682c8/mqttsampleconfig.png
 )
 
 #### 3. 编译 SDK 产生示例程序
