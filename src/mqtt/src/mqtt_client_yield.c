@@ -216,9 +216,8 @@ int qcloud_iot_mqtt_yield(Qcloud_IoT_Client *pClient, uint32_t timeout_ms) {
             rc = _handle_disconnect(pClient);
         }
         else {
-            /**
-            * 其它错误码处理暂无处理逻辑
-            */
+        	Log_e("fault error in mqtt read buffer, errCode: %d", rc);
+        	return rc;
         }
 
         if (rc == QCLOUD_ERR_MQTT_NO_CONN) {

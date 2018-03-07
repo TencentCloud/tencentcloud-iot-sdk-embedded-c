@@ -642,6 +642,7 @@ static int _read_mqtt_packet(Qcloud_IoT_Client *pClient, Timer *timer, uint8_t *
                 }
             }
         } while (total_bytes_read < rem_len && ret_val == QCLOUD_ERR_SUCCESS);
+
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_BUF_TOO_SHORT);
     }
 
@@ -649,10 +650,16 @@ static int _read_mqtt_packet(Qcloud_IoT_Client *pClient, Timer *timer, uint8_t *
     len += mqtt_write_packet_rem_len(pClient->read_buf + 1, rem_len);
 
     // 3. 读取报文的剩余部分数据
-    if (rem_len > 0 &&
-        (pClient->network_stack.read(&(pClient->network_stack), pClient->read_buf + len, rem_len, left_ms(timer), &read_len) !=
-         QCLOUD_ERR_SUCCESS)) {
-        IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
+    if (rem_len > 0 && ((len + rem_len) > pClient->read_buf_size)) {
+    	pClient->network_stack.read(&(pClient->network_stack), pClient->read_buf, rem_len, left_ms(timer), &read_len);
+    	IOT_FUNC_EXIT_RC(QCLOUD_ERR_BUF_TOO_SHORT);
+    }
+    else {
+        if (rem_len > 0 &&
+            (pClient->network_stack.read(&(pClient->network_stack), pClient->read_buf + len, rem_len, left_ms(timer), &read_len) !=
+             QCLOUD_ERR_SUCCESS)) {
+            IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
+        }
     }
 
     header.byte = pClient->read_buf[0];
