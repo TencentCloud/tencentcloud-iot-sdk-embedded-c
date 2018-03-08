@@ -109,8 +109,8 @@ define Compile_Result
 
     @echo "o BINARY FOOTPRINT CONSIST:"
     @echo "----"
+    @chmod a+x $(SCRIPT_DIR)/stats_static_lib.sh
     @$(SCRIPT_DIR)/stats_static_lib.sh $(FINAL_DIR)/lib/$(COMP_LIB)
-
     @$(SCRIPT_DIR)/stats_static_lib.sh $(FINAL_DIR)/lib/$(PLATFORM_LIB)
 
     @echo "========================================================================="
