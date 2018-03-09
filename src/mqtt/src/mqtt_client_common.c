@@ -567,7 +567,7 @@ static int _decode_packet_rem_len_with_net_read(Qcloud_IoT_Client *pClient, uint
             IOT_FUNC_EXIT_RC(QCLOUD_ERR_MQTT_PACKET_READ)
         }
 
-        if ((pClient->network_stack.read(&(pClient->network_stack), &i, 1, (int) timeout, &read_len)) !=
+        if ((pClient->network_stack.read(&(pClient->network_stack), &i, 1, timeout, &read_len)) !=
             QCLOUD_ERR_SUCCESS) {
             /* The value argument is the important value. len is just used temporarily
              * and never used by the calling function for anything else */
@@ -608,7 +608,7 @@ static int _read_mqtt_packet(Qcloud_IoT_Client *pClient, Timer *timer, uint8_t *
     int rc;
 
     // 1. 读取报文固定头部的第一个字节
-    rc = pClient->network_stack.read(&(pClient->network_stack), pClient->read_buf, 1, left_ms(timer), &read_len);
+    rc = pClient->network_stack.read(&(pClient->network_stack), pClient->read_buf, 1, (uint32_t)left_ms(timer), &read_len);
     if (rc == QCLOUD_ERR_SSL_NOTHING_TO_READ) {
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_MQTT_NOTHING_TO_READ);
     } else if (rc != QCLOUD_ERR_SUCCESS) {

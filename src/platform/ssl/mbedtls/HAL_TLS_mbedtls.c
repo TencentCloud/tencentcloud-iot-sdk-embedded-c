@@ -31,6 +31,7 @@ extern "C" {
 #include "mbedtls/entropy.h"
 #include "mbedtls/net_sockets.h"
 #include "mbedtls/ctr_drbg.h"
+#include "mbedtls/error.h"
 
 #ifndef ASYMC_ENCRYPTION_ENABLED
 static const int ciphersuites[] = { MBEDTLS_TLS_PSK_WITH_AES_128_CBC_SHA, MBEDTLS_TLS_PSK_WITH_AES_256_CBC_SHA, 0 };
@@ -96,7 +97,7 @@ static int _mbedtls_client_init(TLSDataParams *pDataParams, TLSConnectParams *pC
         Log_e("mbedtls_ctr_drbg_seed failed returned -0x%04x", -ret);
         return QCLOUD_ERR_SSL_INIT;
     }
-
+    
     if (pConnectParams->ca_crt != NULL)
     {
         if ((ret = mbedtls_x509_crt_parse(&(pDataParams->ca_cert), (const unsigned char *)pConnectParams->ca_crt,
@@ -134,7 +135,6 @@ static int _mbedtls_client_init(TLSDataParams *pDataParams, TLSConnectParams *pC
 		return ret;
 	}
 #endif
-    // }
 
     return QCLOUD_ERR_SUCCESS;
 }
@@ -190,7 +190,7 @@ int _qcloud_server_certificate_verify(void *hostname, mbedtls_x509_crt *crt, int
     return *flags;
 }
 
-uintptr_t HAL_TLS_Connect(TLSConnectParams *pConnectParams)
+uintptr_t HAL_TLS_Connect(TLSConnectParams *pConnectParams, const char *host, int port)
 {
     int ret = 0;
 
@@ -200,19 +200,19 @@ uintptr_t HAL_TLS_Connect(TLSConnectParams *pConnectParams)
         goto error;
     }
 
-    if ((ret = _mbedtls_tcp_connect(&(pDataParams->socket_fd),
-                                    pConnectParams->host, pConnectParams->port)) != QCLOUD_ERR_SUCCESS) {
+    Log_d(" Connecting to /%s/%d...", host, port);
+    if ((ret = _mbedtls_tcp_connect(&(pDataParams->socket_fd), host, port)) != QCLOUD_ERR_SUCCESS) {
         goto error;
     }
 
-    // set the default config with struct mbedtls_ssl_config
+    Log_d(" Setting up the SSL/TLS structure...");
     if ((ret = mbedtls_ssl_config_defaults(&(pDataParams->ssl_conf), MBEDTLS_SSL_IS_CLIENT,
                                            MBEDTLS_SSL_TRANSPORT_STREAM, MBEDTLS_SSL_PRESET_DEFAULT)) != 0) {
         Log_e("mbedtls_ssl_config_defaults failed returned -0x%04x", -ret);
         goto error;
     }
 
-    mbedtls_ssl_conf_verify(&(pDataParams->ssl_conf), _qcloud_server_certificate_verify, (void *)pConnectParams->host);
+    mbedtls_ssl_conf_verify(&(pDataParams->ssl_conf), _qcloud_server_certificate_verify, (void *)host);
 
     mbedtls_ssl_conf_authmode(&(pDataParams->ssl_conf), MBEDTLS_SSL_VERIFY_REQUIRED);
 
@@ -233,11 +233,13 @@ uintptr_t HAL_TLS_Connect(TLSConnectParams *pConnectParams)
 
 #ifndef ASYMC_ENCRYPTION_ENABLED
     // 选择加密套件代码，以后不通加密方式合并端口的时候可以用到
-    mbedtls_ssl_conf_ciphersuites(&(pDataParams->ssl_conf), ciphersuites);
-#endif  
+    if(pConnectParams->psk != NULL) {
+        mbedtls_ssl_conf_ciphersuites(&(pDataParams->ssl_conf), ciphersuites);
+    }
+#endif
 
     // Set the hostname to check against the received server certificate and sni
-    if ((ret = mbedtls_ssl_set_hostname(&(pDataParams->ssl), pConnectParams->host)) != 0) {
+    if ((ret = mbedtls_ssl_set_hostname(&(pDataParams->ssl), host)) != 0) {
         Log_e("mbedtls_ssl_set_hostname failed returned 0x%04x", -ret);
         goto error;
     }
@@ -245,6 +247,7 @@ uintptr_t HAL_TLS_Connect(TLSConnectParams *pConnectParams)
     mbedtls_ssl_set_bio(&(pDataParams->ssl), &(pDataParams->socket_fd), mbedtls_net_send, mbedtls_net_recv,
                         mbedtls_net_recv_timeout);
 
+    Log_d("Performing the SSL/TLS handshake...");
     while ((ret = mbedtls_ssl_handshake(&(pDataParams->ssl))) != 0) {
         if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
             Log_e("mbedtls_ssl_handshake failed returned 0x%04x", -ret);
@@ -292,7 +295,7 @@ void HAL_TLS_Disconnect(uintptr_t handle) {
     HAL_Free((void *)handle);
 }
 
-int HAL_TLS_Write(uintptr_t handle, unsigned char *msg, size_t totalLen, int timeout_ms,
+int HAL_TLS_Write(uintptr_t handle, unsigned char *msg, size_t totalLen, uint32_t timeout_ms,
                                  size_t *written_len)
 {
 
@@ -332,8 +335,8 @@ int HAL_TLS_Write(uintptr_t handle, unsigned char *msg, size_t totalLen, int tim
     return QCLOUD_ERR_SUCCESS;
 }
 
-int HAL_TLS_Read(uintptr_t handle, unsigned char *msg, size_t totalLen, int timeout_ms,
-                                size_t *read_len) {
+int HAL_TLS_Read(uintptr_t handle, unsigned char *msg, size_t totalLen, uint32_t timeout_ms, size_t *read_len) 
+{
 
     //mbedtls_ssl_conf_read_timeout(&(pParams->ssl_conf), timeout_ms); TODO:每次调用这个方法会导致read阻塞, 超时也不返回
     // 这里使用非阻塞的方式, 具体的超时操作由上层做
@@ -357,6 +360,7 @@ int HAL_TLS_Read(uintptr_t handle, unsigned char *msg, size_t totalLen, int time
         }
 
         if (expired(&timer)) {
+            Log_d("HAL_TLS_Read timeout|readlen = %ld", *read_len);
             break;
         }
 

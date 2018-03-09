@@ -22,6 +22,10 @@ $(call CompLib_Map, COAP_COMM_ENABLED, \
 	src/coap/src \
 )
 
+$(call CompLib_Map, OTA_COMM_ENABLED, \
+	src/ota/src \
+)
+
 IOTSDK_SRC_FILES := \
 
 $(foreach v, \
@@ -67,6 +71,7 @@ $(call CompInc_Map, MQTT_COMM_ENABLED, \
 )
 $(call CompInc_Map, MQTT_DEVICE_SHADOW, src/shadow/include)
 $(call CompInc_Map, COAP_COMM_ENABLED, src/coap/include)
+$(call CompInc_Map, OTA_COMM_ENABLED, src/ota/include)
     
 IOTSDK_INCLUDE_FILES := \
 

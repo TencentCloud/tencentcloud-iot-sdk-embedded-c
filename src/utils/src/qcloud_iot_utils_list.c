@@ -13,6 +13,11 @@
  *
  */
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "qcloud_iot_utils_list.h"
 
 #include "qcloud_iot_import.h"
@@ -288,3 +293,7 @@ ListNode *list_node_new(void *val)
     self->val = val;
     return self;
 }
+
+#ifdef __cplusplus
+}
+#endif

@@ -258,7 +258,7 @@ int IOT_Shadow_Yield(void *handle, uint32_t timeout_ms) {
     IOT_FUNC_EXIT_RC(rc);
 }
 
-int IOT_Shadow_Register_Property(void *handle, DeviceProperty *pProperty, OnPropResigtCallback callback) {
+int IOT_Shadow_Register_Property(void *handle, DeviceProperty *pProperty, OnPropRegCallback callback) {
 
     IOT_FUNC_ENTRY;
 	POINTER_SANITY_CHECK(handle, QCLOUD_ERR_INVAL);
@@ -381,7 +381,7 @@ int IOT_Shadow_Get(void *handle, OnRequestCallback callback, void *userContext, 
 
 	char getRequestJsonDoc[MAX_SIZE_OF_JSON_WITH_CLIENT_TOKEN];
 	build_empty_json(&(shadow->inner_data.token_num), getRequestJsonDoc);
-	Log_i("GET Request Document: %s", getRequestJsonDoc);
+	Log_d("GET Request Document: %s", getRequestJsonDoc);
 
 	RequestParams request_params = DEFAULT_REQUEST_PARAMS;
 	_init_request_params(&request_params, GET, callback, userContext, timeout_ms/1000);

@@ -56,7 +56,7 @@ int iot_device_info_set(const char *product_id, const char *device_name) {
 	strncpy(sg_device_info.product_id, product_id, MAX_SIZE_OF_PRODUCT_ID);
 	strncpy(sg_device_info.device_name, device_name, MAX_SIZE_OF_DEVICE_NAME);
 
-	/* construct device-id(@product_key+@device_name) */
+	/* construct device-id(@product_id+@device_name) */
 	memset(sg_device_info.client_id, 0x0, MAX_SIZE_OF_CLIENT_ID);
     int ret = HAL_Snprintf(sg_device_info.client_id, MAX_SIZE_OF_CLIENT_ID, "%s%s", product_id, device_name);
     if ((ret < 0) || (ret >= MAX_SIZE_OF_CLIENT_ID)) {

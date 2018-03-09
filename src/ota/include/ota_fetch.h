@@ -13,21 +13,23 @@
  *
  */
 
-#ifndef IOT_CA_H_
-#define IOT_CA_H_
+#ifndef IOT_OTA_FETCH_H_
+#define IOT_OTA_FETCH_H_
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-const char *iot_ca_get(void);
+void *ofc_Init(const char *url);
 
-const char *iot_https_ca_get(void);
+int32_t qcloud_ofc_connect(void *handle);
+
+int32_t qcloud_ofc_fetch(void *handle, char *buf, uint32_t buf_len, uint32_t timeout_s);
+
+int qcloud_ofc_deinit(void *handle);
 
 #ifdef __cplusplus
 }
 #endif
 
-
-
-#endif /* IOT_CA_H_ */
+#endif /* IOT_OTA_FETCH_H_ */

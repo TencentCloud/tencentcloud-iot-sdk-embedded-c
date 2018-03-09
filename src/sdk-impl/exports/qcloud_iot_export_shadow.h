@@ -130,7 +130,7 @@ typedef void (*OnRequestCallback)(void *pClient, Method method, RequestAck reque
  * @param valueLength      设备属性值长度
  * @param DeviceProperty   设备属性结构体
  */
-typedef void (*OnPropResigtCallback)(void *pClient, const char *pJsonValueBuffer, uint32_t valueLength, DeviceProperty *pProperty);
+typedef void (*OnPropRegCallback)(void *pClient, const char *pJsonValueBuffer, uint32_t valueLength, DeviceProperty *pProperty);
 
 /**
  * @brief 构造ShadowClient
@@ -254,7 +254,7 @@ int IOT_Shadow_Get_Sync(void *handle, uint32_t timeout_ms);
  * @param callback   设备属性更新回调处理函数
  * @return           返回QCLOUD_ERR_SUCCESS, 表示请求成功
  */
-int IOT_Shadow_Register_Property(void *handle, DeviceProperty *pProperty, OnPropResigtCallback callback);
+int IOT_Shadow_Register_Property(void *handle, DeviceProperty *pProperty, OnPropRegCallback callback);
 
 /**
  * @brief 删除已经注册过的设备属性

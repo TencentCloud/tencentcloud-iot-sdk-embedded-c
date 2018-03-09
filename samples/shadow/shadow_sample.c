@@ -117,6 +117,7 @@ int demo_device_shadow()
 		return rc;
 	}
 
+	//进行Shdaow Update操作的之前，最后进行一次同步操作，否则可能本机上shadow version和云上不一致导致Shadow Update操作失败
 	rc = IOT_Shadow_Get_Sync(shadow_client, QCLOUD_IOT_MQTT_COMMAND_TIMEOUT);
 	if (rc != QCLOUD_ERR_SUCCESS) {
 		Log_e("get device shadow failed, err: %d", rc);

@@ -29,6 +29,9 @@ extern "C" {
 #define _IN_            /* 表明这是一个输入参数. */
 #define _OU_            /* 表明这是一个输出参数. */
 
+#define IOT_TRUE    (1)     /* indicate boolean value true */
+#define IOT_FALSE   (0)     /* indicate boolean value false */
+
 /**
  * @brief 创建互斥锁
  *
@@ -186,15 +189,24 @@ typedef struct {
     
     size_t           psk_length;            // psk长度
 
-    const char       *host;                 // 服务器地址
-    int              port;                  // 服务器端口
-
     unsigned int     timeout_ms;            // SSL握手超时时间
 
 } SSLConnectParams;
 
-/********** tls network **********/
 
+/********** TCP network **********/
+uintptr_t HAL_TCP_Connect(const char *host, uint16_t port);
+
+int HAL_TCP_Disconnect(uintptr_t fd);
+
+int HAL_TCP_Write(uintptr_t fd, const unsigned char *buf, uint32_t len, uint32_t timeout_ms,
+                size_t *written_len);
+
+int HAL_TCP_Read(uintptr_t fd, unsigned char *buf, uint32_t len, uint32_t timeout_ms,
+                size_t *read_len);
+
+
+/********** TLS network **********/
 typedef SSLConnectParams TLSConnectParams;
 
 /**
@@ -205,10 +217,12 @@ typedef SSLConnectParams TLSConnectParams;
  *     2. 建立TCP socket连接
  *     3. 建立SSL连接, 包括握手, 服务器证书检查等
  *
- * @param pConnectParams TLS连接初始化参数
+ * @param   pConnectParams TLS连接初始化参数
+ * @host    连接域名
+ * @port    连接端口
  * @return  返回0 表示TLS连接成功
  */
-uintptr_t HAL_TLS_Connect(TLSConnectParams *pConnectParams);
+uintptr_t HAL_TLS_Connect(TLSConnectParams *pConnectParams, const char *host, int port);
 
 /**
  * @brief 断开TLS连接, 并释放相关对象资源
@@ -227,7 +241,7 @@ void HAL_TLS_Disconnect(uintptr_t handle);
  * @param written_len   已写入数据长度
  * @return              若写数据成功, 则返回写入数据的长度
  */
-int HAL_TLS_Write(uintptr_t handle, unsigned char *data, size_t totalLen, int timeout_ms,
+int HAL_TLS_Write(uintptr_t handle, unsigned char *data, size_t totalLen, uint32_t timeout_ms,
                                  size_t *written_len);
 
 /**
@@ -240,11 +254,11 @@ int HAL_TLS_Write(uintptr_t handle, unsigned char *data, size_t totalLen, int ti
  * @param read_len      已读取数据的长度
  * @return              若读数据成功, 则返回读取数据的长度
  */
-int HAL_TLS_Read(uintptr_t handle, unsigned char *data, size_t totalLen, int timeout_ms,
+int HAL_TLS_Read(uintptr_t handle, unsigned char *data, size_t totalLen, uint32_t timeout_ms,
                                 size_t *read_len);    
 
-/********** DTLS network **********/
 
+/********** DTLS network **********/
 #ifdef COAP_COMM_ENABLED
 typedef SSLConnectParams DTLSConnectParams;
 
@@ -257,9 +271,11 @@ typedef SSLConnectParams DTLSConnectParams;
  *     3. 建立SSL连接, 包括握手, 服务器证书检查等
  *
  * @param pConnectParams DTLS连接初始化参数
+ * @host    连接域名
+ * @port    连接端口
  * @return  返回0 表示DTLS连接成功
  */
-uintptr_t HAL_DTLS_Connect(DTLSConnectParams *pConnectParams);
+uintptr_t HAL_DTLS_Connect(DTLSConnectParams *pConnectParams, const char *host, int port);
 
 /**
  * @brief 断开DTLS连接
@@ -290,7 +306,7 @@ int HAL_DTLS_Write(uintptr_t handle, const unsigned char *data, size_t datalen, 
  * @param read_len          已读取数据的长度
  * @return                  若读数据成功, 则返回读取数据的长度
  */
-int HAL_DTLS_Read(uintptr_t handle, unsigned char *data, size_t datalen, unsigned int timeout_ms,
+int HAL_DTLS_Read(uintptr_t handle, unsigned char *data, size_t datalen, uint32_t timeout_ms,
                   size_t *read_len);
 
 #endif

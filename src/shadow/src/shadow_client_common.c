@@ -24,7 +24,7 @@ extern "C" {
 /**
  * @brief 将注册属性的回调函数保存到列表之中
  */
-static int _add_property_handle_to_list(Qcloud_IoT_Shadow *pShadow, DeviceProperty *pProperty, OnPropResigtCallback callback)
+static int _add_property_handle_to_list(Qcloud_IoT_Shadow *pShadow, DeviceProperty *pProperty, OnPropRegCallback callback)
 {
     IOT_FUNC_ENTRY;
 
@@ -81,7 +81,7 @@ int shadow_common_remove_property(Qcloud_IoT_Shadow *pshadow, DeviceProperty *pP
     return rc;
 }
 
-int shadow_common_register_property_on_delta(Qcloud_IoT_Shadow *pShadow, DeviceProperty *pProperty, OnPropResigtCallback callback)
+int shadow_common_register_property_on_delta(Qcloud_IoT_Shadow *pShadow, DeviceProperty *pProperty, OnPropRegCallback callback)
 {
     IOT_FUNC_ENTRY;
 

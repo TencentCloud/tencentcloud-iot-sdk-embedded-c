@@ -160,6 +160,15 @@ bool check_json_valid(const char *pJsonDoc);
  */
 bool check_and_parse_json(const char *pJsonDoc, int32_t *pTokenCount, void **pJsonTokens);
 
+/**
+ * @brief 从JSON文档中解析出指定字段的值
+ *
+ * @param pJsonDoc         	待解析的JSON文档
+ * @param valLen    		指定字段对应的value的长度
+ * @return                 	成功返回字段对应的value, 失败返回NULL
+ */
+const char * parse_firmware_value_by_name(const char *pJsonDoc, const char *name, uint32_t *valLen);
+
 #ifdef __cplusplus
 }
 #endif

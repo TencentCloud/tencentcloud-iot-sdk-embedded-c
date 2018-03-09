@@ -23,7 +23,6 @@
 
 #include <gtest/gtest.h>
 #include <unit_helper_functions.h>
-#include "unit_util.h"
 #include "qcloud_iot_export_shadow.h"
 #include "qcloud_iot_export_error.h"
 
@@ -45,11 +44,6 @@ static void onRequestCallback(void *pClient, Method method, RequestAck requestAc
     }
 }
 
-static void _null_field_log(const char *msg)
-{
-	std::cout << log_time() << " [Log] [Shadow] [异常测试]" << msg << "\n" << std::endl;
-}
-
 using namespace std;
 
 class ShadowNullFieldsTest : public testing::Test
@@ -69,16 +63,12 @@ protected:
 
 TEST_F(ShadowNullFieldsTest, NullClientConnect) 
 {
-	_null_field_log("no initParams construct");
-
     void *client = IOT_Shadow_Construct(NULL);
     ASSERT_TRUE(client == NULL);
 }
 
 TEST_F(ShadowNullFieldsTest, NullUpdateDocument) 
 {
-	_null_field_log("no update document");
-
     SetupShadowConnectInitParams(&g_initParams);
     g_client_ptr = (Qcloud_IoT_Client *)IOT_Shadow_Construct(&g_initParams);
     int rc = IOT_Shadow_Update(g_client_ptr, NULL, 0, onRequestCallback, NULL, QCLOUD_IOT_MQTT_COMMAND_TIMEOUT);
@@ -89,39 +79,30 @@ TEST_F(ShadowNullFieldsTest, NullUpdateDocument)
 
 TEST_F(ShadowNullFieldsTest, NullClientYield) 
 {
-	_null_field_log("no client yield");
     int rc = IOT_Shadow_Yield(NULL, 1000);
     ASSERT_EQ(QCLOUD_ERR_INVAL, rc);
 }
 
 TEST_F(ShadowNullFieldsTest, NullClientDisconnect) 
 {
-	_null_field_log("no client disconnect");
-
     int rc = IOT_Shadow_Destroy(NULL);
     ASSERT_EQ(QCLOUD_ERR_INVAL, rc);
 }
 
 TEST_F(ShadowNullFieldsTest, NullClientShadowGet) 
 {
-	_null_field_log("no client get");
-
     int rc = IOT_Shadow_Get(NULL, onRequestCallback, NULL, QCLOUD_IOT_MQTT_COMMAND_TIMEOUT);
     ASSERT_EQ(QCLOUD_ERR_INVAL, rc);
 }
 
 TEST_F(ShadowNullFieldsTest, NullClientShadowUpdate) 
 {
-	_null_field_log("no client update");
-
     int rc = IOT_Shadow_Update(NULL, jsonFullDocument, 200, onRequestCallback, NULL, QCLOUD_IOT_MQTT_COMMAND_TIMEOUT);
     ASSERT_EQ(QCLOUD_ERR_INVAL, rc);
 }
 
 TEST_F(ShadowNullFieldsTest, NullClientShadowDelete) 
 {
-	_null_field_log("no client delete");
-
 //    int rc = IOT_Shadow_Delete(NULL, onRequestCallback, NULL, QCLOUD_IOT_MQTT_COMMAND_TIMEOUT);
 //    ASSERT_EQ(QCLOUD_ERR_INVAL, rc);
 }

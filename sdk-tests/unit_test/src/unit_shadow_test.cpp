@@ -20,14 +20,11 @@
 #include "gtest/gtest.h"
 #include <jsmn.h>
 #include "unit_helper_functions.h"
-#include "unit_util.h"
 #include "qcloud_iot_export_shadow.h"
 #include "qcloud_iot_export_error.h"
 #include "qcloud_iot_utils_json.h"
 #include "shadow_client.h"
 
-
-#include "shadow_test.h"
 
 #define SIZE_OF_UPDATE_DOCUMENT 200
 #define TEST_JSON_RESPONSE_FULL_DOCUMENT    "{\"state\":{\"reported\":{\"sensor1\":98}}, \"clientToken\":\"" QCLOUD_IOT_MY_PRODUCT_ID "-1\"}"
@@ -95,17 +92,13 @@ protected:
 
 TEST_F(ShadowTest, ShadowIsConnected)
 {
-    cout << log_time() << " [Log] [Shadow] [正常测试] Shadow client connect status test" << endl;
-
     bool isConnected = IOT_Shadow_IsConnected(sg_pshadow);
     
     ASSERT_EQ(true, isConnected);
 }
 
 TEST_F(ShadowTest, ShadowDestroy)
-{
-	cout << log_time() << " [Log] [Shadow] [正常测试] Shadow client destroy test" << endl;
-    
+{    
     bool isConnected = IOT_Shadow_IsConnected((void *)sg_pshadow);
 	ASSERT_EQ(true, isConnected);
 
@@ -116,8 +109,6 @@ TEST_F(ShadowTest, ShadowDestroy)
 
 TEST_F(ShadowTest, GetTheFullJSONDocument)
 {
-	cout << log_time() << " [Log] [Shadow] [正常测试] Shadow client get test" << endl;
-
 	int ret_val;
 
     char deltaJSONString[SIZE_OF_JSON_BUFFER] = {0};
@@ -155,8 +146,6 @@ TEST_F(ShadowTest, GetTheFullJSONDocument)
 
 TEST_F(ShadowTest, UpdateTheJSONDocument) 
 {
-	cout << log_time() << " [Log] [Shadow] [正常测试] Shadow client update test" << endl;
-
     int ret_val;
     char updateRequestJson[SIZE_OF_UPDATE_DOCUMENT] = {0};
     char expectedUpdateRequestJson[SIZE_OF_UPDATE_DOCUMENT] = {0};

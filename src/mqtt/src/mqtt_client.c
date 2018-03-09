@@ -42,6 +42,8 @@ static int s_qcloud_iot_port = 8883;
 static unsigned char sg_psk_str[DECODE_PSK_LENGTH];
 #endif
 
+#define min(a,b) (a) < (b) ? (a) : (b)
+
 static uint16_t _get_random_start_packet_id(void)
 {
     srand((unsigned)time(NULL));
@@ -78,7 +80,8 @@ void* IOT_MQTT_Construct(MQTTInitParams *pParams)
 
 	MQTTConnectParams connect_params = DEFAULT_MQTTCONNECT_PARAMS;
 	connect_params.client_id = iot_device_info_get()->client_id;
-	connect_params.keep_alive_interval = pParams->keep_alive_interval_ms / 1000;
+    // 超过11.5分钟的心跳间隔自动转为11.5（11.5 * 60）的时长
+	connect_params.keep_alive_interval = min(pParams->keep_alive_interval_ms / 1000, 690);
 	connect_params.clean_session = pParams->clean_session;
 	connect_params.auto_connect_enable = pParams->auto_connect_enable;
 
@@ -269,10 +272,12 @@ int qcloud_iot_mqtt_init(Qcloud_IoT_Client *pClient, MQTTInitParams *pParams) {
         Log_e("psk id is empty!");
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_INVAL);
     }
+    pClient->network_stack.ssl_connect_params.ca_crt = iot_ca_get();
+    pClient->network_stack.ssl_connect_params.ca_crt_len = strlen(pClient->network_stack.ssl_connect_params.ca_crt);
 #endif
 
-    pClient->network_stack.ssl_connect_params.host = s_qcloud_iot_host;
-    pClient->network_stack.ssl_connect_params.port = s_qcloud_iot_port;
+    pClient->network_stack.host = s_qcloud_iot_host;
+    pClient->network_stack.port = s_qcloud_iot_port;
     pClient->network_stack.ssl_connect_params.timeout_ms = QCLOUD_IOT_TLS_HANDSHAKE_TIMEOUT;
 
 #else

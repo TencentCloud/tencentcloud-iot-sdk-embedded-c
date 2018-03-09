@@ -31,7 +31,7 @@ extern "C" {
  * @param callback  相应设备属性处理回调函数
  * @return          返回QCLOUD_ERR_SUCCESS, 表示成功
  */
-int shadow_common_register_property_on_delta(Qcloud_IoT_Shadow *pShadow, DeviceProperty *pProperty, OnPropResigtCallback callback);
+int shadow_common_register_property_on_delta(Qcloud_IoT_Shadow *pShadow, DeviceProperty *pProperty, OnPropRegCallback callback);
 
 /**
  * @brief 移除注册过的设备属性

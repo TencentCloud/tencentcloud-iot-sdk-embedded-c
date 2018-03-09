@@ -13,21 +13,29 @@
  *
  */
 
-#ifndef IOT_CA_H_
-#define IOT_CA_H_
+#ifndef IOT_OTA_CLIENT_H_
+#define IOT_OTA_CLIENT_H_
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-const char *iot_ca_get(void);
+#include <stdint.h>
 
-const char *iot_https_ca_get(void);
+typedef void (*OnOtaMessageCallback)(void *pcontext, const char *msg, uint32_t msgLen);
+
+void *qcloud_osc_init(const char *productId, const char *deviceName, void *channel, OnOtaMessageCallback callback, void *context);
+
+int qcloud_osc_deinit(void *handle);
+
+int qcloud_osc_report_progress(void *handle, const char *msg);
+
+int qcloud_osc_report_version(void *handle, const char *msg);
+
+int qcloud_osc_report_upgrade_result(void *handle, const char *msg);
 
 #ifdef __cplusplus
 }
 #endif
 
-
-
-#endif /* IOT_CA_H_ */
+#endif /* IOT_OTA_CLIENT_H_ */

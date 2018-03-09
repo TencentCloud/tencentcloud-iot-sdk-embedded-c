@@ -73,6 +73,7 @@ typedef struct {
 #include "qcloud_iot_export_error.h"
 #include "qcloud_iot_export_mqtt.h"
 #include "qcloud_iot_export_shadow.h"
+#include "qcloud_iot_export_ota.h"
     
 #ifdef __cplusplus
 }

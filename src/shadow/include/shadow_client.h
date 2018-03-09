@@ -88,7 +88,7 @@ typedef struct {
 
     void *property;							// 设备属性
 
-    OnPropResigtCallback callback;      // 回调处理函数
+    OnPropRegCallback callback;      // 回调处理函数
 
 } PropertyHandler;
 

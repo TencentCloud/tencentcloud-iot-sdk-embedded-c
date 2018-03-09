@@ -22,7 +22,7 @@ extern "C" {
 
 #include <stdbool.h>
 
-#include "mqtt_client_net.h"
+#include "qcloud_iot_utils_net.h"
 
 #define HTTP_PORT   80
 #define HTTPS_PORT  443
@@ -33,7 +33,7 @@ typedef enum {
     HTTP_PUT,
     HTTP_DELETE,
     HTTP_HEAD
-} HttpRequstType;
+} HttpMethod;
 
 typedef struct {
     int         remote_port;        // 端口号
@@ -42,7 +42,7 @@ typedef struct {
     char        *auth_user;         // 身份验证的用户名
     char        *auth_password;     // 身份验证的密码
     Network     network_stack;      
-} http_client_t;
+} HTTPClient;
 
 typedef struct {
     bool    is_more;                // 是否需要检索更多的数据
@@ -54,22 +54,22 @@ typedef struct {
     char    *post_content_type;     // post数据的内容类型
     char    *post_buf;              // post的数据
     char    *response_buf;          // 存储响应数据的缓冲区
-} http_client_data_t;
+} HTTPClientData;
 
 /**
  * @brief http 网络请求
  *
  * @param client        http client
  * @param url           请求url
+ * @param port          请求端口
  * @param ca_crt_dir    ca证书路径
  * @param method        请求方法
- * @param timeout_ms    超时时间
  * @param client_data   http数据负载
  * @return              返回QCLOUD_ERR_SUCCESS, 表示设置成功
  */
-int qcloud_http_client_common(http_client_t *client, const char *url, int port, const char *ca_crt, int method,
-                              uint32_t timeout_ms,
-                              http_client_data_t *client_data);
+int qcloud_http_client_common(HTTPClient *client, const char *url, int port, const char *ca_crt, HttpMethod method, HTTPClientData *client_data);
+
+int qcloud_http_recv_data(HTTPClient *client, uint32_t timeout_ms, HTTPClientData *client_data);
     
 /**
  * @brief http get请求
@@ -81,11 +81,11 @@ int qcloud_http_client_common(http_client_t *client, const char *url, int port, 
  * @param client_data   http数据负载
  * @return              返回QCLOUD_ERR_SUCCESS, 表示设置成功
  */
-int qcloud_iot_get(http_client_t *client,
-                     const char *url,
-                     const char *ca_crt_dir,
-                     uint32_t timeout_ms,
-                     http_client_data_t *client_data);
+// int qcloud_iot_get(HTTPClient *client,
+//                      const char *url,
+//                      const char *ca_crt_dir,
+//                      uint32_t timeout_ms,
+//                      HTTPClientData *client_data);
 
 /**
  * @brief http post请求
@@ -97,11 +97,11 @@ int qcloud_iot_get(http_client_t *client,
  * @param client_data   http数据负载
  * @return              返回QCLOUD_ERR_SUCCESS, 表示设置成功
  */
-int qcloud_iot_post(http_client_t *client,
-                      const char *url,
-                      const char *ca_crt_dir,
-                      uint32_t timeout_ms,
-                      http_client_data_t *client_data);
+// int qcloud_iot_post(HTTPClient *client,
+//                       const char *url,
+//                       const char *ca_crt_dir,
+//                       uint32_t timeout_ms,
+//                       HTTPClientData *client_data);
 
 
 #ifdef __cplusplus

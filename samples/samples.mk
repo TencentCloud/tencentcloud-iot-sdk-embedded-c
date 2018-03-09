@@ -18,6 +18,18 @@ mqtt_sample:
 	$(TOP_Q) \
 	mv door_$@ $(FINAL_DIR)/bin && \
 	mv $@ $(FINAL_DIR)/bin
+
+ifneq (,$(filter -DOTA_COMM_ENABLED,$(CFLAGS)))
+ota_mqtt_sample:
+	$(eval CFLAGS := $(filter-out $(IOTSDK_INCLUDE_FILES),$(CFLAGS)) \
+		-I$(TOP_DIR)/src/sdk-impl -I$(TOP_DIR)/src/sdk-impl/exports)
+
+	$(TOP_Q) \
+	$(PLATFORM_CC) $(CFLAGS) $(SAMPLE_DIR)/ota/$@.c $(LDFLAGS) -o $@
+
+	$(TOP_Q) \
+	mv $@ $(FINAL_DIR)/bin
+endif
 endif
 
 ifneq (,$(filter -DMQTT_DEVICE_SHADOW,$(CFLAGS)))

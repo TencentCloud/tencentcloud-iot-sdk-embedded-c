@@ -40,9 +40,9 @@ typedef struct Network Network;
 struct Network {
     int (*connect)(Network *);
     
-    int (*read)(Network *, unsigned char *, size_t, int, size_t *);
+    int (*read)(Network *, unsigned char *, size_t, uint32_t, size_t *);
     
-    int (*write)(Network *, unsigned char *, size_t, int, size_t *);
+    int (*write)(Network *, unsigned char *, size_t, uint32_t, size_t *);
     
     void (*disconnect)(Network *);
     
@@ -50,24 +50,22 @@ struct Network {
     
     uintptr_t handle;   // 连接句柄:0，尚未连接; 非0，已经连接
     
-#ifndef NOTLS_ENABLED
     SSLConnectParams ssl_connect_params;
-#else
+
     const char       *host;                 // 服务器地址
     int              port;                  // 服务器端口
-#endif
 };
 
 
-int 	utils_net_read(Network *pNetwork, unsigned char *data, size_t datalen, int timeout_ms, size_t *read_len);
-int 	utils_net_write(Network *pNetwork, unsigned char *data, size_t datalen, int timeout_ms, size_t *written_len);
+int 	utils_net_read(Network *pNetwork, unsigned char *data, size_t datalen, uint32_t timeout_ms, size_t *read_len);
+int 	utils_net_write(Network *pNetwork, unsigned char *data, size_t datalen, uint32_t timeout_ms, size_t *written_len);
 void 	utils_net_disconnect(Network *pNetwork);
 int 	utils_net_connect(Network *pNetwork);
 int 	utils_net_init(Network *pNetwork);
 
 #ifdef COAP_COMM_ENABLED
-int 	utils_udp_net_read(Network *pNetwork, unsigned char *data, size_t datalen, int timeout_ms, size_t *read_len);
-int 	utils_udp_net_write(Network *pNetwork, unsigned char *data, size_t datalen, int timeout_ms, size_t *written_len);
+int 	utils_udp_net_read(Network *pNetwork, unsigned char *data, size_t datalen, uint32_t timeout_ms, size_t *read_len);
+int 	utils_udp_net_write(Network *pNetwork, unsigned char *data, size_t datalen, uint32_t timeout_ms, size_t *written_len);
 void 	utils_udp_net_disconnect(Network *pNetwork);
 int 	utils_udp_net_connect(Network *pNetwork);
 int 	utils_udp_net_init(Network *pNetwork);

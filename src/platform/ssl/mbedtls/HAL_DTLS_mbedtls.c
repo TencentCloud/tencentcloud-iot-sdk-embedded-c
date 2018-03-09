@@ -192,9 +192,9 @@ int _mbedtls_udp_connect(mbedtls_net_context *socket_fd, const char *host, int p
     return QCLOUD_ERR_SUCCESS;
 }
 
-uintptr_t HAL_DTLS_Connect(DTLSConnectParams *pConnectParams)
+uintptr_t HAL_DTLS_Connect(DTLSConnectParams *pConnectParams, const char *host, int port)
 {
-	IOT_FUNC_ENTRY
+	IOT_FUNC_ENTRY;
 
     int ret = QCLOUD_ERR_SUCCESS;
     
@@ -204,7 +204,7 @@ uintptr_t HAL_DTLS_Connect(DTLSConnectParams *pConnectParams)
 		goto error;
 	}
 
-    if ((ret = _mbedtls_udp_connect(&(pDataParams->socket_fd), pConnectParams->host, pConnectParams->port)) != QCLOUD_ERR_SUCCESS) {
+    if ((ret = _mbedtls_udp_connect(&(pDataParams->socket_fd), host, port)) != QCLOUD_ERR_SUCCESS) {
 		goto error;
 	}
 
@@ -254,7 +254,7 @@ uintptr_t HAL_DTLS_Connect(DTLSConnectParams *pConnectParams)
 								 mbedtls_timing_get_delay);
 	}
 
-    if ((ret = mbedtls_ssl_set_hostname(&(pDataParams->ssl), pConnectParams->host)) != 0) {
+    if ((ret = mbedtls_ssl_set_hostname(&(pDataParams->ssl), host)) != 0) {
 		Log_e("mbedtls_ssl_set_hostname failed returned -0x%x", -ret);
 		goto error;
 	}

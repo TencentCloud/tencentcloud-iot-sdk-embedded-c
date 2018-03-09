@@ -38,6 +38,13 @@ static LogMessageHandler sg_log_message_handler= NULL;
 
 LOG_LEVEL g_log_level = INFO;
 
+static char *_get_filename(const char *p)
+{
+    char ch = '/';
+    char *q = strrchr(p,ch) + 1;
+    return q;
+}
+
 void IOT_Log_Set_Level(LOG_LEVEL logLevel) {
     g_log_level = logLevel;
 }
@@ -55,14 +62,16 @@ void Log_writter(const char *file, const char *func, const int line, const int l
 	if (level < g_log_level) {
 		return;
 	}
-
+	
+	char *file_name = _get_filename(file);
+	
 	if (sg_log_message_handler) {
 		static char sg_text_buf[MAX_LOG_MSG_LEN + 1];
 		char		*tmp_buf = sg_text_buf;
 		char        *o = tmp_buf;
 	    memset(tmp_buf, 0, sizeof(sg_text_buf));
 
-	    o += HAL_Snprintf(o, sizeof(sg_text_buf), "%s|%s|%s|%s(%d): ", level_str[level], HAL_Timer_current(), file, func, line);
+	    o += HAL_Snprintf(o, sizeof(sg_text_buf), "%s|%s|%s|%s(%d): ", level_str[level], HAL_Timer_current(), file_name, func, line);
 
 	    va_list     ap;
 	    va_start(ap, fmt);
@@ -76,7 +85,7 @@ void Log_writter(const char *file, const char *func, const int line, const int l
 		}
 	}
 
-    HAL_Printf("%s|%s|%s|%s(%d): ", level_str[level], HAL_Timer_current(), file, func, line);
+    HAL_Printf("%s|%s|%s|%s(%d): ", level_str[level], HAL_Timer_current(), file_name, func, line);
 
     va_list ap;
     va_start(ap, fmt);

@@ -217,6 +217,26 @@ bool check_and_parse_json(const char *pJsonDoc, int32_t *pTokenCount, void **pJs
     return true;
 }
 
+const char * parse_firmware_value_by_name(const char *pJsonDoc, const char *name, uint32_t *valLen)
+{
+    int32_t i;
+
+    int32_t tokenCount;
+    if (check_and_parse_json(pJsonDoc, &tokenCount, NULL) == false) {
+        return false;
+    }
+
+    for (i = 1; i < tokenCount; i++) {
+        if (jsoneq(pJsonDoc, &(tokens[i]), name) == 0) {
+            int size = 0;
+            size = tokens[i+1].end - tokens[i+1].start;
+            *valLen = size;
+            return pJsonDoc + tokens[i+1].start;
+        }
+    }
+    return NULL;
+}
+
 #ifdef __cplusplus
 }
 #endif

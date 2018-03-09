@@ -35,6 +35,9 @@ typedef enum {
     QCLOUD_ERR_HTTP_UNRESOLVED_DNS                           = -6,      // 域名解析失败
     QCLOUD_ERR_HTTP_PARSE                                    = -7,      // URL解析失败
     QCLOUD_ERR_HTTP_CONN                                     = -8,      // HTTP连接失败
+    QCLOUD_ERR_HTTP_AUTH                                     = -9,      // HTTP鉴权问题
+    QCLOUD_ERR_HTTP_NOT_FOUND                                = -10,     // HTTP 404
+    QCLOUD_ERR_HTTP_TIMEOUT                                  = -11,     // HTTP 超时
 
     QCLOUD_ERR_SUCCESS                                       = 0,       // 表示成功返回
     QCLOUD_ERR_FAILURE                                       = -1001,   // 表示失败返回
@@ -58,19 +61,6 @@ typedef enum {
     QCLOUD_ERR_MQTT_CONNACK_NOT_AUTHORIZED                   = -117,    // 表示客户端连接认证失败
     QCLOUD_ERR_RX_MESSAGE_INVAL                              = -118,    // 表示收到的消息无效
     QCLOUD_ERR_BUF_TOO_SHORT                                 = -119,    // 表示消息接收缓冲区的长度小于消息的长度
-
-    QCLOUD_ERR_TCP_SOCKET_FAILED                             = -120,    // 表示TCP连接建立套接字失败
-    QCLOUD_ERR_TCP_UNKNOWN_HOST                              = -121,    // 表示无法通过主机名获取IP地址
-    QCLOUD_ERR_TCP_CONNECT                                   = -122,    // 表示建立TCP连接失败
-    QCLOUD_ERR_SSL_INIT                                      = -123,    // 表示SSL初始化失败
-    QCLOUD_ERR_SSL_CERT                                      = -124,    // 表示SSL证书相关问题
-    QCLOUD_ERR_SSL_CONNECT                                   = -125,    // 表示SSL连接失败
-    QCLOUD_ERR_SSL_CONNECT_TIMEOUT                           = -126,    // 表示SSL连接超时
-    QCLOUD_ERR_SSL_WRITE_TIMEOUT                             = -127,    // 表示SSL写超时
-    QCLOUD_ERR_SSL_WRITE                                     = -128,    // 表示SSL写错误
-    QCLOUD_ERR_SSL_READ_TIMEOUT                              = -129,    // 表示SSL读超时
-    QCLOUD_ERR_SSL_READ                                      = -130,    // 表示SSL读错误
-    QCLOUD_ERR_SSL_NOTHING_TO_READ                           = -131,    // 表示底层没有数据可以读取
 
     QCLOUD_ERR_JSON_PARSE                                    = -132,    // 表示JSON解析错误
     QCLOUD_ERR_JSON_BUFFER_TRUNCATED                         = -133,    // 表示JSON文档会被截断
@@ -99,6 +89,22 @@ typedef enum {
     QCLOUD_ERR_SHADOW_UPDATE_REJECTED                        = -204,    // 表示更新设备影子文档被拒绝
     QCLOUD_ERR_SHADOW_GET_TIMEOUT                            = -205,    // 表示拉取设备影子文档超时
     QCLOUD_ERR_SHADOW_GET_REJECTED                           = -206,    // 表示拉取设备影子文档被拒绝
+
+    QCLOUD_ERR_TCP_SOCKET_FAILED                             = -601,    // 表示TCP连接建立套接字失败
+    QCLOUD_ERR_TCP_UNKNOWN_HOST                              = -602,    // 表示无法通过主机名获取IP地址
+    QCLOUD_ERR_TCP_CONNECT                                   = -603,    // 表示建立TCP连接失败
+    QCLOUD_ERR_TCP_READ_TIMEOUT                              = -604,    // 表示建立TCP读超时
+    QCLOUD_ERR_TCP_WRITE_TIMEOUT                             = -605,    // 表示建立TCP写超时
+
+    QCLOUD_ERR_SSL_INIT                                      = -701,    // 表示SSL初始化失败
+    QCLOUD_ERR_SSL_CERT                                      = -702,    // 表示SSL证书相关问题
+    QCLOUD_ERR_SSL_CONNECT                                   = -703,    // 表示SSL连接失败
+    QCLOUD_ERR_SSL_CONNECT_TIMEOUT                           = -704,    // 表示SSL连接超时
+    QCLOUD_ERR_SSL_WRITE_TIMEOUT                             = -705,    // 表示SSL写超时
+    QCLOUD_ERR_SSL_WRITE                                     = -706,    // 表示SSL写错误
+    QCLOUD_ERR_SSL_READ_TIMEOUT                              = -707,    // 表示SSL读超时
+    QCLOUD_ERR_SSL_READ                                      = -708,    // 表示SSL读错误
+    QCLOUD_ERR_SSL_NOTHING_TO_READ                           = -709,    // 表示底层没有数据可以读取
 } IoT_Error_Code;
 
 #ifdef __cplusplus
