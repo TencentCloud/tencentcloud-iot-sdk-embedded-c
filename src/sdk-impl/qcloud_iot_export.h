@@ -38,7 +38,7 @@ extern "C" {
 /* 产品名称的最大长度 */
 #define MAX_SIZE_OF_PRODUCT_ID                                    	(10)
 
-/* 设备名称的最大长度 */
+/* 设备ID的最大长度 */
 #define MAX_SIZE_OF_DEVICE_NAME                                     (64)
 
 /* MQTT消息发送buffer大小, 支持最大256*1024 */

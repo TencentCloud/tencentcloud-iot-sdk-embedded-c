@@ -54,7 +54,7 @@ extern "C" {
 #define MAX_COMMAND_TIMEOUT         								(5000)
 
 /* 云端保留主题的最大长度 */
-#define MAX_SIZE_OF_CLOUD_TOPIC                                     (128)
+#define MAX_SIZE_OF_CLOUD_TOPIC                                     ((MAX_SIZE_OF_DEVICE_NAME) + (MAX_SIZE_OF_PRODUCT_ID) + 64)
 
 /**
  * @brief MQTT Message Type
