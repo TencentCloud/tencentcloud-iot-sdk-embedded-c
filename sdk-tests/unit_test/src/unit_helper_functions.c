@@ -13,6 +13,8 @@
  *
  */
 
+#include "unit_helper_functions.h"
+
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -20,7 +22,6 @@
 #include <stdbool.h>
 #include <string.h>
 
-#include "unit_helper_functions.h"
 #include "qcloud_iot_export.h"
 #include "iot_unit_config.h"
 #include "device.h"
@@ -35,7 +36,6 @@ static void _make_client_id(MQTTConnectParams *connectParams) {
 	connectParams->client_id = (char*)HAL_Malloc(clientid_len);
 	sprintf(connectParams->client_id, "%s%s", info->product_id, info->device_name);
 }
-
 
 /**
  * 设置初始化参数
@@ -54,8 +54,14 @@ void MQTTInitParamsSetup(MQTTInitParams *pParams, bool enableAutoReconnect)
 
     sprintf(g_clientCert, "%s/%s", cert_dir, QCLOUD_IOT_CERT_FILENAME);
     sprintf(g_clientKey, "%s/%s", cert_dir, QCLOUD_IOT_KEY_FILENAME);
+#ifndef AUTH_WITH_NOTLS
+#ifdef AUTH_MODE_CERT
     pParams->cert_file = g_clientCert;
     pParams->key_file = g_clientKey;
+#else
+
+#endif
+#endif
 
     pParams->device_name = (char *)QCLOUD_IOT_MY_DEVICE_NAME;
     pParams->product_id = (char *)QCLOUD_IOT_MY_PRODUCT_ID;
@@ -102,8 +108,14 @@ void SetupMQTTConnectInitParams(MQTTInitParams* pInitParams)
     char cert_dir[PATH_MAX + 1] = "certs";
     sprintf(g_clientCert, "%s/%s", cert_dir, QCLOUD_IOT_CERT_FILENAME);
     sprintf(g_clientKey, "%s/%s", cert_dir, QCLOUD_IOT_KEY_FILENAME);
+#ifndef AUTH_WITH_NOTLS
+#ifdef AUTH_MODE_CERT
     pInitParams->cert_file = g_clientCert;
     pInitParams->key_file = g_clientKey;
+#else
+
+#endif
+#endif
     
     pInitParams->command_timeout = QCLOUD_IOT_MQTT_COMMAND_TIMEOUT;
     pInitParams->keep_alive_interval_ms = QCLOUD_IOT_MQTT_KEEP_ALIVE_INTERNAL;
@@ -118,6 +130,12 @@ void SetupShadowConnectInitParams(ShadowInitParams* initParams)
     char cert_dir[PATH_MAX + 1] = "certs";
     sprintf(g_clientCert, "%s/%s", cert_dir, QCLOUD_IOT_CERT_FILENAME);
     sprintf(g_clientKey, "%s/%s", cert_dir, QCLOUD_IOT_KEY_FILENAME);
+#ifndef AUTH_WITH_NOTLS
+#ifdef AUTH_MODE_CERT
     initParams->cert_file = g_clientCert;
     initParams->key_file = g_clientKey;
+#else
+
+#endif
+#endif
 }

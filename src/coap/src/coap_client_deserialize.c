@@ -22,7 +22,6 @@ extern "C" {
 #include <stdint.h>
 #include <time.h>
 #include <errno.h>
-#include <arpa/inet.h>
 
 #include "coap_client.h"
 
@@ -32,6 +31,8 @@ extern "C" {
 
 #define COAP_MSG_OPLIST_LAST(list)         ((list)->last)                   /**< Get the last option in an option linked-list */
 #define COAP_MSG_OPLIST_EMPTY(list)        ((list)->first == NULL)          /**< Indicate whether or not an option linked-list is empty */
+
+#define Swap16(A) ((((uint16_t)(A) & 0xff00) >> 8) | (((uint16_t)(A) & 0x00ff) << 8))
 
 /**
  *  @brief Check a message for correctness
@@ -160,7 +161,7 @@ static ssize_t _coap_message_deserialize_header(CoAPMessage *msg, char *buf, siz
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_COAP_BADMSG)
     }
 
-    msg->msg_id = ntohs(*((uint16_t *)(&p[2])));
+    msg->msg_id = Swap16(*((uint16_t *)(&p[2])));
     p += 4;
     len -= 4;
 
@@ -242,7 +243,7 @@ static ssize_t _coap_message_deserialize_option(CoAPMessage *msg, char *buf, siz
         {
             IOT_FUNC_EXIT_RC(QCLOUD_ERR_COAP_DATA_SIZE)
         }
-        op_delta = 269 + ntohs(*((uint16_t *)(&p[0])));
+        op_delta = 269 + Swap16(*((uint16_t *)(&p[0])));
         p += 2;
         len -= 2;
     }
@@ -262,7 +263,7 @@ static ssize_t _coap_message_deserialize_option(CoAPMessage *msg, char *buf, siz
         {
             IOT_FUNC_EXIT_RC(QCLOUD_ERR_COAP_DATA_SIZE)
         }
-        op_len = 269 + ntohs(*((uint16_t *)(&p[0])));
+        op_len = 269 + Swap16(*((uint16_t *)(&p[0])));
         p += 2;
         len -= 2;
     }

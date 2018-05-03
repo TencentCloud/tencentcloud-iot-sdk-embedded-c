@@ -25,34 +25,38 @@ extern "C" {
 
 #include "qcloud_iot_export.h"
 #include "qcloud_iot_sdk_impl_internal.h"
-#include "qcloud_iot_utils_timer.h"
+
 #include "ota_lib.h"
 #include "ota_fetch.h"
+
+#include "utils_timer.h"
 
 #define OTA_VERSION_STR_LEN_MIN     (1)
 #define OTA_VERSION_STR_LEN_MAX     (32)
 
-
 typedef struct  {
-    const char *product_id;     /* point to product id */
-    const char *device_name;    /* point to device name */
+    const char 				*product_id;     		/* point to product id */
+    const char 				*device_name;    		/* point to device name */
 
-    uint32_t id;                /* message id */
-    IOT_OTA_State_Code state;   /* OTA state */
-    uint32_t size_last_fetched; /* size of last downloaded */
-    uint32_t size_fetched;      /* size of already downloaded */
-    uint32_t size_file;         /* size of file */
-    char *purl;                 /* point to URL */
-    char *version;              /* point to string */
-    char md5sum[33];            /* MD5 string */
+    uint32_t 				id;                		/* message id */
+    IOT_OTA_State_Code 		state;   				/* OTA state */
+    uint32_t 				size_last_fetched; 		/* size of last downloaded */
+    uint32_t 				size_fetched;      		/* size of already downloaded */
+    uint32_t 				size_file;         		/* size of file */
 
-    void *md5;                  /* MD5 handle */
-    void *ch_signal;            /* channel handle of signal exchanged with OTA server */
-    void *ch_fetch;             /* channel handle of download */
+    char 					*purl;                 	/* point to URL */
+    char 					*version;              	/* point to string */
+    char 					md5sum[33];            	/* MD5 string */
 
-    int err;                    /* last error code */
+    void 					*md5;                  	/* MD5 handle */
+    void 					*ch_signal;           	/* channel handle of signal exchanged with OTA server */
+    void 					*ch_fetch;             	/* channel handle of download */
 
-    Timer report_timer;          
+    int 					err;                    /* last error code */
+
+    short					current_signal_type;
+
+    Timer report_timer;
 
 } OTA_Struct_t;
 
@@ -66,8 +70,7 @@ static int _ota_check_progress(IOT_OTA_Progress_Code progress)
 }
 
 /* 当收到OTA topic的订阅消息过后，订阅回调函数会执行此函数 */
-static void _ota_callback(void *pcontext, const char *msg, uint32_t msg_len)
-{
+static void _ota_callback(void *pcontext, const char *msg, uint32_t msg_len) {
 #define OTA_JSON_TYPE_VALUE_LENGTH 64
 
     char *json_type = NULL;
@@ -76,54 +79,58 @@ static void _ota_callback(void *pcontext, const char *msg, uint32_t msg_len)
 
     if (h_ota->state >= IOT_OTAS_FETCHING) {
         Log_i("In downloading or downloaded state");
-        return;
+        goto End;
     }
 
-    if (QCLOUD_ERR_SUCCESS != qcloud_otalib_get_firmware_type(msg, msg_len, &json_type)) {
+    if (msg == NULL || msg_len <= 0) {
+    	Log_e("OTA response message is NULL");
+    	return;
+    }
+
+    if (qcloud_otalib_get_firmware_type(msg, &json_type) != QCLOUD_ERR_SUCCESS) {
         Log_e("Get firmware type failed!");
-        return;
+        goto End;
     }
 
-    if (!strcmp(json_type, "report_version_rsp")) {
-    	if (qcloud_otalib_get_report_version_result(msg, msg_len) < QCLOUD_ERR_SUCCESS) {
+    if (!strcmp(json_type, REPORT_VERSION_RSP)) {
+    	if (qcloud_otalib_get_report_version_result(msg) < QCLOUD_ERR_SUCCESS) {
             Log_e("Report version failed!");
             h_ota->err = IOT_OTA_ERR_REPORT_VERSION;
             h_ota->state = IOT_OTAS_FETCHED;
-            return;
     	}
     	else {
     		Log_i("Report version success!");
     	}
+    	goto End;
     }
     else {
-        if (0 != qcloud_otalib_get_params(msg, msg_len, &json_type, &h_ota->purl, &h_ota->version, h_ota->md5sum, &h_ota->size_file)) {
-            Log_e("Get firmware parameter failed");
-            return;
+        if (strcmp(json_type, UPDATE_FIRMWARE) != 0) {
+        	Log_e("Netheir Report version result nor update firmware! type: %s", json_type);
+            goto End;
         }
 
-        if (strcmp(json_type, "update_firmware") != 0) {
-            if (strcmp(json_type, "report_version_rsp") == 0 && qcloud_otalib_get_report_version_result(msg, msg_len) < QCLOUD_ERR_SUCCESS) {
-                Log_e("Get firmware parameter failed");
-                h_ota->err = IOT_OTA_ERR_REPORT_VERSION;
-            }
-            return;
+        if (0 != qcloud_otalib_get_params(msg, &json_type, &h_ota->purl, &h_ota->version,
+        		h_ota->md5sum, &h_ota->size_file)) {
+            Log_e("Get firmware parameter failed");
+            goto End;
         }
 
         if (NULL == (h_ota->ch_fetch = ofc_Init(h_ota->purl))) {
             Log_e("Initialize fetch module failed");
-            return;
+            goto End;
         }
 
         if (0 != qcloud_ofc_connect(h_ota->ch_fetch)) {
             Log_e("Connect fetch module failed");
             h_ota->state = IOT_OTAS_DISCONNECTED;
-            return;
+            goto End;
         }
 
         h_ota->state = IOT_OTAS_FETCHING;
     }
 
-    HAL_Free(json_type);
+End:
+	if (json_type != NULL) HAL_Free(json_type);
 
 #undef OTA_JSON_TYPE_VALUE_LENGTH
 }
@@ -167,13 +174,13 @@ static int IOT_OTA_ReportProgress(void *handle, IOT_OTA_Progress_Code progress, 
     }
 
     ret = qcloud_osc_report_progress(h_ota->ch_signal, msg_reported);
-    if (0 != ret) {
+    if (QCLOUD_ERR_SUCCESS != ret) {
         Log_e("Report progress failed");
         h_ota->err = ret;
         goto do_exit;
     }
 
-    ret = 0;
+    ret = QCLOUD_ERR_SUCCESS;
 
 do_exit:
     if (NULL != msg_reported) {
@@ -271,6 +278,11 @@ void *IOT_OTA_Init(const char *product_id, const char *device_name, void *ch_sig
     h_ota->product_id = product_id;
     h_ota->device_name = device_name;
     h_ota->state = IOT_OTAS_INITED;
+#ifdef OTA_MQTT_CHANNEL
+    h_ota->current_signal_type = MQTT_CHANNEL;
+#else
+    h_ota->current_signal_type = COAP_CHANNEL;
+#endif
     return h_ota;
 
 do_exit:
@@ -530,7 +542,7 @@ int IOT_OTA_Ioctl(void *handle, IOT_OTA_CmdType type, void *buf, size_t buf_len)
             } else {
                 *((uint32_t *)buf) = h_ota->size_file;
                 return 0;
-            };
+            }
 
         case IOT_OTAG_VERSION:
             strncpy(buf, h_ota->version, buf_len);

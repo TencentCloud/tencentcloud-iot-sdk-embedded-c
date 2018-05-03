@@ -25,19 +25,17 @@ extern "C" {
 #include "qcloud_iot_import.h"
 
 /* OSC, OTA signal channel */
-
-/* Specify the maximum characters of version */
-#define OTA_MQTT_TOPIC_LEN   (64)
-
 typedef struct  {
-    void *mqtt;
-    const char *product_id;
-    const char *device_name;
-    char topic_upgrade[OTA_MQTT_TOPIC_LEN];
-    OnOtaMessageCallback cb;
+    void 					*mqtt;									//MQTT信令通道
+
+    const char 				*product_id;
+    const char 				*device_name;
+
+    char 					topic_upgrade[OTA_MAX_TOPIC_LEN];		//OTA MQTT Topic
+    OnOTAMessageCallback 	msg_callback;
+
     void *context;
 } OTA_MQTT_Struct_t;
-
 
 /* Generate topic name according to @OTATopicType, @productId, @deviceName */
 /* and then copy to @buf. */
@@ -48,14 +46,9 @@ static int _otamqtt_gen_topic_name(char *buf, size_t bufLen, const char *OTATopi
 
     int ret;
 
-    ret = HAL_Snprintf(buf,
-            bufLen,
-            "$ota/%s/%s/%s",
-            OTATopicType,
-            productId,
-            deviceName);
+    ret = HAL_Snprintf(buf, bufLen, "$ota/%s/%s/%s", OTATopicType, productId, deviceName);
 
-    if(ret >= bufLen) IOT_FUNC_EXIT_RC(IOT_OTA_ERR_FAIL);;
+    if(ret >= bufLen) IOT_FUNC_EXIT_RC(IOT_OTA_ERR_FAIL);
 
     if (ret < 0) {
         Log_e("HAL_Snprintf failed");
@@ -71,10 +64,8 @@ static int _otamqtt_publish(OTA_MQTT_Struct_t *handle, const char *topicType, in
     IOT_FUNC_ENTRY;
 
     int ret;
-    char topic_name[OTA_MQTT_TOPIC_LEN];
+    char topic_name[OTA_MAX_TOPIC_LEN];
     PublishParams pub_params = DEFAULT_PUB_PARAMS;
-
-    memset(&pub_params, 0, sizeof(PublishParams));
 
     if (0 == qos) {
         pub_params.qos = QOS0;
@@ -85,7 +76,7 @@ static int _otamqtt_publish(OTA_MQTT_Struct_t *handle, const char *topicType, in
     pub_params.payload_len = strlen(msg);
 
     /* inform OTA to topic: "/ota/device/progress/$(product_id)/$(device_name)" */
-    ret = _otamqtt_gen_topic_name(topic_name, OTA_MQTT_TOPIC_LEN, topicType, handle->product_id, handle->device_name);
+    ret = _otamqtt_gen_topic_name(topic_name, OTA_MAX_TOPIC_LEN, topicType, handle->product_id, handle->device_name);
     if (ret < 0) {
        Log_e("generate topic name of info failed");
        IOT_FUNC_EXIT_RC(IOT_OTA_ERR_FAIL);
@@ -93,7 +84,7 @@ static int _otamqtt_publish(OTA_MQTT_Struct_t *handle, const char *topicType, in
 
     ret = IOT_MQTT_Publish(handle->mqtt, topic_name, &pub_params);
     if (ret < 0) {
-        Log_e("publish failed");
+        Log_e("publish to topic: %s failed", topic_name);
         IOT_FUNC_EXIT_RC(IOT_OTA_ERR_OSC_FAILED);
     }
 
@@ -109,26 +100,25 @@ static void _otamqtt_upgrage_cb(void *pClient, MQTTMessage *message, void *pcont
     Log_d("topic=%.*s", message->topic_len, message->ptopic);
     Log_d("len=%u, topic_msg=%.*s", message->payload_len, message->payload_len, (char *)message->payload);
 
-    if (NULL != handle->cb) {
-        handle->cb(handle->context, message->payload, message->payload_len);
+    if (NULL != handle->msg_callback) {
+        handle->msg_callback(handle->context, message->payload, message->payload_len);
     }
 }
 
-
-void *qcloud_osc_init(const char *productId, const char *deviceName, void *channel, OnOtaMessageCallback callback, void *context)
+void *qcloud_osc_init(const char *productId, const char *deviceName, void *channel, OnOTAMessageCallback callback, void *context)
 {
     int ret;
     OTA_MQTT_Struct_t *h_osc = NULL;
 
     if (NULL == (h_osc = HAL_Malloc(sizeof(OTA_MQTT_Struct_t)))) {
         Log_e("allocate for h_osc failed");
-        return NULL;
+        goto do_exit;
     }
 
     memset(h_osc, 0, sizeof(OTA_MQTT_Struct_t));
 
     /* subscribe the OTA topic: "$ota/update/$(product_id)/$(device_name)" */
-    ret = _otamqtt_gen_topic_name(h_osc->topic_upgrade, OTA_MQTT_TOPIC_LEN, "update", productId, deviceName);
+    ret = _otamqtt_gen_topic_name(h_osc->topic_upgrade, OTA_MAX_TOPIC_LEN, "update", productId, deviceName);
     if (ret < 0) {
         Log_e("generate topic name of upgrade failed");
         goto do_exit;
@@ -148,7 +138,7 @@ void *qcloud_osc_init(const char *productId, const char *deviceName, void *chann
     h_osc->mqtt = channel;
     h_osc->product_id = productId;
     h_osc->device_name = deviceName;
-    h_osc->cb = callback;
+    h_osc->msg_callback = callback;
     h_osc->context = context;
 
     return h_osc;
@@ -178,13 +168,11 @@ int qcloud_osc_report_progress(void *handle, const char *msg)
     return _otamqtt_publish(handle, "report", QOS0, msg);
 }
 
-
 /* report version of OTA firmware */
 int qcloud_osc_report_version(void *handle, const char *msg)
 {
     return _otamqtt_publish(handle, "report", QOS1, msg);
 }
-
 
 /* report upgrade begin of OTA firmware */
 int qcloud_osc_report_upgrade_result(void *handle, const char *msg)

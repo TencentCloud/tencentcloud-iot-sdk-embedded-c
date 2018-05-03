@@ -19,7 +19,6 @@ extern "C" {
 
 #include "shadow_client_common.h"
 #include "qcloud_iot_import.h"
-#include "qcloud_iot_utils_json.h"
 
 /**
  * @brief 将注册属性的回调函数保存到列表之中
@@ -27,10 +26,6 @@ extern "C" {
 static int _add_property_handle_to_list(Qcloud_IoT_Shadow *pShadow, DeviceProperty *pProperty, OnPropRegCallback callback)
 {
     IOT_FUNC_ENTRY;
-
-    if (pShadow->inner_data.property_handle_list->len >= MAX_JSON_TOKEN_EXPECTED) {
-        IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
-    }
 
     PropertyHandler *property_handle = (PropertyHandler *)HAL_Malloc(sizeof(PropertyHandler));
     if (NULL == property_handle)

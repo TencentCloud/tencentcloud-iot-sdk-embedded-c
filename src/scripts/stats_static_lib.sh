@@ -60,6 +60,6 @@ for mod in ${MODS}; do
         "[ ${mod} ]" "${MSIZE} Bytes"
 done | sort -nr
 
-cd ${OLDPWD}
+cd "${OLDPWD}"
 rm -rf ${TEMPD}
 rm -f ${TEMPF}

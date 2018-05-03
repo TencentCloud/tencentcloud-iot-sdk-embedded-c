@@ -12,19 +12,16 @@
  * limitations under the License.
  *
  */
- 
- 
- 
+
 #include <stdio.h>
 #include <string.h>
 
 #include <gtest/gtest.h>
-#include <unit_helper_functions.h>
-#include "shadow_client_json.h"
-#include "jsmn.h"
-#include "qcloud_iot_utils_json.h"
-#include "shadow_client.h"
 
+#include "shadow_client.h"
+#include "shadow_client_json.h"
+#include "unit_helper_functions.h"
+#include "lite-utils.h"
 
 static DeviceProperty dataFloatHandler;
 static DeviceProperty dataDoubleHandler;
@@ -36,7 +33,6 @@ static float floatData = 3.445f;
 
 static ShadowInitParams     g_initParams;
 static Qcloud_IoT_Shadow 	*g_shadow_ptr;
-
 
 using namespace std;
 
@@ -51,15 +47,15 @@ protected:
         g_shadow_ptr = (Qcloud_IoT_Shadow *)client;
 
         dataFloatHandler.data = &floatData;
-	    dataFloatHandler.key = "floatData";
+	    dataFloatHandler.key = (char*)"floatData";
 	    dataFloatHandler.type = JFLOAT;
 	    
 	    dataDoubleHandler.data = &doubleData;
-	    dataDoubleHandler.key = "doubleData";
+	    dataDoubleHandler.key = (char*)"doubleData";
 	    dataDoubleHandler.type = JDOUBLE;
 
 	    dataIntegerHandler.data = &integerData;
-	    dataIntegerHandler.key = "integerData";
+	    dataIntegerHandler.key = (char*)"integerData";
 	    dataIntegerHandler.type = JINT32;
     }
     virtual void TearDown()
@@ -124,57 +120,29 @@ TEST_F(ShadowJsonBuilderTests, SmallBuffer)
     ASSERT_EQ(QCLOUD_ERR_JSON_BUFFER_TRUNCATED, ret_val);
 }
 
-TEST_F(ShadowJsonBuilderTests, CheckParseJson) 
-{
-    bool ret_val;
-    int32_t tokenCount = 0;
-    jsmntok_t tokens[20];
-    ret_val = check_and_parse_json(TEST_JSON_UPDATE_DOCUMENT, &tokenCount, (void**)&tokens);
-    ASSERT_EQ(11, tokenCount);
-    ASSERT_EQ(1, (int) ret_val);
-}
-
-TEST_F(ShadowJsonBuilderTests, InvalidCheckParseJson) 
-{
-    bool ret_val;
-    int32_t tokenCount = 0;
-    jsmntok_t tokens[20];
-    ret_val = check_and_parse_json("*", &tokenCount, (void**)&tokens);
-    ASSERT_EQ(0, tokenCount);
-    ASSERT_EQ(0, (int) ret_val);
-}
-
 TEST_F(ShadowJsonBuilderTests, UpdateValueIfKeyMatch) 
 {
-
     bool ret_val;
-    int32_t  tokenCount = 0;
-    uint32_t dataLength = 0;
-    int32_t  dataPosition = 0;
-    ret_val = check_and_parse_json(TEST_JSON_RESPONSE_UPDATE_DOCUMENT, &tokenCount, NULL);
-    ASSERT_EQ(15, tokenCount);
-    ASSERT_EQ(1, (int) ret_val);
 
-    ret_val = update_value_if_key_match(TEST_JSON_RESPONSE_UPDATE_DOCUMENT, tokenCount, &dataIntegerHandler, &dataLength, &dataPosition);
+    ret_val = update_value_if_key_match((char*)TEST_JSON_RESPONSE_UPDATE_DOCUMENT, &dataIntegerHandler);
     integerData = *(int *) dataIntegerHandler.data;
     ASSERT_EQ(1, (int) ret_val);
     ASSERT_EQ(24, integerData);
-    ASSERT_EQ((uint32_t)2, dataLength);
-    ASSERT_EQ(36, dataPosition);
 
-    ret_val = update_value_if_key_match(TEST_JSON_RESPONSE_UPDATE_DOCUMENT, tokenCount, &dataDoubleHandler, &dataLength, &dataPosition);
+    ret_val = update_value_if_key_match((char*)TEST_JSON_RESPONSE_UPDATE_DOCUMENT, &dataDoubleHandler);
     ASSERT_EQ(0, (int) ret_val);
 }
 
 TEST_F(ShadowJsonBuilderTests, ParseClientToken) 
 {
     bool ret_val;
-    char clientToken[100];
+    char* clientToken;
     char expected[100];
     strcpy(expected, QCLOUD_IOT_MY_PRODUCT_ID);
     strcat(expected, "-0");
 
-    ret_val = parse_client_token(TEST_JSON_RESPONSE_UPDATE_DOCUMENT, 0, clientToken);
+    ret_val = parse_client_token((char*)TEST_JSON_RESPONSE_UPDATE_DOCUMENT, &clientToken);
+
     ASSERT_EQ(1, (int) ret_val);
     ASSERT_STREQ(expected, clientToken);
 }
@@ -185,30 +153,8 @@ TEST_F(ShadowJsonBuilderTests, ParseVersionNum)
     uint32_t version;
     uint32_t expected = 1;
 
-    ret_val = parse_version_num(TEST_JSON_RESPONSE_UPDATE_DOCUMENT, 0, &version);
+    ret_val = parse_version_num((char*)TEST_JSON_RESPONSE_UPDATE_DOCUMENT, &version);
+
     ASSERT_EQ(1, (int) ret_val);
     ASSERT_EQ(expected, version);
-}
-
-TEST_F(ShadowJsonBuilderTests, ParseErrorCode) 
-{
-    bool ret_val;
-    uint16_t errorCode;
-    uint16_t expected = 200;
-
-    ret_val = parse_error_code(TEST_JSON_RESPONSE_UPDATE_DOCUMENT, 0, &errorCode);
-    ASSERT_EQ(1, (int) ret_val);
-    ASSERT_EQ(expected, errorCode);
-}
-
-TEST_F(ShadowJsonBuilderTests, ParseMessage) 
-{
-    bool ret_val;
-    char message[100];
-    char expected[100];
-    strcpy(expected, "OK");
-
-    ret_val = parse_error_message(TEST_JSON_RESPONSE_UPDATE_DOCUMENT, 0, message);
-    ASSERT_EQ(1, (int) ret_val);
-    ASSERT_STREQ(expected, message);
 }

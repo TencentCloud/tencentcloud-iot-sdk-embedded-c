@@ -25,8 +25,6 @@ extern "C" {
 
 #include "qcloud_iot_export_ota.h"
 
-
-
 void *qcloud_otalib_md5_init(void);
 
 void qcloud_otalib_md5_update(void *md5, const char *buf, size_t buf_len);
@@ -35,15 +33,14 @@ void qcloud_otalib_md5_finalize(void *md5, char *output_str);
 
 void qcloud_otalib_md5_deinit(void *md5);
 
-int qcloud_otalib_get_firmware_type(const char *json, uint32_t jsonLen, char **type);
+int qcloud_otalib_get_firmware_type(const char *json, char **type);
 
-int qcloud_otalib_get_report_version_result(const char *json, uint32_t jsonLen);
+int qcloud_otalib_get_report_version_result(const char *json);
 
 /**
  * @brief 根据@json解析出来固件下载的相关信息
  *
  * @param json          JSON字符串
- * @param jsonLen       JSON字符串长度
  * @param type          下发升级消息的时候，type为update_firmware
  * @param url           解析得到的下载url
  * @param version       解析得到的下载固件版本
@@ -51,7 +48,7 @@ int qcloud_otalib_get_report_version_result(const char *json, uint32_t jsonLen);
  * @param fileSize      下载固件的大小
  * @return              返回QCLOUD_ERR_SUCCESS表示成功
  */
-int qcloud_otalib_get_params(const char *json, uint32_t jsonLen, char **type, char **url, char **version, char *md5,
+int qcloud_otalib_get_params(const char *json, char **type, char **url, char **version, char *md5,
                      uint32_t *fileSize);
 
 

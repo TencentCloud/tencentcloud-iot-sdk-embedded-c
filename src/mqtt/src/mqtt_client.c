@@ -27,17 +27,22 @@ extern "C" {
 
 #include "ca.h"
 #include "device.h"
-#include "mqtt_client_json.h"
 #include "qcloud_iot_import.h"
 #include "qcloud_iot_export.h"
-#include "qcloud_iot_utils_base64.h"
-#include "qcloud_iot_utils_list.h"
+
+
+#include "utils_base64.h"
+#include "utils_list.h"
 
 #define HOST_STR_LENGTH 64
 static char s_qcloud_iot_host[HOST_STR_LENGTH] = {0};
+#ifdef AUTH_WITH_NOTLS
+static int s_qcloud_iot_port = 1883;
+#else
 static int s_qcloud_iot_port = 8883;
+#endif
 
-#ifndef ASYMC_ENCRYPTION_ENABLED
+#ifndef AUTH_MODE_CERT
 #define DECODE_PSK_LENGTH 32
 static unsigned char sg_psk_str[DECODE_PSK_LENGTH];
 #endif
@@ -84,6 +89,13 @@ void* IOT_MQTT_Construct(MQTTInitParams *pParams)
 	connect_params.keep_alive_interval = min(pParams->keep_alive_interval_ms / 1000, 690);
 	connect_params.clean_session = pParams->clean_session;
 	connect_params.auto_connect_enable = pParams->auto_connect_enable;
+#if defined(AUTH_WITH_NOTLS) && defined(AUTH_MODE_KEY)
+	size_t src_len = strlen(pParams->device_secret);
+	size_t len;
+	memset(sg_psk_str, 0x00, DECODE_PSK_LENGTH);
+	qcloud_iot_utils_base64decode(sg_psk_str, sizeof( sg_psk_str ), &len, (unsigned char *)pParams->device_secret, src_len );
+	connect_params.device_secret = (char *)sg_psk_str;
+#endif
 
 	rc = qcloud_iot_mqtt_connect(mqtt_client, &connect_params);
 	if (rc != QCLOUD_ERR_SUCCESS) {
@@ -164,10 +176,6 @@ bool IOT_MQTT_IsConnected(void *pClient) {
     IOT_FUNC_EXIT_RC(get_client_conn_state(mqtt_client) == 1)
 }
 
-bool IOT_MQTT_JSON_GetAction(const char *pJsonDoc, int32_t tokenCount, char *pAction) {
-	return parse_action(pJsonDoc, tokenCount, pAction);
-}
-
 int qcloud_iot_mqtt_init(Qcloud_IoT_Client *pClient, MQTTInitParams *pParams) {
     IOT_FUNC_ENTRY;
 
@@ -240,9 +248,9 @@ int qcloud_iot_mqtt_init(Qcloud_IoT_Client *pClient, MQTTInitParams *pParams) {
     }
 	pClient->list_sub_wait_ack->free = HAL_Free;
 
-#ifndef NOTLS_ENABLED
+#ifndef AUTH_WITH_NOTLS
     // TLS连接参数初始化
-#ifdef ASYMC_ENCRYPTION_ENABLED
+#ifdef AUTH_MODE_CERT
     bool certEmpty = (pParams->cert_file == NULL || pParams->key_file == NULL);
     if (certEmpty) {
         Log_e("cert file or key file is empty!");
@@ -256,11 +264,11 @@ int qcloud_iot_mqtt_init(Qcloud_IoT_Client *pClient, MQTTInitParams *pParams) {
     pClient->network_stack.ssl_connect_params.ca_crt = iot_ca_get();
     pClient->network_stack.ssl_connect_params.ca_crt_len = strlen(pClient->network_stack.ssl_connect_params.ca_crt);
 #else
-    if (pParams->psk != NULL) {
-        size_t src_len = strlen(pParams->psk);
+    if (pParams->device_secret != NULL) {
+        size_t src_len = strlen(pParams->device_secret);
         size_t len;
         memset(sg_psk_str, 0x00, DECODE_PSK_LENGTH);
-        qcloud_iot_utils_base64decode(sg_psk_str, sizeof( sg_psk_str ), &len, (unsigned char *)pParams->psk, src_len );
+        qcloud_iot_utils_base64decode(sg_psk_str, sizeof( sg_psk_str ), &len, (unsigned char *)pParams->device_secret, src_len );
         pClient->network_stack.ssl_connect_params.psk = (char *)sg_psk_str;
         pClient->network_stack.ssl_connect_params.psk_length = len;
     } else {

@@ -21,7 +21,8 @@ extern "C" {
 #endif
 
 #include <stdio.h>
-#include "qcloud_iot_utils_net.h"
+
+#include "utils_net.h"
     
     
 int qcloud_iot_coap_network_init(Network *pNetwork);

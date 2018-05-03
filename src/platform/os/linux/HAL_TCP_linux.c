@@ -13,7 +13,6 @@
  *
  */
 
-
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
@@ -57,59 +56,52 @@ static uint64_t _linux_time_left(uint64_t t_end, uint64_t t_now)
 
 uintptr_t HAL_TCP_Connect(const char *host, uint16_t port)
 {
-    struct addrinfo hints;
-    struct addrinfo *addrInfoList = NULL;
-    struct addrinfo *cur = NULL;
+	int ret;
+	struct addrinfo hints, *addr_list, *cur;
     int fd = 0;
-    int rc = 0;
-    char service[6];
 
-    memset(&hints, 0, sizeof(hints));
+    char port_str[6];
+    HAL_Snprintf(port_str, 6, "%d", port);
 
-    Log_d("establish tcp connection with server(host=%s port=%u)", host, port);
-
-    hints.ai_family = AF_INET; /* only IPv4 */
+    memset(&hints, 0x00, sizeof(hints));
+    hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_protocol = IPPROTO_TCP;
-    sprintf(service, "%u", port);
 
-    if ((rc = getaddrinfo(host, service, &hints, &addrInfoList)) != 0) {
+    Log_d("establish tcp connection with server(host=%s port=%s)", host, port_str);
+
+    if (getaddrinfo(host, port_str, &hints, &addr_list) != 0) {
         perror("getaddrinfo error");
         return 0;
     }
 
-    for (cur = addrInfoList; cur != NULL; cur = cur->ai_next) {
-        if (cur->ai_family != AF_INET) {
-            perror("socket type error");
-            rc = 0;
-            continue;
-        }
+    for (cur = addr_list; cur != NULL; cur = cur->ai_next) {
+    	fd = (int) socket( cur->ai_family, cur->ai_socktype, cur->ai_protocol );
+		if( fd < 0 )
+		{
+			ret = 0;
+			continue;
+		}
 
-        fd = socket(cur->ai_family, cur->ai_socktype, cur->ai_protocol);
-        if (fd < 0) {
-            perror("create socket error");
-            rc = 0;
-            continue;
-        }
+		if (connect(fd, cur->ai_addr, cur->ai_addrlen) == 0)
+		{
+			ret = fd;
+			break;
+		}
 
-        if (connect(fd, cur->ai_addr, cur->ai_addrlen) == 0) {
-            rc = fd;
-            break;
-        }
-
-        close(fd);
-        perror("connect error");
-        rc = 0;
+		close( fd );
+		ret = 0;
     }
 
-    if (0 == rc) {
+    if (0 == ret) {
         Log_e("fail to establish tcp");
     } else {
-        Log_d("success to establish tcp, fd=%d", rc);
+        Log_d("success to establish tcp, fd=%d", ret);
     }
-    freeaddrinfo(addrInfoList);
 
-    return (uintptr_t)rc;
+    freeaddrinfo(addr_list);
+
+    return (uintptr_t)ret;
 }
 
 
@@ -178,6 +170,9 @@ int HAL_TCP_Write(uintptr_t fd, const unsigned char *buf, uint32_t len, uint32_t
                 break;
             }
         }
+        else {
+        	ret = QCLOUD_ERR_SSL_WRITE_TIMEOUT;
+        }
 
         if (ret > 0) {
             ret = send(fd, buf + len_sent, len - len_sent, 0);
@@ -191,6 +186,8 @@ int HAL_TCP_Write(uintptr_t fd, const unsigned char *buf, uint32_t len, uint32_t
                     continue;
                 }
 
+                ret = QCLOUD_ERR_SSL_WRITE;
+
                 perror("send fail");
                 break;
             }
@@ -199,7 +196,7 @@ int HAL_TCP_Write(uintptr_t fd, const unsigned char *buf, uint32_t len, uint32_t
 
     *written_len = (size_t)len_sent;
 
-    return (len_sent == len);
+    return len_sent > 0 ? QCLOUD_ERR_SUCCESS : ret;
 }
 
 
@@ -218,8 +215,10 @@ int HAL_TCP_Read(uintptr_t fd, unsigned char *buf, uint32_t len, uint32_t timeou
     do {
         t_left = _linux_time_left(t_end, _linux_get_time_ms());
         if (0 == t_left) {
+        	err_code = QCLOUD_ERR_MQTT_NOTHING_TO_READ;
             break;
         }
+
         FD_ZERO(&sets);
         FD_SET(fd, &sets);
 
@@ -245,7 +244,7 @@ int HAL_TCP_Read(uintptr_t fd, unsigned char *buf, uint32_t len, uint32_t timeou
                 break;
             }
         } else if (0 == ret) {
-            err_code = QCLOUD_ERR_TCP_READ_TIMEOUT;
+            err_code = QCLOUD_ERR_MQTT_NOTHING_TO_READ;
             break;
         } else {
             perror("select-recv fail");
@@ -253,6 +252,7 @@ int HAL_TCP_Read(uintptr_t fd, unsigned char *buf, uint32_t len, uint32_t timeou
             break;
         }
     } while ((len_recv < len));
+
     *read_len = (size_t)len_recv;
 
     return (0 != len_recv) ? 0 : err_code;

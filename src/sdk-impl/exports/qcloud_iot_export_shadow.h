@@ -29,8 +29,7 @@ typedef struct {
     char                        *product_id;            // 产品名称
     char                        *device_name;           // 设备名称
 
-#ifndef NOTLS_ENABLED
-#ifdef ASYMC_ENCRYPTION_ENABLED
+#ifdef AUTH_MODE_CERT
     /**
      * 非对称加密使用
      */
@@ -40,8 +39,7 @@ typedef struct {
     /**
      * 对称加密
      */
-    char                        *psk;                    // 对称加密密钥
-#endif
+    char                        *device_secret;                    // 对称加密密钥
 #endif
 
     uint32_t                    command_timeout;         // 发布订阅信令读写超时时间 ms
@@ -55,16 +53,10 @@ typedef struct {
 
 } ShadowInitParams;
 
-// #define DEFAULT_SHAWDOW_INIT_PARAMS {DEFAULT_MQTTINIT_PARAMS}
-
-#ifndef NOTLS_ENABLED
-#ifdef ASYMC_ENCRYPTION_ENABLED
+#ifdef AUTH_MODE_CERT
     #define DEFAULT_SHAWDOW_INIT_PARAMS { NULL, NULL, NULL, NULL, 2000, 240 * 1000, 1, 1, {0}}
 #else
     #define DEFAULT_SHAWDOW_INIT_PARAMS { NULL, NULL, NULL, 2000, 240 * 1000, 1, 1, {0}}
-#endif
-#else
-    #define DEFAULT_SHAWDOW_INIT_PARAMS { NULL, NULL, 2000, 240 * 1000, 1, 1, {0}}
 #endif
 
 /**
@@ -83,7 +75,6 @@ typedef enum {
 typedef enum {
     GET,     // 获取云端设备文档
     UPDATE,  // 更新或创建云端设备文档
-    DELETE   // 删除云端设备文档
 } Method;
 
 /**
@@ -107,7 +98,7 @@ typedef enum {
  * @brief 定义设备的某个属性, 实际就是一个JSON文档节点
  */
 typedef struct _JSONNode {
-    const char   *key;    // 该JSON节点的Key
+    char   		 *key;    // 该JSON节点的Key
     void         *data;   // 该JSON节点的Value
     JsonDataType type;    // 该JSON节点的数据类型
 } DeviceProperty;
@@ -266,7 +257,7 @@ int IOT_Shadow_Register_Property(void *handle, DeviceProperty *pProperty, OnProp
 int IOT_Shadow_UnRegister_Property(void *handle, DeviceProperty *pProperty);
 
 /**
- * @brief 在JSON文档中添加reported字段
+ * @brief 在JSON文档中添加reported字段，不覆盖更新
  *
  *
  * @param jsonBuffer    为存储JSON文档准备的字符串缓冲区
@@ -275,6 +266,18 @@ int IOT_Shadow_UnRegister_Property(void *handle, DeviceProperty *pProperty);
  * @return              返回QCLOUD_ERR_SUCCESS, 表示成功
  */
 int IOT_Shadow_JSON_ConstructReport(void *handle, char *jsonBuffer, size_t sizeOfBuffer, uint8_t count, ...);
+
+/**
+ * @brief 在JSON文档中添加reported字段，覆盖更新
+ *
+ *
+ * @param jsonBuffer    为存储JSON文档准备的字符串缓冲区
+ * @param sizeOfBuffer  缓冲区大小
+ * @param overwrite		重写字段
+ * @param count         可变参数的个数, 即需上报的设备属性的个数
+ * @return              返回QCLOUD_ERR_SUCCESS, 表示成功
+ */
+int IOT_Shadow_JSON_Construct_OverwriteReport(void *handle, char *jsonBuffer, size_t sizeOfBuffer, uint8_t count, ...);
 
 /**
  * @brief 在JSON文档中添加reported字段，同时清空desired字段

@@ -78,7 +78,13 @@ TEST_F(MQTTConnectTests, nullParamsInit) {
 TEST_F(MQTTConnectTests, nullCert) {
     Log_d("4. Init with NULL Cert File Path");
     SetupMQTTConnectInitParams(&initParams);
+#ifndef AUTH_WITH_NOTLS
+#ifdef AUTH_MODE_CERT
     initParams.cert_file = NULL;
+#else
+
+#endif
+#endif
     void *client_ptr = IOT_MQTT_Construct(&initParams);
     ASSERT_TRUE(NULL == client_ptr);
 }
@@ -88,7 +94,13 @@ TEST_F(MQTTConnectTests, nullCert) {
  */
 TEST_F(MQTTConnectTests, nullKeyFile) {
     SetupMQTTConnectInitParams(&initParams);
+#ifndef AUTH_WITH_NOTLS
+#ifdef AUTH_MODE_CERT
     initParams.key_file = NULL;
+#else
+
+#endif
+#endif
     void *client_ptr = IOT_MQTT_Construct(&initParams);
     ASSERT_TRUE(NULL == client_ptr);
 }
@@ -117,7 +129,13 @@ TEST_F(MQTTConnectTests, InvalidCert) {
     snprintf(invalidCert, 20, "invalid");
 
     SetupMQTTConnectInitParams(&initParams);
+#ifndef AUTH_WITH_NOTLS
+#ifdef AUTH_MODE_CERT
     initParams.cert_file = invalidCert;
+#else
+
+#endif
+#endif
     void *client_ptr = IOT_MQTT_Construct(&initParams);
     ASSERT_TRUE(NULL == client_ptr);
 }
@@ -130,7 +148,13 @@ TEST_F(MQTTConnectTests, InvalidKey) {
     snprintf(invalidKey, 20, "invalid");
 
     SetupMQTTConnectInitParams(&initParams);
+#ifndef AUTH_WITH_NOTLS
+#ifdef AUTH_MODE_CERT
     initParams.key_file = invalidKey;
+#else
+
+#endif
+#endif
     void *client_ptr = IOT_MQTT_Construct(&initParams);
     ASSERT_TRUE(NULL == client_ptr);
 }

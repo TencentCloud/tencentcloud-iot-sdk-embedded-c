@@ -12,17 +12,16 @@
  * limitations under the License.
  *
  */
- 
- 
+
 #include <stdbool.h>
 #include <iostream>
 
-#include "gtest/gtest.h"
-#include <jsmn.h>
+#include <gtest/gtest.h>
+
 #include "unit_helper_functions.h"
 #include "qcloud_iot_export_shadow.h"
 #include "qcloud_iot_export_error.h"
-#include "qcloud_iot_utils_json.h"
+#include "qcloud_iot_import.h"
 #include "shadow_client.h"
 
 
@@ -45,16 +44,17 @@ static void on_request_callback(void *pClient, Method method, RequestAck status,
     sg_method_rx = method;
     sg_ack_status_rx = status;
     if (ACK_NONE != status) {
-        char clientTokenString[SIZE_OF_JSON_BUFFER] = {0};
-        char stateString[SIZE_OF_JSON_BUFFER] = {0}; 
+        char* clientTokenString;
+        char* stateString;
 
-        int tokenCount;
-        if (check_and_parse_json(pReceivedJsonDocument, &tokenCount, NULL) != true) {
-            Log_e("Fail to parse receive JSON");
-            return;
+        char* pReceivedJsonDocument_bak = (char*)HAL_Malloc(strlen(pReceivedJsonDocument));
+        if (pReceivedJsonDocument_bak == NULL) {
+        	return;
         }
-        if (parse_shadow_state(pReceivedJsonDocument, tokenCount, stateString) &&
-            parse_client_token(pReceivedJsonDocument, tokenCount, clientTokenString)) {
+        strcpy(pReceivedJsonDocument_bak, pReceivedJsonDocument);
+
+        if (parse_shadow_state(pReceivedJsonDocument_bak, &stateString) &&
+            parse_client_token(pReceivedJsonDocument_bak, &clientTokenString)) {
             HAL_Snprintf(sg_json_full_document, SIZE_OF_JSON_BUFFER, "{\"state\":%s, \"clientToken\":\"%s\"}", stateString, clientTokenString);
         }
     }
@@ -79,7 +79,6 @@ protected:
 
         void *client = IOT_Shadow_Construct(&sg_initParams);
         sg_pshadow = (Qcloud_IoT_Shadow *)client;
-//        IOT_Shadow_Delete(sg_pshadow, NULL, NULL, QCLOUD_IOT_MQTT_COMMAND_TIMEOUT);
     }
 
     virtual void TearDown()
@@ -114,7 +113,7 @@ TEST_F(ShadowTest, GetTheFullJSONDocument)
     char deltaJSONString[SIZE_OF_JSON_BUFFER] = {0};
     DeviceProperty property;
     int intData = 98;
-    property.key = "sensor1";
+    property.key = (char*)"sensor1";
     property.type = JINT16;
     property.data = &intData;
     ret_val = IOT_Shadow_JSON_ConstructReport(sg_pshadow, deltaJSONString, SIZE_OF_JSON_BUFFER, 1, &property);
@@ -157,11 +156,11 @@ TEST_F(ShadowTest, UpdateTheJSONDocument)
     DeviceProperty dataDoubleHandler;
 
     dataFloatHandler.data = &floatData;
-    dataFloatHandler.key = "floatData";
+    dataFloatHandler.key = (char*)"floatData";
     dataFloatHandler.type = JFLOAT;
 
     dataDoubleHandler.data = &doubleData;
-    dataDoubleHandler.key = "doubleData";
+    dataDoubleHandler.key = (char*)"doubleData";
     dataDoubleHandler.type = JDOUBLE;
 
     ret_val = IOT_Shadow_Get_Sync(sg_pshadow, QCLOUD_IOT_MQTT_COMMAND_TIMEOUT);

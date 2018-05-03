@@ -15,8 +15,8 @@
 
 
 
-#ifndef _QCLOUD_IOT_UTILS_MD5_H_
-#define _QCLOUD_IOT_UTILS_MD5_H_
+#ifndef QCLOUD_IOT_UTILS_MD5_H_
+#define QCLOUD_IOT_UTILS_MD5_H_
 
 #include "qcloud_iot_import.h"
 

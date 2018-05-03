@@ -19,7 +19,7 @@ extern "C" {
 #endif
 
 
-#include "qcloud_iot_utils_md5.h"
+#include "utils_md5.h"
 
 #include <stdlib.h>
 #include <string.h>

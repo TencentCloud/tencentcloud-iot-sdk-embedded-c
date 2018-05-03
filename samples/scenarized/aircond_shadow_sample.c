@@ -22,15 +22,14 @@
 
 #include "qcloud_iot_export.h"
 #include "qcloud_iot_import.h"
+#include "lite-utils.h"
 
 /* 产品名称, 与云端同步设备状态时需要  */
 #define QCLOUD_IOT_MY_PRODUCT_ID            "YOUR_PRODUCT_ID"
 /* 设备名称, 与云端同步设备状态时需要 */
 #define QCLOUD_IOT_MY_DEVICE_NAME           "YOUR_DEVICE_NAME"
 
-#ifndef NOTLS_ENABLED
-
-#ifdef ASYMC_ENCRYPTION_ENABLED
+#ifdef AUTH_MODE_CERT
     /* 客户端证书文件名  非对称加密使用*/
     #define QCLOUD_IOT_CERT_FILENAME          "YOUR_DEVICE_NAME_cert.crt"
     /* 客户端私钥文件名 非对称加密使用*/
@@ -40,9 +39,7 @@
     static char sg_key_file[PATH_MAX + 1];       //客户端密钥全路径
 
 #else
-    #define QCLOUD_IOT_PSK                  "YOUR_IOT_PSK"
-#endif
-
+    #define QCLOUD_IOT_DEVICE_SECRET                  "YOUR_IOT_PSK"
 #endif
 
 #define MAX_LENGTH_OF_UPDATE_JSON_BUFFER 200
@@ -153,9 +150,6 @@ static void event_handler(void *pclient, void *handle_context, MQTTEventMsg *msg
  */
 static void on_message_callback(void *pClient, MQTTMessage *message, void *userData) 
 {
-    int32_t token_count = 0;
-    char field_value[100];
-
     if (message == NULL)
         return;
 
@@ -173,21 +167,19 @@ static void on_message_callback(void *pClient, MQTTMessage *message, void *userD
     memcpy(cloud_rcv_buf, message->payload, message->payload_len);
     cloud_rcv_buf[message->payload_len] = '\0';    // jsmn_parse relies on a string
 
-    bool action_received = IOT_MQTT_JSON_GetAction(cloud_rcv_buf, token_count, field_value);
-    if(action_received)
-    {
-        if(strcmp(field_value, "come_home") == 0)
+    char* value = LITE_json_value_of("action", cloud_rcv_buf);
+    if (value != NULL) {
+        if(strcmp(value, "come_home") == 0)
         {
             sg_airconditioner_openned = true;
         }
-        else if(strcmp(field_value, "leave_home") == 0)
+        else if(strcmp(value, "leave_home") == 0)
         {
             sg_airconditioner_openned = false;
         }
     }
-    else {
-    	Log_w("get action from json failed.");
-    }
+
+    HAL_Free(value);
 }
 
 /**
@@ -202,8 +194,7 @@ static int _setup_connect_init_params(ShadowInitParams* initParams)
 	initParams->device_name = QCLOUD_IOT_MY_DEVICE_NAME;
 	initParams->product_id = QCLOUD_IOT_MY_PRODUCT_ID;
 
-#ifndef NOTLS_ENABLED
-#ifdef ASYMC_ENCRYPTION_ENABLED
+#ifdef AUTH_MODE_CERT
     // 获取CA证书、客户端证书以及私钥文件的路径
     char certs_dir[PATH_MAX + 1] = "certs";
     char current_path[PATH_MAX + 1];
@@ -219,8 +210,7 @@ static int _setup_connect_init_params(ShadowInitParams* initParams)
     initParams->cert_file = sg_cert_file;
     initParams->key_file = sg_key_file;
 #else
-    initParams->psk = QCLOUD_IOT_PSK;
-#endif
+    initParams->device_secret = QCLOUD_IOT_DEVICE_SECRET;
 #endif
 
     initParams->auto_connect_enable = 1;

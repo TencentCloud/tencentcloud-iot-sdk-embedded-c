@@ -1,7 +1,9 @@
 CXX 				:= g++
 LDFLAGS             := $(FINAL_DIR)/lib/libiot_sdk.a
 LDFLAGS             += $(FINAL_DIR)/lib/libiot_platform.a
+ifeq (,$(filter -DAUTH_WITH_NOTLS,$(CFLAGS)))
 LDFLAGS             += $(FINAL_DIR)/lib/libmbedtls.a $(FINAL_DIR)/lib/libmbedx509.a $(FINAL_DIR)/lib/libmbedcrypto.a
+endif
 GOOGLE_TEST_DIRS 	:= $(THIRD_PARTY_PATH)/googletest
 
 UNIT_SRC_DIR = ${TESTS_DIR}/unit_test/src

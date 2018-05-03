@@ -21,9 +21,8 @@
 extern "C" {
 #endif
 
-#include "qcloud_iot_utils_timer.h"
-#include "qcloud_iot_export_error.h"
 #include "qcloud_iot_import.h"
+#include "qcloud_iot_export_error.h"
 #include "qcloud_iot_export_log.h"
 #include "qcloud_iot_sdk_impl_internal.h"
 
@@ -33,7 +32,9 @@ extern "C" {
 #include "mbedtls/ctr_drbg.h"
 #include "mbedtls/error.h"
 
-#ifndef ASYMC_ENCRYPTION_ENABLED
+#include "utils_timer.h"
+
+#ifndef AUTH_MODE_CERT
 static const int ciphersuites[] = { MBEDTLS_TLS_PSK_WITH_AES_128_CBC_SHA, MBEDTLS_TLS_PSK_WITH_AES_256_CBC_SHA, 0 };
 #endif
     
@@ -107,7 +108,7 @@ static int _mbedtls_client_init(TLSDataParams *pDataParams, TLSConnectParams *pC
         }
     }
 
-#ifdef ASYMC_ENCRYPTION_ENABLED
+#ifdef AUTH_MODE_CERT
     if (pConnectParams->cert_file != NULL && pConnectParams->key_file != NULL) {
             if ((ret = mbedtls_x509_crt_parse_file(&(pDataParams->client_cert), pConnectParams->cert_file)) != 0) {
             Log_e("load client cert file failed returned -0x%x", ret);
@@ -231,7 +232,7 @@ uintptr_t HAL_TLS_Connect(TLSConnectParams *pConnectParams, const char *host, in
         goto error;
     }
 
-#ifndef ASYMC_ENCRYPTION_ENABLED
+#ifndef AUTH_MODE_CERT
     // 选择加密套件代码，以后不通加密方式合并端口的时候可以用到
     if(pConnectParams->psk != NULL) {
         mbedtls_ssl_conf_ciphersuites(&(pDataParams->ssl_conf), ciphersuites);
@@ -360,7 +361,6 @@ int HAL_TLS_Read(uintptr_t handle, unsigned char *msg, size_t totalLen, uint32_t
         }
 
         if (expired(&timer)) {
-            Log_d("HAL_TLS_Read timeout|readlen = %ld", *read_len);
             break;
         }
 

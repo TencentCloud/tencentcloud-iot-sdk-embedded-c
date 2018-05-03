@@ -66,6 +66,13 @@ char* HAL_Timer_current(void) {
 
 	return now_time_str;
 }
+
+long HAL_Timer_current_sec(void) {
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+
+	return tv.tv_sec;
+}
     
 #ifdef __cplusplus
 }

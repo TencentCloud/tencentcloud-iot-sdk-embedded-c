@@ -22,7 +22,6 @@ extern "C" {
 #include <string.h>
 #include <errno.h>
     
-#include "qcloud_iot_utils_timer.h"
 #include "qcloud_iot_export.h"
 #include "qcloud_iot_import.h"
 #include "qcloud_iot_sdk_impl_internal.h"
@@ -36,10 +35,12 @@ extern "C" {
 #include "mbedtls/certs.h"
 #include "mbedtls/timing.h"
 #include "mbedtls/ssl_cookie.h"
+
+#include "utils_timer.h"
     
 #define DEBUG_LEVEL 0
     
-#ifndef ASYMC_ENCRYPTION_ENABLED
+#ifndef AUTH_MODE_CERT
 static const int ciphersuites[] = { MBEDTLS_TLS_PSK_WITH_AES_128_CBC_SHA, MBEDTLS_TLS_PSK_WITH_AES_256_CBC_SHA, 0 };
 #endif
 
@@ -119,7 +120,7 @@ static int _mbedtls_client_init(DTLSDataParams *pDataParams, DTLSConnectParams *
         }
     }
 
-#ifdef ASYMC_ENCRYPTION_ENABLED
+#ifdef AUTH_MODE_CERT
     if (pConnectParams->cert_file != NULL && pConnectParams->key_file != NULL) {
             if ((ret = mbedtls_x509_crt_parse_file(&(pDataParams->client_cert), pConnectParams->cert_file)) != 0) {
             Log_e("load client cert file failed returned -0x%x", ret);
@@ -226,10 +227,8 @@ uintptr_t HAL_DTLS_Connect(DTLSConnectParams *pConnectParams, const char *host, 
 
     mbedtls_ssl_conf_dtls_cookies(&pDataParams->ssl_conf, mbedtls_ssl_cookie_write, mbedtls_ssl_cookie_check, &pDataParams->cookie_ctx);
 
-#ifndef ASYMC_ENCRYPTION_ENABLED
-    // if(pConnectParams->is_asymc_encryption == false) {
-        mbedtls_ssl_conf_ciphersuites(&(pDataParams->ssl_conf), ciphersuites);
-    // }
+#ifndef AUTH_MODE_CERT
+	mbedtls_ssl_conf_ciphersuites(&(pDataParams->ssl_conf), ciphersuites);
 #endif        
     
 #ifdef MBEDTLS_SSL_PROTO_DTLS
@@ -366,7 +365,6 @@ int HAL_DTLS_Read(uintptr_t handle, unsigned char *data, size_t datalen, unsigne
 	} else {
 		*read_len = rc;
 		rc = QCLOUD_ERR_SUCCESS;
-		Log_d("mbedtls_ssl_read len %d bytes", *read_len);
 	}
     
     return rc;

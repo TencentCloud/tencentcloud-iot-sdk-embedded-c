@@ -17,20 +17,17 @@
 extern "C" {
 #endif
 
-#include "qcloud_iot_utils_httpc.h"
+#include "utils_httpc.h"
     
 #include <string.h>
 #include <ctype.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <netdb.h>
 #include <string.h>
     
 #include "ca.h"
 #include "qcloud_iot_import.h"
-#include "qcloud_iot_utils_timer.h"
-#include "qcloud_iot_export_log.h"
-#include "qcloud_iot_export_error.h"
+#include "qcloud_iot_export.h"
+
+#include "utils_timer.h"
 
 #define HTTP_CLIENT_MIN(x,y) (((x)<(y))?(x):(y))
 #define HTTP_CLIENT_MAX(x,y) (((x)>(y))?(x):(y))
@@ -222,13 +219,14 @@ static int _http_client_send_auth(HTTPClient *client, unsigned char *send_buf, i
     char base64buff[HTTP_CLIENT_AUTHB_SIZE + 3];
 
     _http_client_get_info(client, send_buf, send_idx, "Authorization: Basic ", 0);
-    sprintf(base64buff, "%s:%s", client->auth_user, client->auth_password);
-    Log_d("bAuth: %s", base64buff) ;
+    HAL_Snprintf(base64buff, sizeof(base64buff), "%s:%s", client->auth_user, client->auth_password);
+
     _http_client_base64enc(b_auth, base64buff);
     b_auth[strlen(b_auth) + 1] = '\0';
     b_auth[strlen(b_auth)] = '\n';
-    Log_d("b_auth:%s", b_auth) ;
+
     _http_client_get_info(client, send_buf, send_idx, b_auth, 0);
+
     return QCLOUD_ERR_SUCCESS;
 }
     
@@ -398,9 +396,6 @@ static int _http_client_retrieve_content(HTTPClient *client, char *data, int len
     InitTimer(&timer);
     countdown_ms(&timer, (unsigned int)timeout_ms);
     
-    /* Receive data */
-    Log_d("Current data: %s", data);
-    
     client_data->is_more = IOT_TRUE;
     
     if (client_data->response_content_len == -1 && client_data->is_chunked == IOT_FALSE) {
@@ -499,7 +494,7 @@ static int _http_client_retrieve_content(HTTPClient *client, char *data, int len
             readLen = client_data->retrieve_len;
         }
         
-        Log_d("Total-Payload: %d Bytes; Read: %d Bytes", readLen, len);
+        Log_d("Total-Payload: %d Bytes", readLen);
         
         do {
             templen = HTTP_CLIENT_MIN(len, readLen);
@@ -748,13 +743,13 @@ static int _qcloud_iot_http_network_init(Network *pNetwork, const char *host, in
     if (pNetwork == NULL) {
         return QCLOUD_ERR_INVAL;
     }
-
+#ifndef AUTH_WITH_NOTLS
     if (ca_crt_dir != NULL) {
         pNetwork->ssl_connect_params.ca_crt = ca_crt_dir;
         pNetwork->ssl_connect_params.ca_crt_len = strlen(pNetwork->ssl_connect_params.ca_crt);
         pNetwork->ssl_connect_params.timeout_ms = 10000;
     }
-
+#endif
     pNetwork->host = host;
     pNetwork->port = port;
 

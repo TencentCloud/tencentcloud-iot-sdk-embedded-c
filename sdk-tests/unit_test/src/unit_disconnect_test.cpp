@@ -13,8 +13,6 @@
  *
  */
 
- 
-
 #include <stdio.h>
 #include <unistd.h>
 #include <stdbool.h>
@@ -22,13 +20,11 @@
 #include <gtest/gtest.h>
 #include <unit_helper_functions.h>
 
-
 static MQTTConnectParams 	connectParams;
 static MQTTInitParams 		initParams;
 static Qcloud_IoT_Client 	iotClient;
 
 static bool handlerInvoked = false;
-
 
 void disconnectTestHandler(void) {
 	handlerInvoked = true;

@@ -13,21 +13,26 @@
  *
  */
 
-// #ifndef SHADOW_TEST_H
-// #define SHADOW_TEST_H
+#ifndef QCLOUD_IOT_EXPORT_SYSTEM_H_
+#define QCLOUD_IOT_EXPORT_SYSTEM_H_
 
-// #include "gtest/gtest.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-// class ShadowTest : public ::testing::Test
-// {
-// public:
-//  	ShadowTest();
-//  	~ShadowTest();
+/**
+ * @brief 获取系统时间
+ *
+ * @param pClient           Client结构体
+ * @param time              返回IoT后台的时间
+ * @return                  返回QCLOUD_ERR_SUCCESS, 表示请求成功
+ *                          返回QCLOUD_ERR_FAILURE, 表示请求失败
+ */
+int IOT_SYSTEM_GET_TIME(void* pClient, long* time);
 
-//  	void TestBody(){};
 
-//     static void SetUpTestCase();
-//     static void TearDownTestCase();
-// };
+#ifdef __cplusplus
+}
+#endif
 
-// #endif //SHADOW_TEST_H
+#endif /* QCLOUD_IOT_EXPORT_COAP_H_ */

@@ -21,6 +21,7 @@ extern "C" {
 
 #include <stdlib.h>
 
+#ifndef AUTH_WITH_NOTLS
 static const char *iot_ca_crt = \
 {
     "-----BEGIN CERTIFICATE-----\r\n"
@@ -98,9 +99,10 @@ static const char *iot_https_ca_crt = \
     "K1pp74P1S8SqtCr4fKGxhZSM9AyHDPSsQPhZSZg=\r\n"
     "-----END CERTIFICATE-----"
 };
+#endif
 
 const char *iot_ca_get() {
-#ifndef NOTLS_ENABLED
+#ifndef AUTH_WITH_NOTLS
 	return iot_ca_crt;
 #else
     return NULL;
@@ -108,7 +110,7 @@ const char *iot_ca_get() {
 }
 
 const char *iot_https_ca_get() {
-#ifndef NOTLS_ENABLED
+#ifndef AUTH_WITH_NOTLS
 	return iot_https_ca_crt;
 #else
     return NULL;

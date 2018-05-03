@@ -1,8 +1,9 @@
-BUILD_TYPE                  	= release 			#release
+BUILD_TYPE                  	= release 			#release/debug
 
 PLATFORM_CC                 	= gcc
 PLATFORM_AR                 	= ar
 PLATFORM_OS                 	= linux
+PLATFORM_SSL					= mbedtls
 
 #
 # Uncomment below and specify PATH to your toolchain when cross-compile SDK
@@ -12,9 +13,14 @@ PLATFORM_OS                 	= linux
 # PLATFORM_CC                 = armcc
 # PLATFORM_AR                 = armar
 
-FEATURE_MQTT_COMM_ENABLED   			= y
-FEATURE_COAP_COMM_ENABLED   			= y
-FEATURE_OTA_COMM_ENABLED        		= y
-FEATURE_SDKTESTS_ENABLED				= n
-FEATURE_MQTT_RMDUP_MSG_ENABLED  		= n
-FEATURE_ASYMC_ENCRYPTION_ENABLED		= y
+FEATURE_MQTT_COMM_ENABLED               = y     # 是否打开MQTT通道的总开关
+FEATURE_MQTT_DEVICE_SHADOW				= y		# 是否打开设备影子的总开关
+FEATURE_COAP_COMM_ENABLED               = y     # 是否打开CoAP通道的总开关
+
+FEATURE_OTA_COMM_ENABLED                = y     # 是否打开OTA固件升级总开关
+FEATURE_OTA_SIGNAL_CHANNEL              = MQTT  # OTA信令通道类型：MQTT/COAP
+
+FEATURE_AUTH_MODE				        = CERT	# MQTT/CoAP接入认证方式，使用证书认证：CERT；使用密钥认证：KEY
+FEATURE_AUTH_WITH_NOTLS					= n		# 接入认证是否不使用TLS，证书方式必须选择使用TLS，密钥认证可选择不使用TLS
+
+FEATURE_SYSTEM_COMM_ENABLED             = y     # 是否打开获取iot后台时间功能

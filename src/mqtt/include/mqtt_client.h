@@ -28,9 +28,10 @@ extern "C" {
 #include "qcloud_iot_import.h"
 #include "qcloud_iot_sdk_impl_internal.h"
 
-#include "qcloud_iot_utils_timer.h"
-#include "qcloud_iot_utils_list.h"
 #include "mqtt_client_net.h"
+
+#include "utils_timer.h"
+#include "utils_list.h"
 
 /* 报文id最大值 */
 #define MAX_PACKET_ID               								(65535)
@@ -131,6 +132,7 @@ typedef struct {
 typedef struct {
     char            			*client_id;             // 客户端标识符, 请保持唯一
     char            			*username;              // 用户名
+    char						*password;				// 密码
 
     char					 	conn_id[MAX_CONN_ID_LEN];
 
@@ -141,14 +143,22 @@ typedef struct {
     uint16_t        			keep_alive_interval;    // 心跳周期, 单位: s
     uint8_t         			clean_session;          // 清理会话标志位, 具体含义请参考MQTT协议说明文档3.1.2.4小结
 
-    uint8_t                   	auto_connect_enable;                 // 是否开启自动重连
+    uint8_t                   	auto_connect_enable;    // 是否开启自动重连
+
+#ifdef AUTH_WITH_NOTLS
+    char						*device_secret;					// 预置密钥
+#endif
 
 } MQTTConnectParams;
 
 /**
  * MQTT连接参数结构体默认值定义
  */
-#define DEFAULT_MQTTCONNECT_PARAMS { NULL, NULL, {0}, {'M', 'Q', 'T', 'C'}, 0, 4, 240, 1, 1,}
+#ifdef AUTH_WITH_NOTLS
+#define DEFAULT_MQTTCONNECT_PARAMS { NULL, NULL, NULL, {0}, {'M', 'Q', 'T', 'C'}, 0, 4, 240, 1, 1, NULL}
+#else
+#define DEFAULT_MQTTCONNECT_PARAMS { NULL, NULL, NULL, {0}, {'M', 'Q', 'T', 'C'}, 0, 4, 240, 1, 1}
+#endif
 
 /**
  * @brief 订阅主题对应的消息处理结构体定义

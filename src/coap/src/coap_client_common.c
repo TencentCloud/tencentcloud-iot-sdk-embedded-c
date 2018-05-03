@@ -64,6 +64,8 @@ static void _coap_msg_op_list_destroy(CoAPMsgOptionList *list) {
 }
 
 uint16_t get_next_coap_msg_id(CoAPClient *pClient) {
+    IOT_FUNC_ENTRY
+
     POINTER_SANITY_CHECK(pClient, QCLOUD_ERR_INVAL);
 
     unsigned int id = 0;
@@ -166,17 +168,9 @@ int coap_message_option_add(CoAPMessage *message, unsigned num, unsigned len, co
 	CoAPMsgOption *option = NULL;
 	CoAPMsgOptionList *list = &message->op_list;
 
-	if (num == COAP_MSG_URI_PATH) {
-		if ((option = qcloud_iot_coap_option_init(num, len - 1, val + 1)) == NULL) {
+    if ((option = qcloud_iot_coap_option_init(num, len, val)) == NULL) {
 			Log_e("allocate new option failed.");
 			IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE)
-		}
-	}
-	else {
-		if ((option = qcloud_iot_coap_option_init(num, len, val)) == NULL) {
-			Log_e("allocate new option failed.");
-			IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE)
-		}
 	}
 
 	if (list->first == NULL) {

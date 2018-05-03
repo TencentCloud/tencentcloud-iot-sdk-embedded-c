@@ -39,18 +39,20 @@ typedef struct Network Network;
  */
 struct Network {
     int (*connect)(Network *);
-    
+
     int (*read)(Network *, unsigned char *, size_t, uint32_t, size_t *);
-    
+
     int (*write)(Network *, unsigned char *, size_t, uint32_t, size_t *);
-    
+
     void (*disconnect)(Network *);
-    
+
     int (*is_connected)(Network *);
-    
+
     uintptr_t handle;   // 连接句柄:0，尚未连接; 非0，已经连接
-    
+
+#ifndef AUTH_WITH_NOTLS
     SSLConnectParams ssl_connect_params;
+#endif
 
     const char       *host;                 // 服务器地址
     int              port;                  // 服务器端口
@@ -70,7 +72,7 @@ void 	utils_udp_net_disconnect(Network *pNetwork);
 int 	utils_udp_net_connect(Network *pNetwork);
 int 	utils_udp_net_init(Network *pNetwork);
 #endif
-    
+
 #ifdef __cplusplus
 }
 #endif

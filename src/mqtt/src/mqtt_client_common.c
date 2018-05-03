@@ -24,7 +24,7 @@ extern "C" {
 
 #include "mqtt_client.h"
 
-#include "qcloud_iot_utils_list.h"
+#include "utils_list.h"
 
 
 #define MAX_NO_OF_REMAINING_LENGTH_BYTES 4

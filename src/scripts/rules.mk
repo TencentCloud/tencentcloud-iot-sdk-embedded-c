@@ -28,6 +28,7 @@ config:
 	mkdir -p ${TEMP_DIR}
 	
 mbedtls:
+ifeq (,$(filter -DAUTH_WITH_NOTLS,$(CFLAGS)))
 	$(TOP_Q) \
 	make -s -C $(THIRD_PARTY_PATH)/mbedtls lib -e CC=$(PLATFORM_CC) AR=$(PLATFORM_AR)
 	
@@ -41,6 +42,7 @@ mbedtls:
 	cd $(TEMP_DIR) && $(AR) x libmbedtls.a \
 						&& $(AR) x libmbedx509.a \
 						&& $(AR) x libmbedcrypto.a
+endif
 
 ${iot_sdk_objects}:%.o:%.c
 	$(call Brief_Log,"CC")
@@ -62,5 +64,7 @@ clean: cleans
 	$(TOP_Q) \
 	rm -rf ${DIST_DIR}
 	
+ifeq (,$(filter -DAUTH_WITH_NOTLS,$(CFLAGS)))
 	$(TOP_Q) \
 	make -s -C $(THIRD_PARTY_PATH)/mbedtls clean
+endif

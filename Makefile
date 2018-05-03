@@ -5,13 +5,14 @@ include src/scripts/parse_make_settings.mk
 # IoT SDK sources files defination
 COMP_LIB            := libiot_sdk.a
 COMP_LIB_COMPONENTS := \
-    src/utils/src \
+    src/utils/digest \
+    src/utils/farra \
+    src/utils/lite \
     src/device/src \
     src/sdk-impl \
 
 $(call CompLib_Map, MQTT_COMM_ENABLED, \
     src/mqtt/src \
-    external_libs/jsmn \
 )
 
 $(call CompLib_Map, MQTT_DEVICE_SHADOW, \
@@ -26,6 +27,10 @@ $(call CompLib_Map, OTA_COMM_ENABLED, \
 	src/ota/src \
 )
 
+$(call CompLib_Map, SYSTEM_COMM_ENABLED, \
+	src/system/src \
+)
+
 IOTSDK_SRC_FILES := \
 
 $(foreach v, \
@@ -36,15 +41,24 @@ $(foreach v, \
     ) \
 )
 
+EXCLUDE_SRC_FILES := \
+
+ifeq (,$(filter -DOTA_COAP_CHANNEL, $(CFLAGS)))
+EXCLUDE_SRC_FILES += $(TOP_DIR)/src/ota/src/ota_coap.c
+IOTSDK_SRC_FILES := $(filter-out $(EXCLUDE_SRC_FILES),$(IOTSDK_SRC_FILES))
+else
+EXCLUDE_SRC_FILES += $(TOP_DIR)/src/ota/src/ota_mqtt.c
+IOTSDK_SRC_FILES := $(filter-out $(EXCLUDE_SRC_FILES),$(IOTSDK_SRC_FILES))
+endif
+
 # IoT Platform sources files defination
 PLATFORM_LIB		:= libiot_platform.a
 PLATFORM_LIB_COMPONENTS := \
     src/platform/os/$(PLATFORM_OS) \
-    src/platform/ssl/mbedtls
     
-ifeq (,$(filter -DNOTLS_ENABLED,$(CFLAGS)))
+ifeq (,$(filter -DAUTH_WITH_NOTLS,$(CFLAGS)))
 	PLATFORM_LIB_COMPONENTS += \
-    src/platform/$(PLATFORM_OS)/mbedtls
+    src/platform/ssl/$(PLATFORM_SSL)
 endif
     
 IOTPLATFORM_SRC_FILES := \
@@ -59,19 +73,29 @@ $(foreach v, \
 
 # IoT Include files defination
 COMP_LIB_COMPONENTS_INCLUDES := \
-    src/utils/include \
+    src/utils/digest \
+    src/utils/farra \
+    src/utils/lite \
     src/device/include \
     src/sdk-impl \
     src/sdk-impl/exports \
-    external_libs/jsmn \
     external_libs/mbedtls/include \
     
 $(call CompInc_Map, MQTT_COMM_ENABLED, \
     src/mqtt/include \
 )
-$(call CompInc_Map, MQTT_DEVICE_SHADOW, src/shadow/include)
-$(call CompInc_Map, COAP_COMM_ENABLED, src/coap/include)
-$(call CompInc_Map, OTA_COMM_ENABLED, src/ota/include)
+
+$(call CompInc_Map, MQTT_DEVICE_SHADOW, \
+	src/shadow/include \
+)
+
+$(call CompInc_Map, COAP_COMM_ENABLED, \
+	src/coap/include \
+)
+
+$(call CompInc_Map, OTA_COMM_ENABLED, \
+	src/ota/include \
+)
     
 IOTSDK_INCLUDE_FILES := \
 
@@ -87,5 +111,8 @@ CFLAGS += -Werror -Wall -Wno-error=sign-compare -Wno-error=format -Os ${IOTSDK_I
 
 include src/scripts/rules.mk
 include samples/samples.mk
+
+ifneq (,$(filter -DSDKTESTS_ENABLED, $(CFLAGS)))
 include sdk-tests/unit_test/unit_test.mk
 include sdk-tests/multi_thread_test/multi_thread_test.mk
+endif

@@ -39,14 +39,16 @@ typedef enum _QoS {
  * @brief 发布或接收已订阅消息的结构体定义
  */
 typedef struct {
-    QoS         qos;          // MQTT 服务质量等级
-    uint8_t     retained;     // RETAIN 标识位
-    uint8_t     dup;          // DUP 标识位
-    uint16_t    id;           // MQTT 消息标识符
-    const char  *ptopic;      // MQTT topic
-    size_t      topic_len;    // topic 长度
-    void        *payload;     // MQTT 消息负载
-    size_t      payload_len;  // MQTT 消息负载长度
+    QoS         			qos;          // MQTT 服务质量等级
+    uint8_t     			retained;     // RETAIN 标识位
+    uint8_t     			dup;          // DUP 标识位
+    uint16_t    			id;           // MQTT 消息标识符
+
+    const char  			*ptopic;      // MQTT topic
+    size_t      			topic_len;    // topic 长度
+
+    void        			*payload;     // MQTT 消息负载
+    size_t      			payload_len;  // MQTT 消息负载长度
 } MQTTMessage;
 
 typedef MQTTMessage PublishParams;
@@ -150,16 +152,14 @@ typedef struct {
     char 						*product_id;			// 产品名称
     char 						*device_name;			// 设备名称
 
-#ifndef NOTLS_ENABLED
-#ifdef ASYMC_ENCRYPTION_ENABLED
+#ifdef AUTH_MODE_CERT
 	/**
 	 * 非对称加密使用
 	 */
     char                        *cert_file;              // 客户端证书文件路径
     char                        *key_file;               // 客户端私钥文件路径
 #else
-    char                        *psk;
-#endif
+    char                        *device_secret;
 #endif
 
     uint32_t					command_timeout;		 // 发布订阅信令读写超时时间 ms
@@ -176,14 +176,10 @@ typedef struct {
 /**
  * MQTT初始化参数结构体默认值定义
  */
-#ifndef NOTLS_ENABLED
-#ifdef ASYMC_ENCRYPTION_ENABLED
+#ifdef AUTH_MODE_CERT
 	#define DEFAULT_MQTTINIT_PARAMS { NULL, NULL, NULL, NULL, 2000, 240 * 1000, 1, 1, {0}}
 #else
     #define DEFAULT_MQTTINIT_PARAMS { NULL, NULL, NULL, 2000, 240 * 1000, 1, 1, {0}}
-#endif
-#else
-	#define DEFAULT_MQTTINIT_PARAMS { NULL, NULL, 2000, 240 * 1000, 1, 1, {0}}
 #endif
 
 /**
@@ -254,16 +250,6 @@ int IOT_MQTT_Unsubscribe(void *pClient, char *topicFilter);
  * @return 返回true, 表示客户端已连接
  */
 bool IOT_MQTT_IsConnected(void *pClient);
-
-/**
- * @brief 从JSON文档中解析出action字段
- *
- * @param pJsonDoc        待解析的JSON文档
- * @param tokenCount      JSONToken的个数
- * @param pAction         action字段
- * @return                返回true, 表示解析成功
- */
-bool IOT_MQTT_JSON_GetAction(const char *pJsonDoc, int32_t tokenCount, char *pAction);
 
 #ifdef __cplusplus
 }

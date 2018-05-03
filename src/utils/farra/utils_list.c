@@ -18,11 +18,10 @@
 extern "C" {
 #endif
 
-#include "qcloud_iot_utils_list.h"
+#include "utils_list.h"
 
 #include "qcloud_iot_import.h"
 #include "qcloud_iot_export_log.h"
- 
 
  /*
  * 创建List. 失败则返回NULL.

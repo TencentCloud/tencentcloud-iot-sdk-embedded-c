@@ -32,7 +32,7 @@
 #define QCLOUD_IOT_MY_DEVICE_NAME         	"ThreadTestDev0"
 
 
-#ifndef NOTLS_ENABLED
+#ifndef AUTH_WITH_NOTLS
 
 /* 客户端证书文件名  非对称加密使用*/
 #define QCLOUD_IOT_CERT_FILENAME          "YOUR_DEVICE_NAME_cert.crt"
@@ -103,7 +103,7 @@ static int _setup_connect_init_params(MQTTInitParams* initParams)
 	initParams->device_name = QCLOUD_IOT_MY_DEVICE_NAME;
 	initParams->product_id = QCLOUD_IOT_MY_PRODUCT_ID;
 
-#ifndef NOTLS_ENABLED
+#ifndef AUTH_WITH_NOTLS
 	char certs_dir[PATH_MAX + 1] = "certs";
 	char current_path[PATH_MAX + 1];
 	char *cwd = getcwd(current_path, sizeof(current_path));
@@ -115,8 +115,11 @@ static int _setup_connect_init_params(MQTTInitParams* initParams)
 	sprintf(sg_cert_file, "%s/%s/%s", current_path, certs_dir, QCLOUD_IOT_CERT_FILENAME);
 	sprintf(sg_key_file, "%s/%s/%s", current_path, certs_dir, QCLOUD_IOT_KEY_FILENAME);
 
+#ifdef AUTH_MODE_CERT
 	initParams->cert_file = sg_cert_file;
 	initParams->key_file = sg_key_file;
+#else
+#endif
 #endif
 
 	initParams->command_timeout = QCLOUD_IOT_MQTT_COMMAND_TIMEOUT;

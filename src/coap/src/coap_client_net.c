@@ -16,11 +16,10 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-    
-#include <memory.h>
 
 #include "coap_client_net.h"
-#include "qcloud_iot_utils_net.h"
+
+#include "utils_net.h"
     
 int qcloud_iot_coap_network_init(Network *pNetwork)
 {

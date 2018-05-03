@@ -22,7 +22,6 @@ extern "C" {
 #include <stdint.h>
 #include <time.h>
 #include <errno.h>
-#include <arpa/inet.h>
 
 #include "coap_client.h"
 
@@ -46,8 +45,6 @@ extern "C" {
 static ssize_t _coap_message_serialize_header(CoAPMessage *message, char *buf, size_t len) {
 	IOT_FUNC_ENTRY
 
-    uint16_t msg_id = 0;
-
     if (len < 4)
     {
         return -ENOSPC;
@@ -58,8 +55,9 @@ static ssize_t _coap_message_serialize_header(CoAPMessage *message, char *buf, s
                   | (message->token_len & 0x0f));
     buf[1] = (char)(((message->code_class & 0x07) << 5)
                   | (message->code_detail & 0x1f));
-    msg_id = htons(message->msg_id);
-    memcpy(&buf[2], &msg_id, 2);
+
+    buf[2] = (message->msg_id & 0xFF00) >> 8;
+    buf[3] = (message->msg_id & 0x00FF);
 
     IOT_FUNC_EXIT_RC(4)
 }
@@ -102,9 +100,8 @@ static ssize_t _coap_message_serialize_token(CoAPMessage *message, char *buf, si
 static ssize_t _coap_msg_format_op(CoAPMsgOption *op, unsigned prev_num, char *buf, size_t len) {
 	IOT_FUNC_ENTRY
 
-    unsigned op_delta = 0;
+    unsigned short op_delta = 0;
     unsigned num = 0;
-    uint16_t val = 0;
     char *p = buf;
 
     op_delta = op->option_num - prev_num;
@@ -170,8 +167,8 @@ static ssize_t _coap_msg_format_op(CoAPMsgOption *op, unsigned prev_num, char *b
     /* option delta extended */
     if (op_delta >= 269)
     {
-        val = htons(op_delta - 269);
-        memcpy(p, &val, 2);
+		*p     = (unsigned char)(((op_delta - 269) & 0xFF00) >> 8);
+		*(p+1) = (unsigned char)(((op_delta - 269) & 0x00FF));
         p += 2;
         len -= 2;
     }
@@ -185,8 +182,8 @@ static ssize_t _coap_msg_format_op(CoAPMsgOption *op, unsigned prev_num, char *b
     /* option length extended */
     if (op->val_len >= 269)
     {
-        val = htons(op->val_len - 269);
-        memcpy(p, &val, 2);
+        *p     = (unsigned char)(((op->val_len - 269) & 0xFF00) >> 8);
+        *(p+1) = (unsigned char)(((op->val_len - 269) & 0x00FF));
         p += 2;
         len -= 2;
     }

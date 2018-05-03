@@ -27,7 +27,8 @@ extern "C" {
 #include "qcloud_iot_export.h"
 #include "qcloud_iot_import.h"
 #include "qcloud_iot_sdk_impl_internal.h"
-#include "qcloud_iot_utils_timer.h"
+
+#include "utils_timer.h"
 
 #define PROCESS_ACK_CMD								(0)
 #define PROCESS_PIGGY_CMD							(1)
@@ -58,9 +59,10 @@ static void _event_message_type_set(CoAPEventMessage* eventMsg, CoAPMessage *mes
 
 static int _coap_message_list_proc(CoAPClient *client, CoAPMessage *message, uint16_t processCmd)
 {
-	HAL_MutexLock(client->lock_list_wait_ack);
     IOT_FUNC_ENTRY;
     POINTER_SANITY_CHECK(client, QCLOUD_ERR_INVAL);
+
+	HAL_MutexLock(client->lock_list_wait_ack);
 
     if (client->message_list->len <= 0) {
     	HAL_MutexUnlock(client->lock_list_wait_ack);
@@ -99,6 +101,8 @@ static int _coap_message_list_proc(CoAPClient *client, CoAPMessage *message, uin
 		if (processCmd == PROCESS_ACK_CMD) {
 			if (send_info->msg_id == message->msg_id) {
 				send_info->acked = 1; /* 标记为已收到ACK */
+			    InitTimer(&send_info->start_time);
+			    countdown_ms(&send_info->start_time, client->command_timeout_ms);
 			}
 		}
 		else if (processCmd == PROCESS_RESP_CMD) {
@@ -172,6 +176,7 @@ static int _coap_message_list_proc(CoAPClient *client, CoAPMessage *message, uin
 				}
 			}
 			else {
+				send_info->node_state = COAP_NODE_STATE_INVALID;
 				temp_node = node;
 
 				if (send_info->handler != NULL) {
@@ -284,7 +289,7 @@ static void _coap_message_handle(CoAPClient *client, unsigned char *buf, unsigne
     	Log_e("deserialize message failed: %d", rc);
     }
 
-    if (recv_message.type == COAP_MSG_ACK && COAP_MSG_IS_EMPTY(&recv_message)) {	//empty ACK
+    if (recv_message.type == COAP_MSG_ACK && COAP_MSG_IS_EMPTY_ACK(&recv_message)) {	//empty ACK
         Log_d("receive coap ACK message, id %d", recv_message.msg_id);
         _coap_ack_message_handle(client, &recv_message);
     }
@@ -292,12 +297,21 @@ static void _coap_message_handle(CoAPClient *client, unsigned char *buf, unsigne
 		Log_d("receive coap piggy ACK message, id %d", recv_message.msg_id);
 		_coap_piggyresp_message_handle(client, &recv_message);
 	}
-    else if (recv_message.type == COAP_MSG_CON && !COAP_MSG_IS_EMPTY(&recv_message)) {	//payload Response
+    else if (recv_message.type == COAP_MSG_CON && COAP_MSG_IS_EMPTY_RSP(&recv_message)) {	//payload Response
     	Log_d("receive coap response message, id: %d", recv_message.msg_id);
         _coap_resp_message_handle(client, &recv_message);
     }
+    else if (recv_message.type == COAP_MSG_NON && COAP_MSG_IS_EMPTY_RSP(&recv_message)) {	//payload Response
+        	Log_d("receive coap response message, id: %d", recv_message.msg_id);
+            _coap_resp_message_handle(client, &recv_message);
+        }
     else {
+    	Log_e("not recgonized recv message type");
+    }
 
+    if (recv_message.pay_load != NULL) {
+    	HAL_Free(recv_message.pay_load);
+    	recv_message.pay_load_len = 0;
     }
 
     IOT_FUNC_EXIT

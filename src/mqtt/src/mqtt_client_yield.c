@@ -160,7 +160,7 @@ static int _mqtt_keep_alive(Qcloud_IoT_Client *pClient) {
     HAL_MutexLock(pClient->lock_generic);
     pClient->is_ping_outstanding = 1;
     /* start a timer to wait for PINGRESP from server */
-    countdown(&pClient->ping_timer, pClient->options.keep_alive_interval / 2);
+    countdown(&pClient->ping_timer, pClient->options.keep_alive_interval/2);
     HAL_MutexUnlock(pClient->lock_generic);
 
     IOT_FUNC_EXIT_RC(QCLOUD_ERR_SUCCESS);

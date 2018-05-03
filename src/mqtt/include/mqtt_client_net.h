@@ -20,7 +20,7 @@
 extern "C" {
 #endif
 
-#include "qcloud_iot_utils_net.h"
+#include "utils_net.h"
 
 /**
  * @brief 初始化TLS实现

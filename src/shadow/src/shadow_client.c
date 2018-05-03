@@ -95,19 +95,18 @@ static void _copy_shadow_init_params_to_mqtt(MQTTInitParams *pMqttInitParams, Sh
 {
 	pMqttInitParams->device_name = shadowInitParams->device_name;
     pMqttInitParams->product_id = shadowInitParams->product_id;
-#ifndef NOTLS_ENABLED
-#ifdef ASYMC_ENCRYPTION_ENABLED
+
+#ifdef AUTH_MODE_CERT
 	pMqttInitParams->cert_file = shadowInitParams->cert_file;
 	pMqttInitParams->key_file = shadowInitParams->key_file;
 #else
-	pMqttInitParams->psk = shadowInitParams->psk;
+	pMqttInitParams->device_secret = shadowInitParams->device_secret;
 #endif
 
 	pMqttInitParams->command_timeout = shadowInitParams->command_timeout;
     pMqttInitParams->keep_alive_interval_ms = shadowInitParams->keep_alive_interval_ms;
     pMqttInitParams->clean_session = shadowInitParams->clean_session;
     pMqttInitParams->auto_connect_enable = shadowInitParams->auto_connect_enable;
-#endif
 }
 
 static void _update_ack_cb(void *pClient, Method method, RequestAck requestAck, const char *pReceivedJsonDocument, void *pUserdata) 
@@ -405,7 +404,7 @@ int IOT_Shadow_Get_Sync(void *handle, uint32_t timeout_ms) {
 	}
 
 	RequestAck ack_update = ACK_NONE;
-	IOT_Shadow_Get(handle, _update_ack_cb, &ack_update, timeout_ms);
+	rc = IOT_Shadow_Get(handle, _update_ack_cb, &ack_update, timeout_ms);
 	if (rc != QCLOUD_ERR_SUCCESS) IOT_FUNC_EXIT_RC(rc);
 	
 	while (ACK_NONE == ack_update) {
@@ -432,13 +431,19 @@ int IOT_Shadow_Get_Sync(void *handle, uint32_t timeout_ms) {
  * @param sizeOfBuffer  缓冲区大小
  * @return              返回QCLOUD_ERR_SUCCESS, 表示初始化成功
  */
-static int IOT_Shadow_JSON_Init(Qcloud_IoT_Shadow *pShadow, char *jsonBuffer, size_t sizeOfBuffer) {
+static int IOT_Shadow_JSON_Init(Qcloud_IoT_Shadow *pShadow, char *jsonBuffer, size_t sizeOfBuffer, bool overwrite) {
 
     if (jsonBuffer == NULL) {
         return QCLOUD_ERR_INVAL;
     }
 	
-    int32_t rc_of_snprintf = HAL_Snprintf(jsonBuffer, sizeOfBuffer, "{\"version\":%d, \"state\":{", pShadow->inner_data.version);
+    int32_t rc_of_snprintf = 0;
+    if (overwrite) {
+    	rc_of_snprintf = HAL_Snprintf(jsonBuffer, sizeOfBuffer, "{\"version\":%d, \"overwriteUpdate\":true, \"state\":{", pShadow->inner_data.version);
+    }
+    else {
+    	rc_of_snprintf = HAL_Snprintf(jsonBuffer, sizeOfBuffer, "{\"version\":%d, \"state\":{", pShadow->inner_data.version);
+    }
 
     return _check_snprintf_return(rc_of_snprintf, sizeOfBuffer);
 }
@@ -496,7 +501,77 @@ int IOT_Shadow_JSON_ConstructReport(void *handle, char *jsonBuffer, size_t sizeO
 	Qcloud_IoT_Shadow* pshadow = (Qcloud_IoT_Shadow*)handle;
 	POINTER_SANITY_CHECK(pshadow, QCLOUD_ERR_INVAL);
 	
-	int rc = IOT_Shadow_JSON_Init(pshadow, jsonBuffer, sizeOfBuffer);
+	int rc = IOT_Shadow_JSON_Init(pshadow, jsonBuffer, sizeOfBuffer, false);
+
+	if (rc != QCLOUD_ERR_SUCCESS) {
+		Log_e("shadow json init failed: %d", rc);
+		return rc;
+	}
+
+    size_t remain_size = 0;
+    int32_t rc_of_snprintf = 0;
+    int8_t i;
+
+    if (jsonBuffer == NULL) {
+        return QCLOUD_ERR_INVAL;
+    }
+
+    if ((remain_size = sizeOfBuffer - strlen(jsonBuffer)) <= 1) {
+        return QCLOUD_ERR_JSON_BUFFER_TOO_SMALL;
+    }
+
+    rc_of_snprintf = HAL_Snprintf(jsonBuffer + strlen(jsonBuffer), remain_size, "\"reported\":{");
+    rc = _check_snprintf_return(rc_of_snprintf, remain_size);
+
+    if (rc != QCLOUD_ERR_SUCCESS) {
+        return rc;
+    }
+
+	va_list pArgs;
+    va_start(pArgs, count);
+
+    for (i = 0; i < count; i++) {
+		DeviceProperty *pJsonNode;
+        pJsonNode = va_arg(pArgs, DeviceProperty *);
+        if (pJsonNode != NULL && pJsonNode->key != NULL) {
+            rc = put_json_node(jsonBuffer, remain_size, pJsonNode->key, pJsonNode->data, pJsonNode->type);
+
+            if (rc != QCLOUD_ERR_SUCCESS) {
+                va_end(pArgs);
+                return rc;
+            }
+        } else {
+            va_end(pArgs);
+            return QCLOUD_ERR_INVAL;
+        }
+    }
+
+    va_end(pArgs);
+    if ((remain_size = sizeOfBuffer - strlen(jsonBuffer)) <= 1) {
+        return QCLOUD_ERR_JSON_BUFFER_TOO_SMALL;
+    }
+    rc_of_snprintf = HAL_Snprintf(jsonBuffer + strlen(jsonBuffer) - 1, remain_size, "},");
+    rc = _check_snprintf_return(rc_of_snprintf, remain_size);
+
+	if (rc != QCLOUD_ERR_SUCCESS) {
+		Log_e("shadow json add report failed: %d", rc);
+		return rc;
+	}
+
+	rc = IOT_Shadow_JSON_Finalize(pshadow, jsonBuffer, sizeOfBuffer);
+	if (rc != QCLOUD_ERR_SUCCESS) {
+		Log_e("shadow json finalize failed: %d", rc);
+	}
+
+	return rc;
+}
+
+int IOT_Shadow_JSON_Construct_OverwriteReport(void *handle, char *jsonBuffer, size_t sizeOfBuffer, uint8_t count, ...)
+{
+	Qcloud_IoT_Shadow* pshadow = (Qcloud_IoT_Shadow*)handle;
+	POINTER_SANITY_CHECK(pshadow, QCLOUD_ERR_INVAL);
+
+	int rc = IOT_Shadow_JSON_Init(pshadow, jsonBuffer, sizeOfBuffer, true);
 
 	if (rc != QCLOUD_ERR_SUCCESS) {
 		Log_e("shadow json init failed: %d", rc);
@@ -566,7 +641,7 @@ int IOT_Shadow_JSON_ConstructReportAndDesireAllNull(void *handle, char *jsonBuff
 	POINTER_SANITY_CHECK(handle, QCLOUD_ERR_INVAL);
 	Qcloud_IoT_Shadow* pshadow = (Qcloud_IoT_Shadow*)handle;
 	
-	int rc = IOT_Shadow_JSON_Init(pshadow, jsonBuffer, sizeOfBuffer);
+	int rc = IOT_Shadow_JSON_Init(pshadow, jsonBuffer, sizeOfBuffer, false);
 
 	if (rc != QCLOUD_ERR_SUCCESS) {
 		Log_e("shadow json init failed: %d", rc);
@@ -639,7 +714,7 @@ int IOT_Shadow_JSON_ConstructDesireAllNull(void *handle, char *jsonBuffer, size_
 	POINTER_SANITY_CHECK(handle, QCLOUD_ERR_INVAL);
 	Qcloud_IoT_Shadow* shadow = (Qcloud_IoT_Shadow*)handle;
 
-	int rc = IOT_Shadow_JSON_Init(shadow, jsonBuffer, sizeOfBuffer);
+	int rc = IOT_Shadow_JSON_Init(shadow, jsonBuffer, sizeOfBuffer, false);
 
 	if (rc != QCLOUD_ERR_SUCCESS) {
 		Log_e("shadow json init failed: %d", rc);
@@ -673,7 +748,7 @@ int IOT_Shadow_JSON_ConstructDesirePropNull(void *handle, char *jsonBuffer, size
 	POINTER_SANITY_CHECK(handle, QCLOUD_ERR_INVAL);
 	Qcloud_IoT_Shadow* shadow = (Qcloud_IoT_Shadow*)handle;
 
-	int rc = IOT_Shadow_JSON_Init(shadow, jsonBuffer, sizeOfBuffer);
+	int rc = IOT_Shadow_JSON_Init(shadow, jsonBuffer, sizeOfBuffer, false);
 
 	if (rc != QCLOUD_ERR_SUCCESS) {
 		Log_e("shadow json init failed: %d", rc);

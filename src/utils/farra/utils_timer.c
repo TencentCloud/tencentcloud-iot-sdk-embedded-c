@@ -16,37 +16,29 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "mqtt_client_json.h"
-
-#include "qcloud_iot_export.h"
-#include "qcloud_iot_utils_json.h"
-
-bool parse_action(const char *pJsonDoc, int32_t tokenCount, char *pAction) {
-	int32_t i;
-
-	if (tokenCount <= 0) {
-		if (check_and_parse_json(pJsonDoc, &tokenCount, NULL) == false) {
-			Log_e("Received JSON is not valid");
-			return false;
-		}
-	}
-
-	for (i = 1; i < tokenCount; i++) {
-		if (jsoneq(pJsonDoc, &tokens[i], ACTION_FIELD) == 0) {
-			jsmntok_t token = tokens[i + 1];
-			uint8_t length = token.end - token.start;
-			strncpy(pAction, pJsonDoc + token.start, length);
-			pAction[length] = '\0';
-			return true;
-		}
-	}
-
-	return false;
+    
+#include "utils_timer.h"
+    
+char expired(Timer *timer) {
+    return HAL_Timer_expired(timer);
 }
 
+void countdown_ms(Timer *timer, unsigned int timeout_ms) {
+    HAL_Timer_countdown_ms(timer, timeout_ms);
+}
+
+void countdown(Timer *timer, unsigned int timeout) {
+    HAL_Timer_countdown(timer, timeout);
+}
+
+int left_ms(Timer *timer) {
+    return HAL_Timer_remain(timer);
+}
+
+void InitTimer(Timer *timer) {
+    HAL_Timer_init(timer);
+}
+    
 #ifdef __cplusplus
 }
 #endif
-
-

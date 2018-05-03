@@ -12,7 +12,6 @@
  * limitations under the License.
  *
  */
- 
 
 #include <string.h>
 #include <stdio.h>
@@ -22,7 +21,6 @@
 #include <iot_unit_config.h>
 #include <unit_helper_functions.h>
 #include "shadow_client.h"
-
 
 static Qcloud_IoT_Shadow 	*client;
 static ShadowInitParams     initParams;
@@ -35,7 +33,6 @@ static char shadowDeltaTopic[MAX_SIZE_OF_CLOUD_TOPIC];
 
 #undef QCLOUD_IOT_MY_DEVICE_NAME
 #define QCLOUD_IOT_MY_DEVICE_NAME "QCLOUD-IoT-C-SDK"
-
 
 class ShadowDeltaTest : public testing::Test
 {
@@ -72,7 +69,7 @@ TEST_F(ShadowDeltaTest, registerDeltaSuccess) {
     bool windowOpenData = false;
     int ret_val;
 
-    windowHandler.key = "window";
+    windowHandler.key = (char*)"window";
     windowHandler.type = JBOOL;
     windowHandler.data = &windowOpenData;
 
@@ -100,7 +97,7 @@ TEST_F(ShadowDeltaTest, registerDeltaInt) {
     int intData = 0;
     char deltaJSONString[SIZE_OF_JSON_BUFFER] = {0};//"{\"state\":{\"delta\":{\"length\":23}},\"version\":1}";
 
-    intHandler.key = "length";
+    intHandler.key = (char*)"length";
     intHandler.type = JINT32;
     intHandler.data = &intData;
 
@@ -123,7 +120,7 @@ TEST_F(ShadowDeltaTest, registerDeltaIntNoCallback) {
     int ret_val;
     DeviceProperty intHandler;
     int intData = 0;
-    intHandler.key = "length_nocb";
+    intHandler.key = (char*)"length_nocb";
     intHandler.type = JINT32;
     intHandler.data = &intData;
 
@@ -138,7 +135,7 @@ TEST_F(ShadowDeltaTest, DeltaNestedObject) {
     char *nestedObject = sentNestedObjectData;
     char deltaJSONString[SIZE_OF_JSON_BUFFER] = {0};
 
-    nestedObjectHandler.key = "sensors";
+    nestedObjectHandler.key = (char*)"sensors";
     nestedObjectHandler.type = JOBJECT;
     nestedObjectHandler.data = nestedObject;
 
@@ -154,77 +151,6 @@ TEST_F(ShadowDeltaTest, DeltaNestedObject) {
     IOT_Shadow_Yield(client, 3000);
     ASSERT_TRUE( strstr(receivedNestedObject, sentNestedObjectData) != NULL );
 }
-
-
-// Send back to back version and ensure a wrong version is ignored with old message enabled
-// TEST_F(ShadowDeltaTest, DeltaVersionIgnoreOldVersion) {
-//     int ret_val;
-//     char deltaJSONString[SIZE_OF_JSON_BUFFER] = {0};
-//     char nestedObject[SIZE_OF_JSON_BUFFER] = {0};
-
-//     DeviceProperty nestedObjectHandler;
-
-//     printf("\n-->Running Shadow Delta Tests - delta received, old version ignored \n");
-
-//     nestedObjectHandler.key = "sensors";
-//     nestedObjectHandler.type = JOBJECT;
-//     nestedObjectHandler.data = sentNestedObjectData;
-
-//     ret_val = IOT_Shadow_Register_Property(client, &nestedObjectHandler, nestedObjectCallback);
-
-//     ret_val = IOT_Shadow_JSON_ConstructDesireAllNull(deltaJSONString, SIZE_OF_JSON_BUFFER);
-//     ret_val = IOT_Shadow_Update(client, deltaJSONString, NULL, NULL, 10);
-//     ASSERT_EQ(QCLOUD_ERR_SUCCESS, ret_val);
-
-//     IOT_Shadow_Yield(client, 100);
-//     ASSERT_STREQ(sentNestedObjectData, receivedNestedObject);
-
-//     snprintf(receivedNestedObject, 100, " ");
-//     snprintf(deltaJSONString, 100, "{\"state\":{\"delta\":{\"%s\":%s}},\"version\":2}", nestedObjectHandler.key,
-//              sentNestedObjectData);
-
-//     IOT_Shadow_Yield(client, 100);
-//     ASSERT_STREQ(sentNestedObjectData, receivedNestedObject);
-
-//     snprintf(receivedNestedObject, 100, " ");
-//     snprintf(deltaJSONString, 100, "{\"state\":{\"delta\":{\"%s\":%s}},\"version\":2}", nestedObjectHandler.key,
-//              sentNestedObjectData);
-
-//     IOT_Shadow_Yield(client, 100);
-//     ASSERT_STREQ(" ", receivedNestedObject);
-
-//     snprintf(receivedNestedObject, 100, " ");
-//     snprintf(deltaJSONString, 100, "{\"state\":{\"delta\":{\"%s\":%s}},\"version\":3}", nestedObjectHandler.key,
-//              sentNestedObjectData);
-
-//     IOT_Shadow_Yield(client, 100);
-//     ASSERT_STREQ(sentNestedObjectData, receivedNestedObject);
-
-//     iot_shadow_reset_document_version();
-
-//     snprintf(receivedNestedObject, 100, " ");
-//     snprintf(deltaJSONString, 100, "{\"state\":{\"delta\":{\"%s\":%s}},\"version\":3}", nestedObjectHandler.key,
-//              sentNestedObjectData);
-
-//     IOT_Shadow_Yield(client, 100);
-//     ASSERT_STREQ(sentNestedObjectData, receivedNestedObject);
-
-//     snprintf(receivedNestedObject, 100, " ");
-//     snprintf(deltaJSONString, 100, "{\"state\":{\"delta\":{\"%s\":%s}},\"version\":3}", nestedObjectHandler.key,
-//              sentNestedObjectData);
-
-//     IOT_Shadow_Yield(client, 100);
-//     ASSERT_STREQ(" ", receivedNestedObject);
-
-//     // qcloud_iot_set_discard_old_delta_enable(false);
-
-//     snprintf(receivedNestedObject, 100, " ");
-//     snprintf(deltaJSONString, 100, "{\"state\":{\"delta\":{\"%s\":%s}},\"version\":3}", nestedObjectHandler.key,
-//              sentNestedObjectData);
-
-//     IOT_Shadow_Yield(client, 100);
-//     ASSERT_STREQ(sentNestedObjectData, receivedNestedObject);
-// }
 
 int main(int argc, char* argv[])
 {

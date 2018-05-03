@@ -28,14 +28,18 @@ extern "C" {
 #include "qcloud_iot_export.h"
 #include "qcloud_iot_import.h"
 
-#define CLIENT_TOKEN_FIELD     "clientToken"
-#define VERSION_FIELD          "version"
-#define CODE_FIELD             "code"
-#define MESSAGE_FIELD          "message"
-#define STATE_FIELD          	"state"
-#define OPERATION_RESULT       "result"
-#define OPERATION_TYPE         "type"
-#define OPERATION_DELTA        "delta"
+#define VERSION_FIELD          		"version"
+#define TYPE_FIELD	         		"type"
+#define CLIENT_TOKEN_FIELD     		"clientToken"
+#define RESULT_FIELD	       		"result"
+
+#define OPERATION_DELTA        		"delta"
+#define OPERATION_GET				"get"
+#define OPERATION_UPDATE			"update"
+
+#define PAYLOAD_STATE				"payload.state"
+#define PAYLOAD_VERSION				"payload.version"
+#define PAYLOAD_STATE_DELTA			"payload.state.delta"
 
 /**
  * 将一个JSON节点写入到JSON串中
@@ -71,94 +75,64 @@ void build_empty_json(uint32_t *tokenNumber, char *pJsonBuffer);
  * @brief 从JSON文档中解析出clientToken字段
  *
  * @param pJsonDoc       待解析的JSON文档
- * @param tokenCount     JSONTOKEN的个数, 若传入为0, 则首先对整个JSON文档进行解析
  * @param pClientToken   ClientToken字段
  * @return               返回true, 表示解析成功
  */
-bool parse_client_token(const char *pJsonDoc, int32_t tokenCount, char *pClientToken);
+bool parse_client_token(char *pJsonDoc, char **pClientToken);
 
 /**
  * @brief 从JSON文档中解析出version字段
  *
  * @param pJsonDoc        待解析的JSON文档
- * @param tokenCount      JSONToken的个数
  * @param pVersionNumber  JSON文档版本号
  * @return                返回true, 表示解析成功
  */
-bool parse_version_num(const char *pJsonDoc, int32_t tokenCount, uint32_t *pVersionNumber);
-
-/**
- * @brief 从JSON文档中解析出code字段
- *
- * @param pJsonDoc      待解析的JSON文档
- * @param tokenCount    JSONToken的个数
- * @param pErrorCode    响应返回错误值
- * @return              返回true, 表示解析成功
- */
-bool parse_error_code(const char *pJsonDoc, int32_t tokenCount, uint16_t *pErrorCode);
-
-/**
- * @brief 从JSON文档中解析出message字段
- *
- * @param pJsonDoc         待解析的JSON文档
- * @param tokenCount       JSONToken的个数
- * @param pErrorMessage    响应返回错误提示消息
- * @return                 返回true, 表示解析成功
- */
-bool parse_error_message(const char *pJsonDoc, int32_t tokenCount, char *pErrorMessage);
+bool parse_version_num(char *pJsonDoc, uint32_t *pVersionNumber);
 
 /**
  * @brief 从JSON文档中解析出state字段
  *
  * @param pJsonDoc         待解析的JSON文档
- * @param tokenCount       JSONToken的个数
  * @param pErrorMessage    响应返回错误提示消息
  * @return                 返回true, 表示解析成功
  */
-bool parse_shadow_state(const char *pJsonDoc, int32_t tokenCount, char *pState);
+bool parse_shadow_state(char *pJsonDoc, char **pState);
 
 /**
  * @brief 从JSON文档中解析出type字段
  *
  * @param pJsonDoc         	待解析的JSON文档
- * @param tokenCount       	JSONToken的个数
  * @param pType    			输出tyde字段
  * @return                 	返回true, 表示解析成功
  */
-bool parse_shadow_operation_type(const char *pJsonDoc, int32_t tokenCount, char *pType);
+bool parse_shadow_operation_type(char *pJsonDoc, char **pType);
 
 /**
  * @brief 从JSON文档中解析出result字段
  *
  * @param pJsonDoc         	待解析的JSON文档
- * @param tokenCount       	JSONToken的个数
  * @param pResultCode    	操作结果标志码
  * @return                 	返回true, 表示解析成功
  */
-bool parse_shadow_operation_result_code(const char *pJsonDoc, int32_t tokenCount, int16_t *pResultCode);
+bool parse_shadow_operation_result_code(char *pJsonDoc, int16_t *pResultCode);
 
 /**
  * @brief 从JSON文档中解析出delta字段
  *
  * @param pJsonDoc         	待解析的JSON文档
- * @param tokenCount       	JSONToken的个数
  * @param pDelta    		delta字段对应的value
  * @return                 	返回true, 表示解析成功
  */
-bool parse_shadow_operation_delta(const char *pJsonDoc, int32_t tokenCount, char *pDelta);
+bool parse_shadow_operation_delta(char *pJsonDoc, char **pDelta);
 
 /**
  * @brief 如果JSON文档中的key与某个设备属性的key匹配的话, 则更新该设备属性, 该设备属性的值不能为OBJECT类型
  *
  * @param pJsonDoc       JSON文档
- * @param tokenCount     JSONToken的个数
  * @param pProperty      设备属性
- * @param pDataLength    JSON文档key对应的value的长度
- * @param pDataPosition  JSON文档中value在JSON串中的位置
  * @return               返回true, 表示成功
  */
-bool update_value_if_key_match(const char *pJsonDoc, int32_t tokenCount,
-                               DeviceProperty *pProperty, uint32_t *pDataLength, int32_t *pDataPosition);
+bool update_value_if_key_match(char *pJsonDoc, DeviceProperty *pProperty);
 
 #ifdef __cplusplus
 }

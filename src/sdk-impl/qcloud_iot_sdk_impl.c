@@ -16,7 +16,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-    
+
 #include "qcloud_iot_export_log.h"
 
 #include <string.h>
@@ -29,7 +29,7 @@ extern "C" {
 	#undef  MAX_LOG_MSG_LEN
 	#define MAX_LOG_MSG_LEN                  (1023)
 #endif
-    
+
 static char *level_str[] = {
     "DBG", "INF", "WRN", "ERR",
 };
@@ -62,9 +62,9 @@ void Log_writter(const char *file, const char *func, const int line, const int l
 	if (level < g_log_level) {
 		return;
 	}
-	
+
 	char *file_name = _get_filename(file);
-	
+
 	if (sg_log_message_handler) {
 		static char sg_text_buf[MAX_LOG_MSG_LEN + 1];
 		char		*tmp_buf = sg_text_buf;
@@ -96,7 +96,7 @@ void Log_writter(const char *file, const char *func, const int line, const int l
 
     return;
 }
-    
+
 #ifdef __cplusplus
 }
 #endif

@@ -24,11 +24,12 @@ extern "C" {
 #include <sys/types.h>
 
 #include "qcloud_iot_export.h"
-#include "qcloud_iot_utils_net.h"
-#include "qcloud_iot_utils_list.h"
-#include "qcloud_iot_utils_timer.h"
 
 #include "coap_client_net.h"
+
+#include "utils_net.h"
+#include "utils_list.h"
+#include "utils_timer.h"
 
 /* COAP协议版本号  */
 #define COAP_MSG_VER                           						(0x01)
@@ -77,6 +78,12 @@ extern "C" {
 
 /* 判断COAP消息是否为空 */
 #define COAP_MSG_IS_EMPTY(message)                 					(((message)->code_class == 0) && ((message)->code_detail == 0))
+
+/* 判断COAP消息是否为空 ACK*/
+#define COAP_MSG_IS_EMPTY_ACK(message)                 					(((message)->code_class == 2) && ((message)->code_detail == 3))
+
+/* 判断COAP消息是否为RESP */
+#define COAP_MSG_IS_EMPTY_RSP(message)                 					(((message)->code_class == 2) && ((message)->code_detail == 5))
 
 /**
  *  @brief COAP消息分类
@@ -197,7 +204,7 @@ typedef struct Client {
  */
 typedef struct coap_msg_op
 {
-    unsigned 								option_num;                                         // Option number
+    unsigned short							option_num;                                         // Option number
     unsigned 								val_len;                                            // Option length
     char 									*val;                                               // Pointer to a buffer containing the option value
     struct coap_msg_op 						*next;                                              // Pointer to the next option structure in the list
@@ -255,7 +262,7 @@ typedef struct
     unsigned 								code_class;                                         // Code class
     unsigned 								code_detail;                                        // Code detail
 
-    unsigned 								msg_id;                                             // 消息id
+    unsigned short 							msg_id;                                             // 消息id
 
     char 									*pay_load;                                          // 消息负载
     size_t 									pay_load_len;                                       // 消息负载长度

@@ -13,32 +13,14 @@
  *
  */
 
-#ifdef __cplusplus
-extern "C" {
+#ifndef QCLOUD_IOT_UTILS_HMAC_H_
+#define QCLOUD_IOT_UTILS_HMAC_H_
+
+#include <string.h>
+
+void utils_hmac_md5(const char *msg, int msg_len, char *digest, const char *key, int key_len);
+
+void utils_hmac_sha1(const char *msg, int msg_len, char *digest, const char *key, int key_len);
+
 #endif
-    
-#include "qcloud_iot_utils_timer.h"
-    
-char expired(Timer *timer) {
-    return HAL_Timer_expired(timer);
-}
 
-void countdown_ms(Timer *timer, unsigned int timeout_ms) {
-    HAL_Timer_countdown_ms(timer, timeout_ms);
-}
-
-void countdown(Timer *timer, unsigned int timeout) {
-    HAL_Timer_countdown(timer, timeout);
-}
-
-int left_ms(Timer *timer) {
-    return HAL_Timer_remain(timer);
-}
-
-void InitTimer(Timer *timer) {
-    HAL_Timer_init(timer);
-}
-    
-#ifdef __cplusplus
-}
-#endif

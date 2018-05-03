@@ -19,8 +19,10 @@ extern "C" {
 #endif
 
 #include <string.h>
+#include <limits.h>
 
 #include "mqtt_client.h"
+#include "utils_hmac.h"
 
 typedef union {
     uint8_t all;    /**< all connect flags */
@@ -97,6 +99,10 @@ static uint32_t _get_packet_connect_rem_len(MQTTConnectParams *options) {
         len += strlen(options->username) + 2;
     }
 
+    if (options->password) {
+        len += strlen(options->password) + 2;
+    }
+
     return (uint32_t) len;
 }
 
@@ -111,6 +117,9 @@ static void _copy_connect_params(MQTTConnectParams *destination, MQTTConnectPara
     destination->keep_alive_interval = source->keep_alive_interval;
     destination->clean_session = source->clean_session;
     destination->auto_connect_enable = source->auto_connect_enable;
+#ifdef AUTH_WITH_NOTLS
+    destination->device_secret = source->device_secret;
+#endif
 }
 
 /**
@@ -135,10 +144,31 @@ static int _serialize_connect_packet(unsigned char *buf, size_t buf_len, MQTTCon
     uint32_t rem_len = 0;
     int rc;
 
-    int username_len = strlen(options->client_id) + strlen(QCLOUD_IOT_DEVICE_SDK_APPID) + MAX_CONN_ID_LEN + 3;
+    long cur_timesec = HAL_Timer_current_sec() + MAX_ACCESS_EXPIRE_TIMEOUT / 1000;
+    if (cur_timesec <= 0 || MAX_ACCESS_EXPIRE_TIMEOUT <= 0) {
+    	cur_timesec = LONG_MAX;
+    }
+    long cur_timesec_bak = cur_timesec;
+    int cur_timesec_len = 0;
+    while(cur_timesec_bak != 0) {
+    	cur_timesec_bak /= 10;
+		++cur_timesec_len;
+	}
+
+    int username_len = strlen(options->client_id) + strlen(QCLOUD_IOT_DEVICE_SDK_APPID) + MAX_CONN_ID_LEN + cur_timesec_len + 4;
     options->username = (char*)HAL_Malloc(username_len);
     get_next_conn_id(options);
-	HAL_Snprintf(options->username, username_len, "%s;%s;%s", options->client_id, QCLOUD_IOT_DEVICE_SDK_APPID, options->conn_id);
+	HAL_Snprintf(options->username, username_len, "%s;%s;%s;%ld", options->client_id, QCLOUD_IOT_DEVICE_SDK_APPID, options->conn_id, cur_timesec);
+
+#if defined(AUTH_WITH_NOTLS) && defined(AUTH_MODE_KEY)
+     if (options->device_secret != NULL && options->username != NULL) {
+    	 char                sign[41]   = {0};
+    	 utils_hmac_sha1(options->username, strlen(options->username), sign, options->device_secret, strlen(options->device_secret));
+    	 options->password = (char*) HAL_Malloc (51);
+    	 if (options->password == NULL) IOT_FUNC_EXIT_RC(QCLOUD_ERR_INVAL);
+		 HAL_Snprintf(options->password, 51, "%s;hmacsha1", sign);
+     }
+#endif
 
     rem_len = _get_packet_connect_rem_len(options);
     if (get_mqtt_packet_len(rem_len) > buf_len) {
@@ -175,14 +205,11 @@ static int _serialize_connect_packet(unsigned char *buf, size_t buf_len, MQTTCon
         flags.bits.username = 0;
     }
 
-    /* 后台重构版本不需要填写密码，这里置位0
-    if (options->password != NULL) {
-        flags.bits.password = 1;
-    } else {
-        flags.bits.password = 0;
-    }
-    */
+#if defined(AUTH_WITH_NOTLS) && defined(AUTH_MODE_KEY)
+	flags.bits.password = 1;
+#else
     flags.bits.password = 0;
+#endif
     
     mqtt_write_char(&ptr, flags.all);
 
@@ -195,16 +222,15 @@ static int _serialize_connect_packet(unsigned char *buf, size_t buf_len, MQTTCon
     // 用户名
     if (flags.bits.username && options->username != NULL) {
         mqtt_write_utf8_string(&ptr, options->username);
+        HAL_Free(options->username);
     }
 
-    // 密码
-    // if (flags.bits.password && options->password != NULL) {
-    //     mqtt_write_utf8_string(&ptr, options->password);
-    // }
+    if (flags.bits.password && options->password != NULL) {
+    	mqtt_write_utf8_string(&ptr, options->password);
+    	HAL_Free(options->password);
+    }
 
     *serialized_len = (uint32_t) (ptr - buf);
-    
-    HAL_Free(options->username);
 
     IOT_FUNC_EXIT_RC(QCLOUD_ERR_SUCCESS);
 }
@@ -309,12 +335,6 @@ static int _mqtt_connect(Qcloud_IoT_Client *pClient, MQTTConnectParams *options)
     if (NULL != options) {
         _copy_connect_params(&(pClient->options), options);
     }
-
-// #ifndef NOTLS_ENABLE
-// #ifndef ASYMC_ENCRYPTION_ENABLED
-//     pClient->network_stack.ssl_connect_params.psk_id = pClient->options.client_id;
-// #endif
-// #endif
 
     // 建立TLS连接
     rc = pClient->network_stack.connect(&(pClient->network_stack));

@@ -22,7 +22,6 @@ extern "C" {
 
 #include "shadow_client.h"
 
-
 /**
  * @brief 如果没有订阅delta主题, 则进行订阅, 并注册相应设备属性
  *

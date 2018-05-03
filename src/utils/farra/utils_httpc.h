@@ -22,7 +22,7 @@ extern "C" {
 
 #include <stdbool.h>
 
-#include "qcloud_iot_utils_net.h"
+#include "utils_net.h"
 
 #define HTTP_PORT   80
 #define HTTPS_PORT  443

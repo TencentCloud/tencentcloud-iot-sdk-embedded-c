@@ -20,7 +20,7 @@ extern "C" {
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "qcloud_iot_utils_base64.h"
+#include "utils_base64.h"
 
 static const unsigned char base64_enc_map[64] =
 {

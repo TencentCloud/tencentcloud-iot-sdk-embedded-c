@@ -6,12 +6,16 @@ final-out :
 	
 	$(TOP_Q) \
 	mv ${COMP_LIB} ${FINAL_DIR}/lib/ && \
-	mv ${PLATFORM_LIB} ${FINAL_DIR}/lib && \
+	mv ${PLATFORM_LIB} ${FINAL_DIR}/lib
+	
+ifeq (,$(filter -DAUTH_WITH_NOTLS,$(CFLAGS)))
+	$(TOP_Q) \
 	mv ${TEMP_DIR}/*.a ${FINAL_DIR}/lib/
+endif
 	
 	$(TOP_Q) \
 	rm -rf ${TEMP_DIR}
 	
-.PHONY: mqtt_sample ota_mqtt_sample shadow_sample coap_sample samples_final
+.PHONY: mqtt_sample ota_mqtt_sample ota_coap_sample shadow_sample coap_sample samples_final
 	
-final : mqtt_sample ota_mqtt_sample shadow_sample coap_sample samples_final
+final : mqtt_sample ota_mqtt_sample ota_coap_sample shadow_sample coap_sample samples_final

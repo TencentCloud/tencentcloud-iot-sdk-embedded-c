@@ -11,10 +11,8 @@ SWITCH_VARS := \
     FEATURE_COAP_COMM_ENABLED \
     FEATURE_OTA_COMM_ENABLED \
     FEATURE_MQTT_DEVICE_SHADOW \
-    FEATURE_SDKTESTS_ENABLED \
-    FEATURE_NOTLS_ENABLED \
+    FEATURE_AUTH_WITH_NOTLS \
     FEATURE_MQTT_RMDUP_MSG_ENABLED \
-    FEATURE_ASYMC_ENCRYPTION_ENABLED \
 
 $(foreach v, \
     $(SETTING_VARS) $(SWITCH_VARS), \
@@ -33,6 +31,47 @@ ifeq (debug,$(strip $(BUILD_TYPE)))
 CFLAGS  += -DIOT_DEBUG
 endif
 
+ifneq (linux,$(strip $(PLATFORM_OS)))
+ifeq (y,$(strip $(FEATURE_SDKTESTS_ENABLED)))
+$(error FEATURE_SDKTESTS_ENABLED with gtest framework just supports to be enabled on PLATFORM_OS = linux!)
+endif
+else
+ifeq (y,$(strip $(FEATURE_SDKTESTS_ENABLED)))
+CFLAGS += -DSDKTESTS_ENABLED
+endif
+endif
+
+ifeq (y,$(strip $(FEATURE_OTA_COMM_ENABLED)))
+ifeq (MQTT,$(strip $(FEATURE_OTA_SIGNAL_CHANNEL)))
 ifneq (y,$(strip $(FEATURE_MQTT_COMM_ENABLED)))
-$(error MQTT required to be y!)
+$(error FEATURE_OTA_SIGNAL_CHANNEL = MQTT requires FEATURE_MQTT_COMM_ENABLED = y!)
+endif
+CFLAGS += -DOTA_MQTT_CHANNEL
+else
+ifeq (COAP,$(strip $(FEATURE_OTA_SIGNAL_CHANNEL)))
+ifneq (y,$(strip $(FEATURE_COAP_COMM_ENABLED)))
+$(error FEATURE_OTA_SIGNAL_CHANNEL = COAP requires FEATURE_COAP_COMM_ENABLED = y!)
+endif
+CFLAGS += -DOTA_COAP_CHANNEL
+else
+$(error FEATURE_OTA_SIGNAL_CHANNEL must be MQTT or COAP!)
+endif # COAP
+endif # MQTT
+endif # OTA Enabled
+
+ifeq (CERT,$(strip $(FEATURE_AUTH_MODE)))
+ifeq (y,$(strip $(FEATURE_AUTH_WITH_NOTLS)))
+$(error FEATURE_AUTH_MODE = CERT requires FEATURE_AUTH_WITH_NOTLS = n!)
+endif
+CFLAGS += -DAUTH_MODE_CERT
+else
+ifeq (KEY,$(strip $(FEATURE_AUTH_MODE)))
+CFLAGS += -DAUTH_MODE_KEY
+else
+$(error FEATURE_AUTH_MODE must be CERT or KEY!)
+endif
+endif # Auth mode
+
+ifeq (y, $(strip $(FEATURE_SYSTEM_COMM_ENABLED)))
+CFLAGS += -DSYSTEM_COMM
 endif

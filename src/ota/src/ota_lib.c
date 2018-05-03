@@ -24,84 +24,113 @@ extern "C" {
 
 #include "qcloud_iot_export.h"
 #include "qcloud_iot_import.h"
-#include "qcloud_iot_utils_md5.h"
-#include "qcloud_iot_utils_json.h"
 
 #include "ota_client.h"
 
-static const char* qcloud_otalib_json_value_of(const char *json, const char *key, uint32_t *val_len);
+#include "utils_md5.h"
+#include "lite-utils.h"
 
 /* Get the specific @key value, and copy to @dest */
 /* 0, successful; -1, failed */
-static int _qcloud_otalib_get_firmware_fixlen_para(const char *json_doc,
-                                        size_t json_doc_len,
-                                        const char *key,
-                                        char *dest,
-                                        size_t dest_len)
+static int _qcloud_otalib_get_firmware_fixlen_para(const char *json_doc, const char *key,
+                                        char *dest, size_t dest_len)
 {
     IOT_FUNC_ENTRY;
 
-    const char *pvalue;
-    uint32_t val_len;
+    int ret = QCLOUD_ERR_SUCCESS;
 
-    pvalue = qcloud_otalib_json_value_of(json_doc, key, &val_len);
-    if (NULL == pvalue) {
-        Log_e("Not '%s' key in json doc of OTA", key);
-        IOT_FUNC_EXIT_RC(IOT_OTA_ERR_FAIL);
+    char* key_bak = HAL_Malloc(strlen(key));
+    if (key_bak == NULL) {
+    	Log_e("not enough memory for malloc key");
+    	ret = IOT_OTA_ERR_FAIL;
+    	IOT_FUNC_EXIT_RC(ret);
     }
 
-    if (val_len > dest_len) {
-        Log_e("value length of the key is too long");
-        IOT_FUNC_EXIT_RC(IOT_OTA_ERR_FAIL);
+    char* json_doc_bak = HAL_Malloc(strlen(json_doc));
+    if (json_doc_bak == NULL) {
+    	Log_e("not enough memory for malloc json");
+    	HAL_Free(key_bak);
+    	ret = IOT_OTA_ERR_FAIL;
+		IOT_FUNC_EXIT_RC(ret);
     }
 
-    memcpy(dest, pvalue, val_len);
+    strcpy(key_bak, key);
+    strcpy(json_doc_bak, json_doc);
 
-    IOT_FUNC_EXIT_RC(QCLOUD_ERR_SUCCESS);
+    char* value = LITE_json_value_of(key_bak, json_doc_bak);
+    if (value == NULL) {
+    	Log_e("Not '%s' key in json doc of OTA", key);
+    	ret = IOT_OTA_ERR_FAIL;
+    }
+    else {
+    	uint32_t val_len = strlen(value);
+		if (val_len > dest_len) {
+			Log_e("value length of the key is too long");
+			ret = IOT_OTA_ERR_FAIL;
+		}
+		else {
+	    	memcpy(dest, value, val_len);
+	    	ret = QCLOUD_ERR_SUCCESS;
+		}
+
+    	HAL_Free(value);
+    }
+
+	if (key_bak != NULL) {
+		HAL_Free(key_bak);
+	}
+	if (json_doc_bak != NULL) {
+		HAL_Free(json_doc_bak);
+	}
+
+    IOT_FUNC_EXIT_RC(ret);
 }
 
 
 /* Get variant length parameter of firmware, and copy to @dest */
 /* 0, successful; -1, failed */
-static int _qcloud_otalib_get_firmware_varlen_para(const char *json_doc,
-                                        size_t json_doc_len,
-                                        const char *key,
-                                        char **dest)
+static int _qcloud_otalib_get_firmware_varlen_para(const char *json_doc, const char *key, char **dest)
 {
 #define OTA_FIRMWARE_JSON_VALUE_MAX_LENGTH (64)
 
     IOT_FUNC_ENTRY;
 
-    const char *pvalue = NULL;
-    uint32_t val_len;
+    int ret = QCLOUD_ERR_SUCCESS;
 
-    pvalue = qcloud_otalib_json_value_of(json_doc, key, &val_len);
-    if (NULL ==  pvalue) {
-        Log_e("Not %s key in json doc of OTA", key);
-        IOT_FUNC_EXIT_RC(IOT_OTA_ERR_FAIL);
+    char* key_bak = HAL_Malloc(strlen(key));
+    if (key_bak == NULL) {
+    	Log_e("not enough memory for malloc key");
+    	ret = IOT_OTA_ERR_FAIL;
+    	IOT_FUNC_EXIT_RC(ret);
     }
 
-    if (NULL == (*dest = HAL_Malloc(val_len + 1))) {
-        Log_e("allocate for dest failed");
-        IOT_FUNC_EXIT_RC(IOT_OTA_ERR_FAIL);
+    char* json_doc_bak = HAL_Malloc(strlen(json_doc));
+    if (json_doc_bak == NULL) {
+    	Log_e("not enough memory for malloc json");
+    	HAL_Free(key_bak);
+    	ret = IOT_OTA_ERR_FAIL;
+		IOT_FUNC_EXIT_RC(ret);
     }
 
-    memcpy(*dest, pvalue, val_len);
-    (*dest)[val_len] = '\0';
+    strcpy(key_bak, key);
+    strcpy(json_doc_bak, json_doc);
 
-    IOT_FUNC_EXIT_RC(QCLOUD_ERR_SUCCESS);
+    *dest = LITE_json_value_of(key_bak, json_doc_bak);
+    if (*dest == NULL) {
+    	Log_e("Not '%s' key in json '%s' doc of OTA", key_bak, json_doc_bak);
+    	ret = IOT_OTA_ERR_FAIL;
+    }
+
+	if (key_bak != NULL) {
+		HAL_Free(key_bak);
+	}
+	if (json_doc_bak != NULL) {
+		HAL_Free(json_doc_bak);
+	}
+
+    IOT_FUNC_EXIT_RC(ret);
 
 #undef OTA_FIRMWARE_JSON_VALUE_MAX_LENGTH
-}
-
-
-static const char* qcloud_otalib_json_value_of(const char *json, const char *key, uint32_t *val_len)
-{
-    const char *val = parse_firmware_value_by_name(json, key, val_len);
-    if (val == NULL) {
-        Log_e("Fail to parse JSON");
-    }
-    return val;
 }
 
 void *qcloud_otalib_md5_init(void)
@@ -142,23 +171,26 @@ void qcloud_otalib_md5_deinit(void *md5)
     }
 }
 
-int qcloud_otalib_get_firmware_type(const char *json, uint32_t jsonLen, char **type)
+int qcloud_otalib_get_firmware_type(const char *json, char **type)
 {
-    return _qcloud_otalib_get_firmware_varlen_para(json, jsonLen, "type", type);
+    return _qcloud_otalib_get_firmware_varlen_para(json, TYPE_FIELD, type);
 }
 
-int qcloud_otalib_get_report_version_result(const char *json, uint32_t jsonLen)
+int qcloud_otalib_get_report_version_result(const char *json)
 {
     IOT_FUNC_ENTRY;
+
     char *result_code = NULL;
-    if (0 != _qcloud_otalib_get_firmware_varlen_para(json, jsonLen, "result_code", &result_code) || strcmp(result_code, "0") != 0) {
-        Log_e("get value of type key failed");
+
+    int rc = _qcloud_otalib_get_firmware_varlen_para(json, RESULT_FIELD, &result_code);
+    if ( rc != QCLOUD_ERR_SUCCESS || strcmp(result_code, "0") != 0) {
         IOT_FUNC_EXIT_RC(IOT_OTA_ERR_FAIL);
     }
+
     IOT_FUNC_EXIT_RC(QCLOUD_ERR_SUCCESS);
 }
 
-int qcloud_otalib_get_params(const char *json, uint32_t jsonLen, char **type, char **url, char **version, char *md5,
+int qcloud_otalib_get_params(const char *json, char **type, char **url, char **version, char *md5,
                      uint32_t *fileSize)
 {
 #define OTA_FILESIZE_STR_LEN    (16)
@@ -168,34 +200,35 @@ int qcloud_otalib_get_params(const char *json, uint32_t jsonLen, char **type, ch
     char file_size_str[OTA_FILESIZE_STR_LEN + 1];
 
     /* get type */
-    if (0 != _qcloud_otalib_get_firmware_varlen_para(json, jsonLen, "type", type)) {
+    if (0 != _qcloud_otalib_get_firmware_varlen_para(json, TYPE_FIELD, type)) {
         Log_e("get value of type key failed");
         IOT_FUNC_EXIT_RC(IOT_OTA_ERR_FAIL);
     }
 
     /* get version */
-    if (0 != _qcloud_otalib_get_firmware_varlen_para(json, jsonLen, "version", version)) {
+    if (0 != _qcloud_otalib_get_firmware_varlen_para(json, VERSION_FIELD, version)) {
         Log_e("get value of version key failed");
         IOT_FUNC_EXIT_RC(IOT_OTA_ERR_FAIL);
     }
 
     /* get URL */
-    if (0 != _qcloud_otalib_get_firmware_varlen_para(json, jsonLen, "url", url)) {
+    if (0 != _qcloud_otalib_get_firmware_varlen_para(json, URL_FIELD, url)) {
         Log_e("get value of url key failed");
         IOT_FUNC_EXIT_RC(IOT_OTA_ERR_FAIL);
     }
 
     /* get md5 */
-    if (0 != _qcloud_otalib_get_firmware_fixlen_para(json, jsonLen, "md5sum", md5, 32)) {
+    if (0 != _qcloud_otalib_get_firmware_fixlen_para(json, MD5_FIELD, md5, 32)) {
         Log_e("get value of md5 key failed");
         IOT_FUNC_EXIT_RC(IOT_OTA_ERR_FAIL);
     }
 
     /* get file size */
-    if (0 != _qcloud_otalib_get_firmware_fixlen_para(json, jsonLen, "file_size", file_size_str, OTA_FILESIZE_STR_LEN)) {
+    if (0 != _qcloud_otalib_get_firmware_fixlen_para(json, FILESIZE_FIELD, file_size_str, OTA_FILESIZE_STR_LEN)) {
         Log_e("get value of size key failed");
         IOT_FUNC_EXIT_RC(IOT_OTA_ERR_FAIL);
     }
+
     file_size_str[OTA_FILESIZE_STR_LEN] = '\0';
     *fileSize = atoi(file_size_str);
 

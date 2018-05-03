@@ -17,12 +17,17 @@
 extern "C" {
 #endif
 
+#include "ota_fetch.h"
+
 #include <string.h>
 #include <unistd.h>
+
 #include "qcloud_iot_export.h"
 #include "qcloud_iot_import.h"
-#include "qcloud_iot_utils_httpc.h"
+
 #include "ca.h"
+
+#include "utils_httpc.h"
 
 /* ofc, OTA fetch channel */
 

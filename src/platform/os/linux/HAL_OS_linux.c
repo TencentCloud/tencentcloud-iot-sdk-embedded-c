@@ -102,6 +102,11 @@ int HAL_Snprintf(_IN_ char *str, const int len, const char *fmt, ...)
     return rc;
 }
 
+int HAL_Vsnprintf(_IN_ char *str, _IN_ const int len, _IN_ const char *format, va_list ap)
+{
+    return vsnprintf(str, len, format, ap);
+}
+
 uint32_t HAL_UptimeMs(void)
 {
     struct timeval time_val = {0};

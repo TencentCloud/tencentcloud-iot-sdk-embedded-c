@@ -16,53 +16,18 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-    
-#include "qcloud_iot_utils_net.h"
-#include "qcloud_iot_export_log.h"
-#include "qcloud_iot_export_error.h"
+
+#include "utils_net.h"
+
+#include "qcloud_iot_export.h"
 #include "qcloud_iot_sdk_impl_internal.h"
-    
-static int utils_net_connected(Network *pNetwork) {
+
+static int _utils_net_connected(Network *pNetwork) {
     return pNetwork->handle;
 }
 
-/*** TCP connection ***/
-static int _read_tcp(Network *pNetwork, unsigned char *data, size_t datalen, uint32_t timeout_ms, size_t *read_len)
-{
-	return HAL_TCP_Read(pNetwork->handle, data, (uint32_t)datalen, timeout_ms, read_len);
-}
-
-static int _write_tcp(Network *pNetwork, unsigned char *data, size_t datalen, uint32_t timeout_ms, size_t *written_len)
-{
-	return HAL_TCP_Write(pNetwork->handle, data, datalen, timeout_ms, written_len);
-}
-
-static int _disconnect_tcp(Network *pNetwork)
-{
-	if (0 == pNetwork->handle) {
-		return -1;
-	}
-
-	HAL_TCP_Disconnect(pNetwork->handle);
-	pNetwork->handle = 0;
-	return 0;
-}
-
-static int _connect_tcp(Network *pNetwork)
-{
-	if (NULL == pNetwork) {
-		Log_e("network is null");
-		return -1;
-	}
-	pNetwork->handle = HAL_TCP_Connect(pNetwork->host, pNetwork->port);
-	if (0 == pNetwork->handle) {
-		return -1;
-	}
-	return 0;
-}
-
+#ifndef AUTH_WITH_NOTLS
 /*** SSL connection ***/
-#ifndef NOTLS_ENABLED
 static int _read_tls(Network *pNetwork, unsigned char *data, size_t datalen, uint32_t timeout_ms, size_t *read_len)
 {
 	POINTER_SANITY_CHECK(pNetwork, QCLOUD_ERR_INVAL);
@@ -100,6 +65,42 @@ static int _connect_tls(Network *pNetwork)
 
 	return ret;
 }
+
+#else
+/*** TCP connection ***/
+static int _read_tcp(Network *pNetwork, unsigned char *data, size_t datalen, uint32_t timeout_ms, size_t *read_len)
+{
+	return HAL_TCP_Read(pNetwork->handle, data, (uint32_t)datalen, timeout_ms, read_len);
+}
+
+static int _write_tcp(Network *pNetwork, unsigned char *data, size_t datalen, uint32_t timeout_ms, size_t *written_len)
+{
+	return HAL_TCP_Write(pNetwork->handle, data, datalen, timeout_ms, written_len);
+}
+
+static int _disconnect_tcp(Network *pNetwork)
+{
+	POINTER_SANITY_CHECK(pNetwork, QCLOUD_ERR_INVAL);
+
+	if (0 == pNetwork->handle) {
+		return -1;
+	}
+
+	HAL_TCP_Disconnect(pNetwork->handle);
+	pNetwork->handle = 0;
+	return 0;
+}
+
+static int _connect_tcp(Network *pNetwork)
+{
+	POINTER_SANITY_CHECK(pNetwork, QCLOUD_ERR_INVAL);
+
+	pNetwork->handle = HAL_TCP_Connect(pNetwork->host, pNetwork->port);
+	if (0 == pNetwork->handle) {
+		return -1;
+	}
+	return 0;
+}
 #endif
 
 int utils_net_read(Network *pNetwork, unsigned char *data, size_t datalen, uint32_t timeout_ms, size_t *read_len)
@@ -107,13 +108,13 @@ int utils_net_read(Network *pNetwork, unsigned char *data, size_t datalen, uint3
 	POINTER_SANITY_CHECK(pNetwork, QCLOUD_ERR_INVAL);
 
     int rc = 0;
-	if (pNetwork->ssl_connect_params.ca_crt == NULL) {
-		rc = _read_tcp(pNetwork, data, datalen, timeout_ms, read_len);
-#ifndef NOTLS_ENABLED
-	} else {
-		rc = _read_tls(pNetwork, data, datalen, timeout_ms, read_len);
+
+#ifndef AUTH_WITH_NOTLS
+	rc = _read_tls(pNetwork, data, datalen, timeout_ms, read_len);
+#else
+	rc = _read_tcp(pNetwork, data, datalen, timeout_ms, read_len);
 #endif
-	}
+
     return rc;
 }
 
@@ -122,13 +123,13 @@ int utils_net_write(Network *pNetwork, unsigned char *data, size_t datalen, uint
 	POINTER_SANITY_CHECK(pNetwork, QCLOUD_ERR_INVAL);
 
     int rc = 0;
-	if (pNetwork->ssl_connect_params.ca_crt == NULL) {
-		rc = _write_tcp(pNetwork, data, datalen, timeout_ms, written_len);
-#ifndef NOTLS_ENABLED
-	} else {
-		rc = _write_tls(pNetwork, data, datalen, timeout_ms, written_len);
+
+#ifndef AUTH_WITH_NOTLS
+	rc = _write_tls(pNetwork, data, datalen, timeout_ms, written_len);
+#else
+    rc = _write_tcp(pNetwork, data, datalen, timeout_ms, written_len);
 #endif
-	}
+
     return rc;
 }
 
@@ -136,13 +137,11 @@ void utils_net_disconnect(Network *pNetwork)
 {
 	POINTER_SANITY_CHECK_RTN(pNetwork);
 
-	if (pNetwork->ssl_connect_params.ca_crt == NULL) {
-		_disconnect_tcp(pNetwork);
-#ifndef NOTLS_ENABLED
-	} else {
-		_disconnect_tls(pNetwork);
+#ifndef AUTH_WITH_NOTLS
+	_disconnect_tls(pNetwork);
+#else
+    _disconnect_tcp(pNetwork);
 #endif
-	}
 }
 
 int utils_net_connect(Network *pNetwork)
@@ -150,13 +149,13 @@ int utils_net_connect(Network *pNetwork)
 	POINTER_SANITY_CHECK(pNetwork, QCLOUD_ERR_INVAL);
 
     int rc = 0;
-	if (pNetwork->ssl_connect_params.ca_crt == NULL) {
-		rc = _connect_tcp(pNetwork);
-#ifndef NOTLS_ENABLED
-	} else {
-		rc = _connect_tls(pNetwork);
+
+#ifndef AUTH_WITH_NOTLS
+	rc = _connect_tls(pNetwork);
+#else
+    rc = _connect_tcp(pNetwork);
 #endif
-	}
+
     return rc;
 }
 
@@ -170,42 +169,18 @@ int utils_net_init(Network *pNetwork)
     pNetwork->read = utils_net_read;
     pNetwork->write = utils_net_write;
     pNetwork->disconnect = utils_net_disconnect;
-    pNetwork->is_connected = utils_net_connected;
+    pNetwork->is_connected = _utils_net_connected;
     pNetwork->handle = 0;
 
     return rc;
 }
 
 #ifdef COAP_COMM_ENABLED
-static int utils_udp_net_connected(Network *pNetwork) {
+static int _utils_udp_net_connected(Network *pNetwork) {
     return pNetwork->handle;
 }
 
-static int _read_udp(Network *pNetwork, unsigned char *data, size_t datalen, uint32_t timeout_ms, size_t *read_len)
-{
-	// TODO: 后续完善
-	return -1;
-}
-
-static int _write_udp(Network *pNetwork, unsigned char *data, size_t datalen, uint32_t timeout_ms, size_t *written_len)
-{
-	// TODO: 后续完善
-	return -1;
-}
-
-static int _disconnect_udp(Network *pNetwork)
-{
-	// TODO: 后续完善
-	return -1;
-}
-
-static int _connect_udp(Network *pNetwork)
-{
-	// TODO: 后续完善
-	return -1;
-}
-
-#ifndef NOTLS_ENABLED
+#ifndef AUTH_WITH_NOTLS
 static int _read_dtls(Network *pNetwork, unsigned char *data, size_t datalen, uint32_t timeout_ms, size_t *read_len)
 {
 	POINTER_SANITY_CHECK(pNetwork, QCLOUD_ERR_INVAL);
@@ -243,6 +218,53 @@ static int _connect_dtls(Network *pNetwork)
 
 	return ret;
 }
+#else
+static int _read_udp(Network *pNetwork, unsigned char *data, size_t datalen, uint32_t timeout_ms, size_t *read_len)
+{
+	POINTER_SANITY_CHECK(pNetwork, QCLOUD_ERR_INVAL);
+
+	int ret = HAL_UDP_ReadTimeout(pNetwork->handle, data, datalen, timeout_ms);
+	if (ret > 0) {
+		*read_len = ret;
+		ret = 0;
+	}
+
+	return ret;
+}
+
+static int _write_udp(Network *pNetwork, unsigned char *data, size_t datalen, uint32_t timeout_ms, size_t *written_len)
+{
+	POINTER_SANITY_CHECK(pNetwork, QCLOUD_ERR_INVAL);
+
+	int ret = HAL_UDP_Write(pNetwork->handle, data, datalen);
+	if (ret > 0) {
+		*written_len = ret;
+		ret = 0;
+	}
+
+	return ret;
+}
+
+static int _disconnect_udp(Network *pNetwork)
+{
+	POINTER_SANITY_CHECK(pNetwork, QCLOUD_ERR_INVAL);
+
+	HAL_UDP_Disconnect(pNetwork->handle);
+	pNetwork->handle = 0;
+
+	return 0;
+}
+
+static int _connect_udp(Network *pNetwork)
+{
+	POINTER_SANITY_CHECK(pNetwork, QCLOUD_ERR_INVAL);
+
+	pNetwork->handle = HAL_UDP_Connect(pNetwork->host, pNetwork->port);
+	if (0 == pNetwork->handle) {
+		return -1;
+	}
+	return 0;
+}
 #endif
 
 int utils_udp_net_read(Network *pNetwork, unsigned char *data, size_t datalen, uint32_t timeout_ms, size_t *read_len)
@@ -250,13 +272,13 @@ int utils_udp_net_read(Network *pNetwork, unsigned char *data, size_t datalen, u
 	POINTER_SANITY_CHECK(pNetwork, QCLOUD_ERR_INVAL);
 
 	int rc = 0;
-	if (pNetwork->ssl_connect_params.ca_crt == NULL) {
-		rc = _read_udp(pNetwork, data, datalen, timeout_ms, read_len);
-#ifndef NOTLS_ENABLED
-	} else {
-		rc = _read_dtls(pNetwork, data, datalen, timeout_ms, read_len);
+
+#ifndef AUTH_WITH_NOTLS
+	rc = _read_dtls(pNetwork, data, datalen, timeout_ms, read_len);
+#else
+    rc = _read_udp(pNetwork, data, datalen, timeout_ms, read_len);
 #endif
-	}
+
 	return rc;
 }
 
@@ -265,27 +287,23 @@ int utils_udp_net_write(Network *pNetwork, unsigned char *data, size_t datalen, 
 	POINTER_SANITY_CHECK(pNetwork, QCLOUD_ERR_INVAL);
 
 	int rc = 0;
-	if (pNetwork->ssl_connect_params.ca_crt == NULL) {
-		rc = _write_udp(pNetwork, data, datalen, timeout_ms, written_len);
-#ifndef NOTLS_ENABLED
-	} else {
-		rc = _write_dtls(pNetwork, data, datalen, timeout_ms, written_len);
+#ifndef AUTH_WITH_NOTLS
+	rc = _write_dtls(pNetwork, data, datalen, timeout_ms, written_len);
+#else
+    rc = _write_udp(pNetwork, data, datalen, timeout_ms, written_len);
 #endif
-	}
+
 	return rc;
 }
 
 void utils_udp_net_disconnect(Network *pNetwork)
 {
 	POINTER_SANITY_CHECK_RTN(pNetwork);
-
-	if (pNetwork->ssl_connect_params.ca_crt == NULL) {
-		_disconnect_udp(pNetwork);
-#ifndef NOTLS_ENABLED
-	} else {
-		_disconnect_dtls(pNetwork);
+#ifndef AUTH_WITH_NOTLS
+	_disconnect_dtls(pNetwork);
+#else
+    _disconnect_udp(pNetwork);
 #endif
-	}
 }
 
 int utils_udp_net_connect(Network *pNetwork)
@@ -293,14 +311,12 @@ int utils_udp_net_connect(Network *pNetwork)
 	POINTER_SANITY_CHECK(pNetwork, QCLOUD_ERR_INVAL);
 
 	int rc = 0;
-
-	if (pNetwork->ssl_connect_params.ca_crt == NULL) {
-		rc = _connect_udp(pNetwork);
-#ifndef NOTLS_ENABLED
-	} else {
-		rc = _connect_dtls(pNetwork);
+#ifndef AUTH_WITH_NOTLS
+	rc = _connect_dtls(pNetwork);
+#else
+    rc = _connect_udp(pNetwork);
 #endif
-	}
+
 	return rc;
 }
 
@@ -314,7 +330,7 @@ int utils_udp_net_init(Network *pNetwork)
     pNetwork->read = utils_udp_net_read;
     pNetwork->write = utils_udp_net_write;
     pNetwork->disconnect = utils_udp_net_disconnect;
-    pNetwork->is_connected = utils_udp_net_connected;
+    pNetwork->is_connected = _utils_udp_net_connected;
     pNetwork->handle = 0;
 
     return rc;

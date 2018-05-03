@@ -27,21 +27,17 @@
 /* 设备名称, 与云端同步设备状态时需要 */
 #define QCLOUD_IOT_MY_DEVICE_NAME           "YOUR_DEVICE_NAME"
 
-#ifndef NOTLS_ENABLED
+#ifdef AUTH_MODE_CERT
+    /* 客户端证书文件名  非对称加密使用*/
+    #define QCLOUD_IOT_CERT_FILENAME          "YOUR_DEVICE_NAME_cert.crt"
+    /* 客户端私钥文件名 非对称加密使用*/
+    #define QCLOUD_IOT_KEY_FILENAME           "YOUR_DEVICE_NAME_private.key"
 
-#ifdef ASYMC_ENCRYPTION_ENABLED
-	/* 客户端证书文件名  非对称加密使用*/
-	#define QCLOUD_IOT_CERT_FILENAME          "YOUR_DEVICE_NAME_cert.crt"
-	/* 客户端私钥文件名 非对称加密使用*/
-	#define QCLOUD_IOT_KEY_FILENAME           "YOUR_DEVICE_NAME_private.key"
-
-	static char sg_cert_file[PATH_MAX + 1];		//客户端证书全路径
-	static char sg_key_file[PATH_MAX + 1];		//客户端密钥全路径
+    static char sg_cert_file[PATH_MAX + 1];      //客户端证书全路径
+    static char sg_key_file[PATH_MAX + 1];       //客户端密钥全路径
 
 #else
-	#define QCLOUD_IOT_PSK          		"YOUR_IOT_PSK"
-#endif
-
+    #define QCLOUD_IOT_DEVICE_SECRET                  "YOUR_IOT_PSK"
 #endif
 
 #define OTA_BUF_LEN (5000)
@@ -102,8 +98,7 @@ static int _setup_connect_init_params(MQTTInitParams* initParams)
 	initParams->device_name = QCLOUD_IOT_MY_DEVICE_NAME;
 	initParams->product_id = QCLOUD_IOT_MY_PRODUCT_ID;
 
-#ifndef NOTLS_ENABLED
-#ifdef ASYMC_ENCRYPTION_ENABLED
+#ifdef AUTH_MODE_CERT
     char certs_dir[PATH_MAX + 1] = "certs";
     char current_path[PATH_MAX + 1];
     char *cwd = getcwd(current_path, sizeof(current_path));
@@ -118,8 +113,7 @@ static int _setup_connect_init_params(MQTTInitParams* initParams)
     initParams->cert_file = sg_cert_file;
     initParams->key_file = sg_key_file;
 #else
-	initParams->psk = QCLOUD_IOT_PSK;
-#endif
+	initParams->device_secret = QCLOUD_IOT_DEVICE_SECRET;
 #endif
     
 	initParams->command_timeout = QCLOUD_IOT_MQTT_COMMAND_TIMEOUT;

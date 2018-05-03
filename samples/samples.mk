@@ -1,7 +1,9 @@
 DEPENDS             := src/platform
 LDFLAGS             := $(FINAL_DIR)/lib/libiot_sdk.a
 LDFLAGS             += $(FINAL_DIR)/lib/libiot_platform.a
+ifeq (,$(filter -DAUTH_WITH_NOTLS,$(CFLAGS)))
 LDFLAGS             += $(FINAL_DIR)/lib/libmbedtls.a $(FINAL_DIR)/lib/libmbedx509.a $(FINAL_DIR)/lib/libmbedcrypto.a
+endif
 CFLAGS              := $(filter-out -ansi,$(CFLAGS))
 
 ifneq (,$(filter -DMQTT_COMM_ENABLED,$(CFLAGS)))
@@ -20,6 +22,7 @@ mqtt_sample:
 	mv $@ $(FINAL_DIR)/bin
 
 ifneq (,$(filter -DOTA_COMM_ENABLED,$(CFLAGS)))
+ifneq (,$(filter -DOTA_MQTT_CHANNEL,$(CFLAGS)))
 ota_mqtt_sample:
 	$(eval CFLAGS := $(filter-out $(IOTSDK_INCLUDE_FILES),$(CFLAGS)) \
 		-I$(TOP_DIR)/src/sdk-impl -I$(TOP_DIR)/src/sdk-impl/exports)
@@ -31,11 +34,12 @@ ota_mqtt_sample:
 	mv $@ $(FINAL_DIR)/bin
 endif
 endif
+endif
 
 ifneq (,$(filter -DMQTT_DEVICE_SHADOW,$(CFLAGS)))
 shadow_sample:
 	$(eval CFLAGS := $(filter-out $(IOTSDK_INCLUDE_FILES),$(CFLAGS)) \
-		-I$(TOP_DIR)/src/sdk-impl -I$(TOP_DIR)/src/sdk-impl/exports)
+		-I$(TOP_DIR)/src/sdk-impl -I$(TOP_DIR)/src/sdk-impl/exports -I$(TOP_DIR)/src/utils/lite)
 
 	$(TOP_Q) \
 	$(PLATFORM_CC) $(CFLAGS) $(SAMPLE_DIR)/shadow/$@.c $(LDFLAGS) -o $@
@@ -68,6 +72,19 @@ coap_sample:
 
 	$(TOP_Q) \
 	mv door_$@ $(FINAL_DIR)/bin
+ifneq (,$(filter -DOTA_COMM_ENABLED,$(CFLAGS)))
+ifneq (,$(filter -DOTA_COAP_CHANNEL,$(CFLAGS)))
+ota_coap_sample:
+	$(eval CFLAGS := $(filter-out $(IOTSDK_INCLUDE_FILES),$(CFLAGS)) \
+		-I$(TOP_DIR)/src/sdk-impl -I$(TOP_DIR)/src/sdk-impl/exports)
+
+	$(TOP_Q) \
+	$(PLATFORM_CC) $(CFLAGS) $(SAMPLE_DIR)/ota/$@.c $(LDFLAGS) -o $@
+
+	$(TOP_Q) \
+	mv $@ $(FINAL_DIR)/bin
+endif
+endif
 endif
 
 samples_final:

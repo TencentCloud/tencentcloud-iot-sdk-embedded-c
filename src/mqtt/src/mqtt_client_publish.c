@@ -23,7 +23,7 @@ extern "C" {
 
 #include "mqtt_client.h"
 
-#include "qcloud_iot_utils_list.h"
+#include "utils_list.h"
 
 /**
  * @param mqttstring the MQTTString structure into which the data is to be read

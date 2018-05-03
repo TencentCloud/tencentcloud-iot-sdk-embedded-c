@@ -20,6 +20,8 @@
 extern "C" {
 #endif
 
+#include <stdint.h>
+
 void *ofc_Init(const char *url);
 
 int32_t qcloud_ofc_connect(void *handle);
