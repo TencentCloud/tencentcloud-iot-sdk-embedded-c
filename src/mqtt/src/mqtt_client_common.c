@@ -655,10 +655,11 @@ static int _read_mqtt_packet(Qcloud_IoT_Client *pClient, Timer *timer, uint8_t *
     	IOT_FUNC_EXIT_RC(QCLOUD_ERR_BUF_TOO_SHORT);
     }
     else {
-        if (rem_len > 0 &&
-            (pClient->network_stack.read(&(pClient->network_stack), pClient->read_buf + len, rem_len, left_ms(timer), &read_len) !=
-             QCLOUD_ERR_SUCCESS)) {
-            IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
+        if (rem_len > 0) {
+        	rc = pClient->network_stack.read(&(pClient->network_stack), pClient->read_buf + len, rem_len, left_ms(timer), &read_len);
+        	if (rc != QCLOUD_ERR_SUCCESS) {
+				IOT_FUNC_EXIT_RC(rc);
+        	}
         }
     }
 

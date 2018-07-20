@@ -60,10 +60,10 @@ extern "C" {
 #define MAX_ACCESS_EXPIRE_TIMEOUT									(0)
 
 /* MQTT连接域名 */
-#define QCLOUD_IOT_MQTT_DIRECT_DOMAIN        						"iotcloud-mqtt.gz.tencentdevices.com"
+#define QCLOUD_IOT_MQTT_DIRECT_DOMAIN        						"iotcloud.tencentdevices.com"
 
 /* CoAP连接域名 */
-#define QCLOUD_IOT_COAP_DEIRECT_DOMAIN								"iotcloud-coap.gz.tencentdevices.com"
+#define QCLOUD_IOT_COAP_DEIRECT_DOMAIN								"iotcloud.tencentdevices.com"
 
 typedef struct {
 	char	product_id[MAX_SIZE_OF_PRODUCT_ID + 1];
@@ -78,6 +78,7 @@ typedef struct {
 #include "qcloud_iot_export_shadow.h"
 #include "qcloud_iot_export_ota.h"
 #include "qcloud_iot_export_system.h"
+#include "qcloud_iot_export_nbiot.h"
 
 #ifdef __cplusplus
 }

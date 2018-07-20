@@ -87,6 +87,18 @@ endif
 endif
 endif
 
+ifneq (,$(filter -DNBIOT_COMM_ENABLED,$(CFLAGS)))
+nbiot_sample:
+	$(eval CFLAGS := $(filter-out $(IOTSDK_INCLUDE_FILES),$(CFLAGS)) \
+		-I$(TOP_DIR)/src/sdk-impl -I$(TOP_DIR)/src/sdk-impl/exports)
+
+	$(TOP_Q) \
+	$(PLATFORM_CC) $(CFLAGS) $(SAMPLE_DIR)/nbiot/$@.c $(LDFLAGS) -o $@
+
+	$(TOP_Q) \
+	mv $@ $(FINAL_DIR)/bin
+endif
+
 samples_final:
 	$(eval CFLAGS := $(filter-out -I$(TOP_DIR)/src/sdk-impl,$(CFLAGS)) \
 		 $(IOTSDK_INCLUDE_FILES))

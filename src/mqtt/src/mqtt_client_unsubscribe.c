@@ -113,7 +113,8 @@ int qcloud_iot_mqtt_unsubscribe(Qcloud_IoT_Client *pClient, char *topicFilter) {
     HAL_MutexLock(pClient->lock_generic);
     for (i = 0; i < MAX_MESSAGE_HANDLERS; ++i) {
         Log_d("sub_handles topic=%s|unsub topic=%s", pClient->sub_handles[i].topic_filter, topicFilter);
-        if (pClient->sub_handles[i].topic_filter != NULL && !strcmp(pClient->sub_handles[i].topic_filter, topicFilter)) {
+        if ((pClient->sub_handles[i].topic_filter != NULL && !strcmp(pClient->sub_handles[i].topic_filter, topicFilter))
+            || strstr(topicFilter,"/#") != NULL || strstr(topicFilter,"/+") != NULL) {
             pClient->sub_handles[i].topic_filter = NULL;
             /* We don't want to break here, if the same topic is registered
              * with 2 callbacks. Unlikely scenario */

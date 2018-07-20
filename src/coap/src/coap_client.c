@@ -36,7 +36,7 @@ extern "C" {
 
 #define HOST_STR_LENGTH 64
 static char s_qcloud_iot_host[HOST_STR_LENGTH] = {0};
-static int s_qcloud_iot_port = 5683;
+static int s_qcloud_iot_port = 5684;
 
 #ifndef AUTH_WITH_NOTLS
 #ifndef AUTH_MODE_CERT
@@ -265,8 +265,6 @@ int qcloud_iot_coap_init(CoAPClient *pClient, CoAPInitParams *pParams) {
     if (size < 0 || size > HOST_STR_LENGTH - 1) {
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
     }
-
-    size = HAL_Snprintf(s_qcloud_iot_host, HOST_STR_LENGTH, "%s", QCLOUD_IOT_COAP_DEIRECT_DOMAIN);
 
     pClient->is_authed = -1;
 

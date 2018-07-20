@@ -129,6 +129,7 @@ int demo_device_shadow()
 		}
 		else if (rc != QCLOUD_ERR_SUCCESS && rc != QCLOUD_ERR_MQTT_RECONNECTED) {
 			Log_e("exit with error: %d", rc);
+			return rc;
 		}
 
 		if (sg_delta_arrived) {

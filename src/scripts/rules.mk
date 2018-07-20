@@ -30,6 +30,11 @@ config:
 mbedtls:
 ifeq (,$(filter -DAUTH_WITH_NOTLS,$(CFLAGS)))
 	$(TOP_Q) \
+	chmod a+x $(SCRIPT_DIR)/update_mbedtls.sh
+	$(TOP_Q) \
+	$(SCRIPT_DIR)/update_mbedtls.sh > /dev/null
+
+	$(TOP_Q) \
 	make -s -C $(THIRD_PARTY_PATH)/mbedtls lib -e CC=$(PLATFORM_CC) AR=$(PLATFORM_AR)
 	
 	$(TOP_Q) \
@@ -57,6 +62,7 @@ ${iot_platform_objects}:%.o:%.c
 include $(TOP_DIR)/src/scripts/rules-final.mk
 include $(TOP_DIR)/src/scripts/rules-tests.mk
 
+TLSDIR = $(THIRD_PARTY_PATH)/mbedtls
 clean: cleans
 	$(TOP_Q) \
 	rm -rf ${TEMP_DIR}
@@ -65,6 +71,16 @@ clean: cleans
 	rm -rf ${DIST_DIR}
 	
 ifeq (,$(filter -DAUTH_WITH_NOTLS,$(CFLAGS)))
+ifeq ($(TLSDIR), $(wildcard $(THIRD_PARTY_PATH)/mbedtls))
 	$(TOP_Q) \
 	make -s -C $(THIRD_PARTY_PATH)/mbedtls clean
+endif
+else
+	$(TOP_Q) \
+	rm -rf ${THIRD_PARTY_PATH}/mbedtls
+endif
+
+ifeq (,$(filter -DSDKTESTS_ENABLED,$(CFLAGS)))
+	$(TOP_Q) \
+	rm -rf $(TEST_LIB_DIR)
 endif

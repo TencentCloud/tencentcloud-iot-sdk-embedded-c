@@ -16,6 +16,7 @@ FINAL_DIR       := $(DIST_DIR)/release
 
 # Thirdparty libs directory
 THIRD_PARTY_PATH 	:= $(TOP_DIR)/external_libs
+TEST_LIB_DIR        := $(THIRD_PARTY_PATH)/googletest
 
 # Sample directory
 SAMPLE_DIR		:= $(TOP_DIR)/samples
