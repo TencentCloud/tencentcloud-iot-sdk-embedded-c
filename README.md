@@ -82,10 +82,18 @@ $make
 
 ```
 output/release/bin/
-├── aircond_shadow_sample├── aircond_shadow_sample_v2├── certs
+├── aircond_shadow_sample
+├── aircond_shadow_sample_v2
+├── certs
 │   ├── README.md
 │   ├── TEST_CLIENT_cert.crt
-│   └── TEST_CLIENT_private.key├── coap_sample├── door_coap_sample├── door_mqtt_sample├── mqtt_sample├── ota_mqtt_sample└── shadow_sample
+│   └── TEST_CLIENT_private.key
+├── coap_sample
+├── door_coap_sample
+├── door_mqtt_sample
+├── mqtt_sample
+├── ota_mqtt_sample
+└── shadow_sample
 ```
 
 ## 三. 运行示例程序
@@ -185,6 +193,7 @@ INF|2018-04-27 17:54:18|coap_sample.c|event_handler(90): message received ACK, m
 5. CoAP 协议发送消息和接受消息的 buffer 大小默认是 512 字节，最大支持 64 KB
 6. 重连最大等待时间
 修改 qcloud_iot_export.h 文件如下宏定义可以改变对应接入参数的配置。
+
 ```
 /* MQTT心跳消息发送周期, 单位:ms */
 #define QCLOUD_IOT_MQTT_KEEP_ALIVE_INTERNAL                         (240 * 1000)
