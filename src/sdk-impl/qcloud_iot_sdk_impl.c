@@ -41,7 +41,16 @@ LOG_LEVEL g_log_level = INFO;
 static char *_get_filename(const char *p)
 {
     char ch = '/';
-    char *q = strrchr(p,ch) + 1;
+    char *q = strrchr(p,ch);
+	if(q == NULL)
+	{
+		char temp[32] = {0};
+		q = strcpy(temp,p);
+	}
+	else
+	{
+		q++;
+	}
     return q;
 }
 
