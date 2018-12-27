@@ -42,7 +42,7 @@ List *list_new(void)
 }
 
 /*
- * 失败List的内存.
+ * 释放List的内存.
  */
 void list_destroy(List *self)
 {
