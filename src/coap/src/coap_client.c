@@ -40,7 +40,7 @@ static int s_qcloud_iot_port = 5684;
 
 #ifndef AUTH_WITH_NOTLS
 #ifndef AUTH_MODE_CERT
-#define DECODE_PSK_LENGTH 32
+#define DECODE_PSK_LENGTH 48		/*控制台允许的最大长度为64，对应到原文最大长度64/4*3 = 48*/
 static unsigned char sg_psk_str[DECODE_PSK_LENGTH];
 #endif
 #endif

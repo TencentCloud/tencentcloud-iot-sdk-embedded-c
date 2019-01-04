@@ -9,7 +9,7 @@
 
 #define MAX_SIZE_DATA     1024
 #define MAX_SIZE_TOKEN    1024
-#define DECODE_PSK_LENGTH 32
+#define DECODE_PSK_LENGTH 48	/*控制台允许的最大长度为64，对应到原文最大长度64/4*3 = 48*/
 
 #define ADDRESS_SIZE   1
 #define LENGTH_SIZE    2

@@ -561,7 +561,7 @@ static void _handle_request_callback(Qcloud_IoT_Shadow *pShadow, ListNode **node
 				(strcmp(pType, "update") && status == ACK_REJECTED))
 			{
 				char* delta_str = NULL;
-				if (parse_shadow_operation_delta(cloud_rcv_buf, &delta_str)) {
+				if (parse_shadow_operation_get(cloud_rcv_buf, &delta_str)) {
 					_handle_delta(pShadow, delta_str);
 					HAL_Free(delta_str);
 				}

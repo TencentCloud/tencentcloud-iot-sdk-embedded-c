@@ -38,6 +38,12 @@ static int _read_string_with_len(char **string, uint16_t *stringLen, unsigned ch
     /* enough length to read the integer? */
     if (enddata - (*pptr) > 1) {
         *stringLen = mqtt_read_uint16_t(pptr); /* increments pptr to point past length */
+		
+		if(*stringLen > QCLOUD_IOT_MQTT_RX_BUF_LEN){
+			Log_e("stringLen exceed QCLOUD_IOT_MQTT_RX_BUF_LEN");
+			IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
+		}
+		
         if (&(*pptr)[*stringLen] <= enddata) {
             *string = (char *) *pptr;
             *pptr += *stringLen;

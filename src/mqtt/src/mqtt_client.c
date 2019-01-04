@@ -43,7 +43,7 @@ static int s_qcloud_iot_port = 8883;
 #endif
 
 #ifndef AUTH_MODE_CERT
-#define DECODE_PSK_LENGTH 32
+#define DECODE_PSK_LENGTH 48		/*控制台允许的最大长度为64，对应到原文最大长度64/4*3 = 48*/
 static unsigned char sg_psk_str[DECODE_PSK_LENGTH];
 #endif
 
@@ -93,8 +93,14 @@ void* IOT_MQTT_Construct(MQTTInitParams *pParams)
 	size_t src_len = strlen(pParams->device_secret);
 	size_t len;
 	memset(sg_psk_str, 0x00, DECODE_PSK_LENGTH);
-	qcloud_iot_utils_base64decode(sg_psk_str, sizeof( sg_psk_str ), &len, (unsigned char *)pParams->device_secret, src_len );
+	rc = qcloud_iot_utils_base64decode(sg_psk_str, sizeof( sg_psk_str ), &len, (unsigned char *)pParams->device_secret, src_len );
 	connect_params.device_secret = (char *)sg_psk_str;
+	connect_params.device_secret_len = len;
+	if (rc != QCLOUD_ERR_SUCCESS) {
+		Log_e("Device secret decode err,secret:%s", pParams->device_secret);
+		HAL_Free(mqtt_client);
+		return NULL;
+	}
 #endif
 
 	rc = qcloud_iot_mqtt_connect(mqtt_client, &connect_params);

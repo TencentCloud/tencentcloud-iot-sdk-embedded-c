@@ -117,13 +117,23 @@ bool parse_shadow_operation_type(char *pJsonDoc, char **pType);
 bool parse_shadow_operation_result_code(char *pJsonDoc, int16_t *pResultCode);
 
 /**
- * @brief 从JSON文档中解析出delta字段
+ * @brief 从JSON文档中解析出delta字段, dalta type
  *
  * @param pJsonDoc         	待解析的JSON文档
  * @param pDelta    		delta字段对应的value
  * @return                 	返回true, 表示解析成功
  */
 bool parse_shadow_operation_delta(char *pJsonDoc, char **pDelta);
+
+/**
+ * @brief 从JSON文档中解析出delta字段	, get/update type
+ *
+ * @param pJsonDoc         	待解析的JSON文档
+ * @param pDelta    		delta字段对应的value
+ * @return                 	返回true, 表示解析成功
+ */
+bool parse_shadow_operation_get(char *pJsonDoc, char **pDelta);
+
 
 /**
  * @brief 如果JSON文档中的key与某个设备属性的key匹配的话, 则更新该设备属性, 该设备属性的值不能为OBJECT类型

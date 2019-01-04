@@ -34,9 +34,15 @@ static void on_system_mqtt_message_callback(void *pClient, MQTTMessage *message,
 	Log_i("Receive Message With topicName:%.*s, payload:%.*s",
 		  (int) message->topic_len, message->ptopic, (int) message->payload_len, (char *) message->payload);
 
-    static char rcv_buf[MAX_RECV_LEN];
-    memcpy(rcv_buf, message->payload, message->payload_len);
-    rcv_buf[message->payload_len] = '\0';    // jsmn_parse relies on a string
+    static char rcv_buf[MAX_RECV_LEN + 1];
+	size_t len = (message->payload_len > MAX_RECV_LEN)?MAX_RECV_LEN:(message->payload_len);
+
+	if(message->payload_len > MAX_RECV_LEN){
+		Log_e("paload len exceed buffer size");
+	}
+    memcpy(rcv_buf, message->payload, len);
+    rcv_buf[len] = '\0';    // jsmn_parse relies on a string
+    
 
     char* value = LITE_json_value_of("time", rcv_buf);
     if (value != NULL) {

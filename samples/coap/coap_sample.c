@@ -150,7 +150,7 @@ int main(int argc, char **argv)
 		return QCLOUD_ERR_FAILURE;
 	}
 	else {
-		Log_e("%p", coap_client);
+		Log_i("the pointer of coap client is %p", coap_client);
 	}
 
 	int rc = QCLOUD_ERR_SUCCESS;

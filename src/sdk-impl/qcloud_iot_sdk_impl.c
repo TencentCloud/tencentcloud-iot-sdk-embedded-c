@@ -38,10 +38,18 @@ static LogMessageHandler sg_log_message_handler= NULL;
 
 LOG_LEVEL g_log_level = INFO;
 
-static char *_get_filename(const char *p)
+static const char *_get_filename(const char *p)
 {
     char ch = '/';
-    char *q = strrchr(p,ch) + 1;
+    const char *q = strrchr(p,ch);
+    if(q == NULL)
+    {
+        q = p;
+    }
+    else
+    {
+        q++;
+    }
     return q;
 }
 
@@ -63,7 +71,7 @@ void Log_writter(const char *file, const char *func, const int line, const int l
 		return;
 	}
 
-	char *file_name = _get_filename(file);
+	const char *file_name = _get_filename(file);
 
 	if (sg_log_message_handler) {
 		static char sg_text_buf[MAX_LOG_MSG_LEN + 1];

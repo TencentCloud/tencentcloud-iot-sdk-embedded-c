@@ -1120,6 +1120,11 @@ static int _handle_publish_packet(Qcloud_IoT_Client *pClient, Timer *timer) {
     
     // 传过来的topicName没有截断，会把payload也带过来
     char fix_topic[MAX_SIZE_OF_CLOUD_TOPIC] = {0};
+	
+	if(topic_len > MAX_SIZE_OF_CLOUD_TOPIC){
+		topic_len = MAX_SIZE_OF_CLOUD_TOPIC;
+		Log_e("topic len exceed buffer len");
+	}
     memcpy(fix_topic, topic_name, topic_len);
 
     if (QOS0 == msg.qos)

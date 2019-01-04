@@ -219,9 +219,16 @@ bool parse_shadow_operation_result_code(char *pJsonDoc, int16_t *pResultCode)
 
 bool parse_shadow_operation_delta(char *pJsonDoc, char **pDelta)
 {
+    *pDelta = LITE_json_value_of(PAYLOAD_STATE, pJsonDoc);
+	return *pDelta == NULL ? false : true;
+}
+
+bool parse_shadow_operation_get(char *pJsonDoc, char **pDelta)
+{
     *pDelta = LITE_json_value_of(PAYLOAD_STATE_DELTA, pJsonDoc);
 	return *pDelta == NULL ? false : true;
 }
+
 
 bool update_value_if_key_match(char *pJsonDoc, DeviceProperty *pProperty) {
 

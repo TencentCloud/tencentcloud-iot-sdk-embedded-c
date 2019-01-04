@@ -147,6 +147,7 @@ typedef struct {
 
 #ifdef AUTH_WITH_NOTLS
     char						*device_secret;					// 预置密钥
+    int						    device_secret_len;			    // 预置密钥长度
 #endif
 
 } MQTTConnectParams;

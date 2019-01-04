@@ -163,9 +163,16 @@ static void on_message_callback(void *pClient, MQTTMessage *message, void *userD
     Log_i("Receive Message With topicName:%.*s, payload:%.*s",
           (int) topicNameLen, topicName, (int) message->payload_len, (char *) message->payload);
 
-    static char cloud_rcv_buf[MAX_RECV_LEN];
-    memcpy(cloud_rcv_buf, message->payload, message->payload_len);
-    cloud_rcv_buf[message->payload_len] = '\0';    // jsmn_parse relies on a string
+
+	static char cloud_rcv_buf[MAX_RECV_LEN + 1];
+	size_t len = (message->payload_len > MAX_RECV_LEN)?MAX_RECV_LEN:(message->payload_len);
+
+	if(message->payload_len > MAX_RECV_LEN){
+		Log_e("paload len exceed buffer size");
+	}
+
+	memcpy(cloud_rcv_buf, message->payload, len);
+	cloud_rcv_buf[len] = '\0';    // jsmn_parse relies on a string
 
     char* value = LITE_json_value_of("action", cloud_rcv_buf);
     if (value != NULL) {

@@ -119,6 +119,7 @@ static void _copy_connect_params(MQTTConnectParams *destination, MQTTConnectPara
     destination->auto_connect_enable = source->auto_connect_enable;
 #ifdef AUTH_WITH_NOTLS
     destination->device_secret = source->device_secret;
+    destination->device_secret_len = source->device_secret_len;
 #endif
 }
 
@@ -163,7 +164,7 @@ static int _serialize_connect_packet(unsigned char *buf, size_t buf_len, MQTTCon
 #if defined(AUTH_WITH_NOTLS) && defined(AUTH_MODE_KEY)
      if (options->device_secret != NULL && options->username != NULL) {
     	 char                sign[41]   = {0};
-    	 utils_hmac_sha1(options->username, strlen(options->username), sign, options->device_secret, strlen(options->device_secret));
+    	 utils_hmac_sha1(options->username, strlen(options->username), sign, options->device_secret, options->device_secret_len);
     	 options->password = (char*) HAL_Malloc (51);
     	 if (options->password == NULL) IOT_FUNC_EXIT_RC(QCLOUD_ERR_INVAL);
 		 HAL_Snprintf(options->password, 51, "%s;hmacsha1", sign);
