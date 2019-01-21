@@ -25,3 +25,4 @@ FEATURE_AUTH_MODE				        = CERT	# MQTT/CoAP接入认证方式，使用证书
 FEATURE_AUTH_WITH_NOTLS					= n		# 接入认证是否不使用TLS，证书方式必须选择使用TLS，密钥认证可选择不使用TLS
 
 FEATURE_SYSTEM_COMM_ENABLED             = y     # 是否打开获取iot后台时间功能
+FEATURE_GATEWAY_ENABLED		 			= n 	# 是否打开网关功能

@@ -29,6 +29,10 @@ extern "C" {
 /* MQTT 阻塞调用(包括连接, 订阅, 发布等)的超时时间, 单位:ms 建议5000ms */
 #define QCLOUD_IOT_MQTT_COMMAND_TIMEOUT                             (5 * 1000)
 
+/* 接收到 MQTT 包头以后，接收剩余长度及剩余包，最大延迟等待时延 */
+#define QCLOUD_IOT_MQTT_MAX_REMAIN_WAIT_MS     							(2000)
+
+
 /* TLS连接握手超时时间, 单位:ms */
 #define QCLOUD_IOT_TLS_HANDSHAKE_TIMEOUT                            (5 * 1000)
 
@@ -79,6 +83,8 @@ typedef struct {
 #include "qcloud_iot_export_ota.h"
 #include "qcloud_iot_export_system.h"
 #include "qcloud_iot_export_nbiot.h"
+#include "qcloud_iot_export_gateway.h"
+
 
 #ifdef __cplusplus
 }

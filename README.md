@@ -57,7 +57,7 @@
 `git clone https://github.com/tencentyun/qcloud-iot-sdk-embedded-c.git`
 
 #### 2. 填入设备信息
-编辑 samples/mqtt/mqtt_example.c 文件和 samples/coap/coap_sample.c 文件中如下代码段, 填入之前创建产品和设备步骤中得到的 **产品ID**，**设备名称**：
+编辑 samples/mqtt/mqtt_sample.c 文件和 samples/coap/coap_sample.c 文件中如下代码段, 填入之前创建产品和设备步骤中得到的 **产品ID**，**设备名称**：
 
 1. 若使用**证书认证**加密方式，填写 **QCLOUD_IOT_CERT_FILENAME** 和 **QCLOUD_IOT_CERT_FILENAME** 并将文件放置在根目录下 certs 目录中。将根目录下 make.settings 文件中的配置项 FEATURE_AUTH_MODE 设置为 CERT，FEATURE_AUTH_WITH_NOTLS 设置为 n。
 
@@ -193,7 +193,6 @@ INF|2018-04-27 17:54:18|coap_sample.c|event_handler(90): message received ACK, m
 5. CoAP 协议发送消息和接受消息的 buffer 大小默认是 512 字节，最大支持 64 KB
 6. 重连最大等待时间
 修改 qcloud_iot_export.h 文件如下宏定义可以改变对应接入参数的配置。
-
 ```
 /* MQTT心跳消息发送周期, 单位:ms */
 #define QCLOUD_IOT_MQTT_KEEP_ALIVE_INTERNAL                         (240 * 1000)

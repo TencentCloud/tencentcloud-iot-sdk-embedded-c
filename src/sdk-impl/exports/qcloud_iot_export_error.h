@@ -62,6 +62,7 @@ typedef enum {
     QCLOUD_ERR_MQTT_CONNACK_NOT_AUTHORIZED                   = -117,    // 表示客户端连接认证失败
     QCLOUD_ERR_RX_MESSAGE_INVAL                              = -118,    // 表示收到的消息无效
     QCLOUD_ERR_BUF_TOO_SHORT                                 = -119,    // 表示消息接收缓冲区的长度小于消息的长度
+    QCLOUD_ERR_MQTT_QOS_NOT_SUPPORT                          = -120,    // 表示该QOS级别不支持
 
     QCLOUD_ERR_JSON_PARSE                                    = -132,    // 表示JSON解析错误
     QCLOUD_ERR_JSON_BUFFER_TRUNCATED                         = -133,    // 表示JSON文档会被截断
@@ -91,11 +92,21 @@ typedef enum {
     QCLOUD_ERR_SHADOW_GET_TIMEOUT                            = -205,    // 表示拉取设备影子文档超时
     QCLOUD_ERR_SHADOW_GET_REJECTED                           = -206,    // 表示拉取设备影子文档被拒绝
 
+    QCLOUD_ERR_GATEWAY_CREATE_SESSION_FAIL                   = -221,    //创建子设备session失败     
+    QCLOUD_ERR_GATEWAY_SESSION_NO_EXIST                      = -222,    //子设备session不存在    
+    QCLOUD_ERR_GATEWAY_SESSION_TIMEOUT                       = -223,    //子设备session超时
+    QCLOUD_ERR_GATEWAY_SUBDEV_ONLINE                         = -224,    //子设备已在线        
+    QCLOUD_ERR_GATEWAY_SUBDEV_OFFLINE                        = -225,    //子设备已不在线    
+
     QCLOUD_ERR_TCP_SOCKET_FAILED                             = -601,    // 表示TCP连接建立套接字失败
     QCLOUD_ERR_TCP_UNKNOWN_HOST                              = -602,    // 表示无法通过主机名获取IP地址
     QCLOUD_ERR_TCP_CONNECT                                   = -603,    // 表示建立TCP连接失败
-    QCLOUD_ERR_TCP_READ_TIMEOUT                              = -604,    // 表示建立TCP读超时
-    QCLOUD_ERR_TCP_WRITE_TIMEOUT                             = -605,    // 表示建立TCP写超时
+    QCLOUD_ERR_TCP_READ_TIMEOUT                              = -604,    // 表示TCP读超时
+    QCLOUD_ERR_TCP_WRITE_TIMEOUT                             = -605,    // 表示TCP写超时
+    QCLOUD_ERR_TCP_READ_FAIL                                 = -606,    // 表示TCP读错误
+    QCLOUD_ERR_TCP_WRITE_FAIL                                = -607,    // 表示TCP写错误
+    QCLOUD_ERR_TCP_PEER_SHUTDOWN                             = -608,    // 表示TCP对端关闭了连接    
+    QCLOUD_ERR_TCP_NOTHING_TO_READ                           = -609,    // 表示底层没有数据可以读取
 
     QCLOUD_ERR_SSL_INIT                                      = -701,    // 表示SSL初始化失败
     QCLOUD_ERR_SSL_CERT                                      = -702,    // 表示SSL证书相关问题

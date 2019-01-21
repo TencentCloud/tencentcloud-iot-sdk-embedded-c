@@ -19,6 +19,7 @@
 #include <limits.h>
 #include <stdbool.h>
 #include <string.h>
+#include <signal.h>
 
 #include "qcloud_iot_export.h"
 #include "qcloud_iot_import.h"
@@ -231,6 +232,9 @@ int main(int argc, char **argv) {
 
     int rc;
 
+    // to avoid process crash when writing to a broken socket
+    signal(SIGPIPE, SIG_IGN);
+    
     //init connection
     MQTTInitParams init_params = DEFAULT_MQTTINIT_PARAMS;
     rc = _setup_connect_init_params(&init_params);

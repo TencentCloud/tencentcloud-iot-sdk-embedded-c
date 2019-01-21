@@ -58,7 +58,7 @@ static int _serialize_subscribe_packet(unsigned char *buf, size_t buf_len, uint8
     POINTER_SANITY_CHECK(serialized_len, QCLOUD_ERR_INVAL);
 
     unsigned char *ptr = buf;
-    MQTTHeader header = {0};
+    unsigned char header = 0;
     uint32_t rem_len = 0;
     uint32_t i = 0;
     int rc;
@@ -74,7 +74,7 @@ static int _serialize_subscribe_packet(unsigned char *buf, size_t buf_len, uint8
         IOT_FUNC_EXIT_RC(rc);
     }
     // 写报文固定头部第一个字节
-    mqtt_write_char(&ptr, header.byte);
+    mqtt_write_char(&ptr, header);
     // 写报文固定头部剩余长度字段
     ptr += mqtt_write_packet_rem_len(ptr, rem_len);
     // 写可变头部: 报文标识符
@@ -110,6 +110,12 @@ int qcloud_iot_mqtt_subscribe(Qcloud_IoT_Client *pClient, char *topicFilter, Sub
     if (topicLen > MAX_SIZE_OF_CLOUD_TOPIC) {
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_MAX_TOPIC_LENGTH);
     }
+
+    if (pParams->qos == QOS2) {
+        Log_e("QoS2 is not supported currently");
+        IOT_FUNC_EXIT_RC(QCLOUD_ERR_MQTT_QOS_NOT_SUPPORT);
+    }
+    
     if (!get_client_conn_state(pClient)) {
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_MQTT_NO_CONN)
     }

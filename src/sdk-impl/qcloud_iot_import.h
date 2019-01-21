@@ -23,6 +23,7 @@ extern "C" {
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <stdarg.h>
 #include <inttypes.h>
 #include <sys/time.h>
 

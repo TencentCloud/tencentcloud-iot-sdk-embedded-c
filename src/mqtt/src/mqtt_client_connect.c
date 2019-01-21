@@ -24,47 +24,17 @@ extern "C" {
 #include "mqtt_client.h"
 #include "utils_hmac.h"
 
-typedef union {
-    uint8_t all;    /**< all connect flags */
-#if defined(REVERSED)
-    struct
-    {
-        unsigned int username : 1;			/**< 3.1 user name */
-        unsigned int password : 1; 			/**< 3.1 password */
-        unsigned int willRetain : 1;		/**< will retain setting */
-        unsigned int willQoS : 2;				/**< will QoS value */
-        unsigned int will : 1;			    /**< will flag */
-        unsigned int cleansession : 1;	  /**< clean session flag */
-        unsigned int : 1;	  	          /**< unused */
-    } bits;
-#else
-    struct {
-        unsigned int : 1;                            /**< unused */
-        unsigned int cleansession : 1;      /**< cleansession flag */
-        unsigned int will : 1;                /**< will flag */
-        unsigned int willQoS : 2;                /**< will QoS value */
-        unsigned int willRetain : 1;        /**< will retain setting */
-        unsigned int password : 1;            /**< 3.1 password */
-        unsigned int username : 1;            /**< 3.1 user name */
-    } bits;
-#endif
-} MQTTConnectFlags;    /**< connect flags byte */
 
-typedef union {
-    uint8_t all;    /**< all connack flags */
-#if defined(REVERSED)
-    struct
-    {
-        unsigned int sessionpresent : 1;    /**< session present flag */
-        unsigned int : 7;	  	          /**< unused */
-    } bits;
-#else
-    struct {
-        unsigned int : 7;                    /**< unused */
-        unsigned int sessionpresent : 1;    /**< session present flag */
-    } bits;
-#endif
-} MQTTConnackFlags;    /**< connack flags byte */
+#define MQTT_CONNECT_FLAG_USERNAME      0x80
+#define MQTT_CONNECT_FLAG_PASSWORD      0x40
+#define MQTT_CONNECT_FLAG_WILL_RETAIN   0x20
+#define MQTT_CONNECT_FLAG_WILL_QOS2     0x18
+#define MQTT_CONNECT_FLAG_WILL_QOS1     0x08
+#define MQTT_CONNECT_FLAG_WILL_QOS0     0x00
+#define MQTT_CONNECT_FLAG_WILL_FLAG     0x04
+#define MQTT_CONNECT_FLAG_CLEAN_SES     0x02
+
+#define MQTT_CONNACK_FLAG_SES_PRE       0x01
 
 /**
  * Connect return code
@@ -140,8 +110,8 @@ static int _serialize_connect_packet(unsigned char *buf, size_t buf_len, MQTTCon
     POINTER_SANITY_CHECK(serialized_len, QCLOUD_ERR_INVAL);
 
     unsigned char *ptr = buf;
-    MQTTHeader header = {0};
-    MQTTConnectFlags flags = {0};
+    unsigned char header = 0;
+    unsigned char flags = 0;
     uint32_t rem_len = 0;
     int rc;
 
@@ -182,7 +152,7 @@ static int _serialize_connect_packet(unsigned char *buf, size_t buf_len, MQTTCon
     }
 
     // 报文固定头部第一个字节
-    mqtt_write_char(&ptr, header.byte);
+    mqtt_write_char(&ptr, header);
 
     // 报文固定头部剩余长度字段
     ptr += mqtt_write_packet_rem_len(ptr, rem_len);
@@ -197,22 +167,15 @@ static int _serialize_connect_packet(unsigned char *buf, size_t buf_len, MQTTCon
     }
 
     // 报文可变头部连接标识位
-    flags.all = 0;
-    flags.bits.cleansession = (options->clean_session) ? 1 : 0;
-
-    if (options->username != NULL) {
-        flags.bits.username = 1;
-    } else {
-        flags.bits.username = 0;
-    }
+    
+    flags |= (options->clean_session) ? MQTT_CONNECT_FLAG_CLEAN_SES : 0;
+    flags |= (options->username != NULL) ? MQTT_CONNECT_FLAG_USERNAME : 0;
 
 #if defined(AUTH_WITH_NOTLS) && defined(AUTH_MODE_KEY)
-	flags.bits.password = 1;
-#else
-    flags.bits.password = 0;
+	flags |= MQTT_CONNECT_FLAG_PASSWORD;
 #endif
     
-    mqtt_write_char(&ptr, flags.all);
+    mqtt_write_char(&ptr, flags);
 
     // 报文可变头部心跳周期/保持连接, 一个以秒为单位的时间间隔, 表示为一个16位的字
     mqtt_write_uint_16(&ptr, options->keep_alive_interval);
@@ -221,12 +184,12 @@ static int _serialize_connect_packet(unsigned char *buf, size_t buf_len, MQTTCon
     mqtt_write_utf8_string(&ptr, options->client_id);
 
     // 用户名
-    if (flags.bits.username && options->username != NULL) {
+    if ((flags & MQTT_CONNECT_FLAG_USERNAME) && options->username != NULL) {
         mqtt_write_utf8_string(&ptr, options->username);
         HAL_Free(options->username);
     }
 
-    if (flags.bits.password && options->password != NULL) {
+    if ((flags & MQTT_CONNECT_FLAG_PASSWORD) && options->password != NULL) {
     	mqtt_write_utf8_string(&ptr, options->password);
     	HAL_Free(options->password);
     }
@@ -251,12 +214,12 @@ static int _deserialize_connack_packet(uint8_t *sessionPresent, int *connack_rc,
     POINTER_SANITY_CHECK(connack_rc, QCLOUD_ERR_INVAL);
     POINTER_SANITY_CHECK(buf, QCLOUD_ERR_INVAL);
 
-    MQTTHeader header = {0};
+    unsigned char header, type = 0;
     unsigned char *curdata = buf;
     unsigned char *enddata = NULL;
     int rc;
     uint32_t decodedLen = 0, readBytesLen = 0;
-    MQTTConnackFlags flags = {0};
+    unsigned char flags = 0;
     unsigned char connack_rc_char;
 
     // CONNACK 头部大小是固定的2字节长度, 可变头部也是两个字节的长度, 无有效负载
@@ -265,8 +228,9 @@ static int _deserialize_connack_packet(uint8_t *sessionPresent, int *connack_rc,
     }
 
     // 读取固定头部第一个字节
-    header.byte = mqtt_read_char(&curdata);
-    if (CONNACK != header.bits.type) {
+    header = mqtt_read_char(&curdata);
+    type = (header&MQTT_HEADER_TYPE_MASK)>>MQTT_HEADER_TYPE_SHIFT;
+    if (CONNACK != type) {
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
     }
 
@@ -282,8 +246,8 @@ static int _deserialize_connack_packet(uint8_t *sessionPresent, int *connack_rc,
     }
 
     // 读取可变头部-连接确认标志 参考MQTT协议说明文档3.2.2.1小结
-    flags.all = mqtt_read_char(&curdata);
-    *sessionPresent = flags.bits.sessionpresent;
+    flags = mqtt_read_char(&curdata);
+    *sessionPresent = flags & MQTT_CONNACK_FLAG_SES_PRE;
 
     // 读取可变头部-连接返回码 参考MQTT协议说明文档3.2.2.3小结
     connack_rc_char = mqtt_read_char(&curdata);
@@ -449,8 +413,10 @@ int qcloud_iot_mqtt_disconnect(Qcloud_IoT_Client *pClient) {
     }
 
     // 1. 组disconnect包
+    HAL_MutexLock(pClient->lock_write_buf);
     rc = serialize_packet_with_zero_payload(pClient->write_buf, pClient->write_buf_size, DISCONNECT, &serialized_len);
     if (rc != QCLOUD_ERR_SUCCESS) {
+        HAL_MutexUnlock(pClient->lock_write_buf);
         IOT_FUNC_EXIT_RC(rc);
     }
 
@@ -461,9 +427,11 @@ int qcloud_iot_mqtt_disconnect(Qcloud_IoT_Client *pClient) {
     if (serialized_len > 0) {
         rc = send_mqtt_packet(pClient, serialized_len, &timer);
         if (rc != QCLOUD_ERR_SUCCESS) {
+            HAL_MutexUnlock(pClient->lock_write_buf);
             IOT_FUNC_EXIT_RC(rc);
         }
     }
+    HAL_MutexUnlock(pClient->lock_write_buf);
 
     // 3. 断开底层TCP连接, 并修改相关标识位
     pClient->network_stack.disconnect(&(pClient->network_stack));

@@ -70,8 +70,8 @@ uintptr_t HAL_TCP_Connect(const char *host, uint16_t port)
 
     Log_d("establish tcp connection with server(host=%s port=%s)", host, port_str);
 
-    if (getaddrinfo(host, port_str, &hints, &addr_list) != 0) {
-        perror("getaddrinfo error");
+    if (getaddrinfo(host, port_str, &hints, &addr_list) != 0) {       
+		Log_e("getaddrinfo error,errno:%s",strerror(errno));
         return 0;
     }
 
@@ -111,14 +111,14 @@ int HAL_TCP_Disconnect(uintptr_t fd)
 
     /* Shutdown both send and receive operations. */
     rc = shutdown((int) fd, 2);
-    if (0 != rc) {
-        perror("shutdown error");
+    if (0 != rc) {       
+		Log_e("shutdown error,errno:%s",strerror(errno));
         return -1;
     }
 
     rc = close((int) fd);
     if (0 != rc) {
-        perror("closesocket error");
+		Log_e("closesocket error,errno:%s",strerror(errno));
         return -1;
     }
 
@@ -158,6 +158,7 @@ int HAL_TCP_Write(uintptr_t fd, const unsigned char *buf, uint32_t len, uint32_t
                     continue;
                 }
             } else if (0 == ret) {
+                ret = QCLOUD_ERR_TCP_WRITE_TIMEOUT;
                 Log_e("select-write timeout %d", (int)fd);
                 break;
             } else {
@@ -166,12 +167,13 @@ int HAL_TCP_Write(uintptr_t fd, const unsigned char *buf, uint32_t len, uint32_t
                     continue;
                 }
 
-                perror("select-write fail");
+                ret = QCLOUD_ERR_TCP_WRITE_FAIL;               
+				Log_e("select-write fail,errno:%s",strerror(errno));
                 break;
             }
         }
         else {
-        	ret = QCLOUD_ERR_SSL_WRITE_TIMEOUT;
+        	ret = QCLOUD_ERR_TCP_WRITE_TIMEOUT;
         }
 
         if (ret > 0) {
@@ -179,16 +181,15 @@ int HAL_TCP_Write(uintptr_t fd, const unsigned char *buf, uint32_t len, uint32_t
             if (ret > 0) {
                 len_sent += ret;
             } else if (0 == ret) {
-                Log_e("No data be sent");
+                Log_e("No data be sent. Should NOT arrive");
             } else {
                 if (EINTR == errno) {
                     Log_e("EINTR be caught");
                     continue;
                 }
 
-                ret = QCLOUD_ERR_SSL_WRITE;
-
-                perror("send fail");
+                ret = QCLOUD_ERR_TCP_WRITE_FAIL;                
+				Log_e("send fail,errno:%s",strerror(errno));
                 break;
             }
         }
@@ -215,7 +216,7 @@ int HAL_TCP_Read(uintptr_t fd, unsigned char *buf, uint32_t len, uint32_t timeou
     do {
         t_left = _linux_time_left(t_end, _linux_get_time_ms());
         if (0 == t_left) {
-        	err_code = QCLOUD_ERR_MQTT_NOTHING_TO_READ;
+        	err_code = QCLOUD_ERR_TCP_READ_TIMEOUT;
             break;
         }
 
@@ -231,29 +232,32 @@ int HAL_TCP_Read(uintptr_t fd, unsigned char *buf, uint32_t len, uint32_t timeou
             if (ret > 0) {
                 len_recv += ret;
             } else if (0 == ret) {
-                perror("connection is closed");
-                err_code = -1;
+				Log_e("connection is closed,errno:%s",strerror(errno));
+                err_code = QCLOUD_ERR_TCP_PEER_SHUTDOWN;
                 break;
             } else {
                 if (EINTR == errno) {
                     Log_e("EINTR be caught");
                     continue;
-                }
-                perror("recv fail");
-                err_code = -2;
+                }              
+				Log_e("recv fail,errno:%s",strerror(errno));
+                err_code = QCLOUD_ERR_TCP_READ_FAIL;
                 break;
             }
         } else if (0 == ret) {
-            err_code = QCLOUD_ERR_MQTT_NOTHING_TO_READ;
+            err_code = QCLOUD_ERR_TCP_READ_TIMEOUT;
             break;
         } else {
-            perror("select-recv fail");
-            err_code = -2;
+			Log_e("select-recv fail,errno:%s",strerror(errno));
+            err_code = QCLOUD_ERR_TCP_READ_FAIL;
             break;
         }
     } while ((len_recv < len));
 
     *read_len = (size_t)len_recv;
 
-    return (0 != len_recv) ? 0 : err_code;
+    if (err_code == QCLOUD_ERR_TCP_READ_TIMEOUT && len_recv == 0)
+        err_code = QCLOUD_ERR_TCP_NOTHING_TO_READ;
+
+    return (len == len_recv) ? QCLOUD_ERR_SUCCESS : err_code;
 }

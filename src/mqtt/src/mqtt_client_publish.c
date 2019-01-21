@@ -147,7 +147,7 @@ int deserialize_publish_packet(uint8_t *dup, QoS *qos, uint8_t *retained, uint16
     POINTER_SANITY_CHECK(retained, QCLOUD_ERR_INVAL);
     POINTER_SANITY_CHECK(packet_id, QCLOUD_ERR_INVAL);
 
-    MQTTHeader header = {0};
+    unsigned char header, type = 0;
     unsigned char *curdata = buf;
     unsigned char *enddata = NULL;
     int rc;
@@ -164,14 +164,15 @@ int deserialize_publish_packet(uint8_t *dup, QoS *qos, uint8_t *retained, uint16
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_BUF_TOO_SHORT);
     }
 
-    header.byte = mqtt_read_char(&curdata);
-    if (PUBLISH != header.bits.type) {
+    header = mqtt_read_char(&curdata);
+    type = (header&MQTT_HEADER_TYPE_MASK)>>MQTT_HEADER_TYPE_SHIFT;
+    *dup  = (header&MQTT_HEADER_DUP_MASK)>>MQTT_HEADER_DUP_SHIFT;
+    *qos  = (QoS)((header&MQTT_HEADER_QOS_MASK)>>MQTT_HEADER_QOS_SHIFT);
+    *retained  = header&MQTT_HEADER_RETAIN_MASK;
+        
+    if (PUBLISH != type) {
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
     }
-
-    *dup = header.bits.dup;
-    *qos = (QoS) header.bits.qos;
-    *retained = header.bits.retain;
 
     /* read remaining length */
     rc = mqtt_read_packet_rem_len_form_buf(curdata, &decodedLen, &readBytesLen);
@@ -212,7 +213,7 @@ int serialize_pub_ack_packet(unsigned char *buf, size_t buf_len, MessageTypes pa
     POINTER_SANITY_CHECK(buf, QCLOUD_ERR_INVAL);
     POINTER_SANITY_CHECK(serialized_len, QCLOUD_ERR_INVAL);
 
-    MQTTHeader header = {0};
+    unsigned char header = 0;
     unsigned char *ptr = buf;
     QoS requestQoS = (PUBREL == packet_type) ? QOS1 : QOS0;  // 详见 MQTT协议说明 3.6.1小结
     int rc = mqtt_init_packet_header(&header, packet_type, requestQoS, dup, 0);
@@ -226,7 +227,7 @@ int serialize_pub_ack_packet(unsigned char *buf, size_t buf_len, MessageTypes pa
     if (QCLOUD_ERR_SUCCESS != rc) {
         IOT_FUNC_EXIT_RC(rc);
     }
-    mqtt_write_char(&ptr, header.byte); /* write header */
+    mqtt_write_char(&ptr, header); /* write header */
 
     ptr += mqtt_write_packet_rem_len(ptr, 2); /* write remaining length */
     mqtt_write_uint_16(&ptr, packet_id);
@@ -259,7 +260,7 @@ static int _serialize_publish_packet(unsigned char *buf, size_t buf_len, uint8_t
     POINTER_SANITY_CHECK(payload, QCLOUD_ERR_INVAL);
 
     unsigned char *ptr = buf;
-    MQTTHeader header = {0};
+    unsigned char header = 0;
     uint32_t rem_len = 0;
     int rc;
 
@@ -273,7 +274,7 @@ static int _serialize_publish_packet(unsigned char *buf, size_t buf_len, uint8_t
         IOT_FUNC_EXIT_RC(rc);
     }
 
-    mqtt_write_char(&ptr, header.byte); /* write header */
+    mqtt_write_char(&ptr, header); /* write header */
 
     ptr += mqtt_write_packet_rem_len(ptr, rem_len); /* write remaining length */;
 
@@ -309,6 +310,11 @@ int qcloud_iot_mqtt_publish(Qcloud_IoT_Client *pClient, char *topicName, Publish
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_MAX_TOPIC_LENGTH);
     }
 
+    if (pParams->qos == QOS2) {
+        Log_e("QoS2 is not supported currently");
+        IOT_FUNC_EXIT_RC(QCLOUD_ERR_MQTT_QOS_NOT_SUPPORT);
+    }
+
     if (!get_client_conn_state(pClient)) {
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_MQTT_NO_CONN);
     }
@@ -317,7 +323,7 @@ int qcloud_iot_mqtt_publish(Qcloud_IoT_Client *pClient, char *topicName, Publish
     countdown_ms(&timer, pClient->command_timeout_ms);
 
     HAL_MutexLock(pClient->lock_write_buf);
-    if (pParams->qos == QOS1 || pParams->qos == QOS2) {
+    if (pParams->qos == QOS1) {
         pParams->id = get_next_packet_id(pClient);
         if (IOT_Log_Get_Level() <= DEBUG) {
         	Log_d("publish topic seq=%d|topicName=%s|payload=%s", pParams->id, topicName, (char *)pParams->payload);

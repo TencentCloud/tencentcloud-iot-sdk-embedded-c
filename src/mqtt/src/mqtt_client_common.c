@@ -237,87 +237,86 @@ void mqtt_write_utf8_string(unsigned char **pptr, const char *string) {
 }
 
 /**
- * Initialize the MQTTHeader structure. Used to ensure that Header bits are
- * always initialized using the proper mappings. No Endianness issues here since
- * the individual fields are all less than a byte. Also generates no warnings since
- * all fields are initialized using hex constants
+ * Initialize the MQTT Header fixed byte. Used to ensure that Header bits are
  */
-int mqtt_init_packet_header(MQTTHeader *header, MessageTypes message_type,
-                            QoS qos, uint8_t dup, uint8_t retained)
+int mqtt_init_packet_header(unsigned char *header, MessageTypes message_type,
+                            QoS Qos, uint8_t dup, uint8_t retained)
 {
     POINTER_SANITY_CHECK(header, QCLOUD_ERR_INVAL);
+    unsigned char type, qos;
 
-    /* Set all bits to zero */
-    header->byte = 0;
     switch (message_type) {
         case RESERVED:
             /* Should never happen */
             return QCLOUD_ERR_MQTT_UNKNOWN;
         case CONNECT:
-            header->bits.type = 0x01;
+            type = 0x01;
             break;
         case CONNACK:
-            header->bits.type = 0x02;
+            type = 0x02;
             break;
         case PUBLISH:
-            header->bits.type = 0x03;
+            type = 0x03;
             break;
         case PUBACK:
-            header->bits.type = 0x04;
+            type = 0x04;
             break;
         case PUBREC:
-            header->bits.type = 0x05;
+            type = 0x05;
             break;
         case PUBREL:
-            header->bits.type = 0x06;
+            type = 0x06;
             break;
         case PUBCOMP:
-            header->bits.type = 0x07;
+            type = 0x07;
             break;
         case SUBSCRIBE:
-            header->bits.type = 0x08;
+            type = 0x08;
             break;
         case SUBACK:
-            header->bits.type = 0x09;
+            type = 0x09;
             break;
         case UNSUBSCRIBE:
-            header->bits.type = 0x0A;
+            type = 0x0A;
             break;
         case UNSUBACK:
-            header->bits.type = 0x0B;
+            type = 0x0B;
             break;
         case PINGREQ:
-            header->bits.type = 0x0C;
+            type = 0x0C;
             break;
         case PINGRESP:
-            header->bits.type = 0x0D;
+            type = 0x0D;
             break;
         case DISCONNECT:
-            header->bits.type = 0x0E;
+            type = 0x0E;
             break;
         default:
             /* Should never happen */
             return QCLOUD_ERR_MQTT_UNKNOWN;
     }
 
-    header->bits.dup = (1 == dup) ? 0x01 : 0x00;
-    switch (qos) {
+    switch (Qos) {
         case QOS0:
-            header->bits.qos = 0x00;
+            qos = 0x00;
             break;
         case QOS1:
-            header->bits.qos = 0x01;
+            qos = 0x01;
             break;
         case QOS2:
-            header->bits.qos = 0x02;
+            qos = 0x02;
             break;
         default:
             /* Using QOS0 as default */
-            header->bits.qos = 0x00;
+            qos = 0x00;
             break;
     }
 
-    header->bits.retain = (1 == retained) ? 0x01 : 0x00;
+    /* Generate the final protocol header by using bitwise operator */
+    *header  = ((type<<MQTT_HEADER_TYPE_SHIFT)&MQTT_HEADER_TYPE_MASK)
+                | ((dup<<MQTT_HEADER_DUP_SHIFT)&MQTT_HEADER_DUP_MASK)
+                | ((qos<<MQTT_HEADER_QOS_SHIFT)&MQTT_HEADER_QOS_MASK)
+                | (retained&MQTT_HEADER_RETAIN_MASK);
 
     return QCLOUD_ERR_SUCCESS;
 }
@@ -340,7 +339,7 @@ int deserialize_ack_packet(uint8_t *packet_type, uint8_t *dup, uint16_t *packet_
     POINTER_SANITY_CHECK(buf, QCLOUD_ERR_INVAL);
 
     int rc;
-    MQTTHeader header = {0};
+    unsigned char header = 0;
     unsigned char *curdata = buf;
     unsigned char *enddata = NULL;
     uint32_t decodedLen = 0, readBytesLen = 0;
@@ -350,9 +349,9 @@ int deserialize_ack_packet(uint8_t *packet_type, uint8_t *dup, uint16_t *packet_
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_BUF_TOO_SHORT);
     }
 
-    header.byte = mqtt_read_char(&curdata);
-    *dup = header.bits.dup;
-    *packet_type = header.bits.type;
+    header = mqtt_read_char(&curdata);        
+    *packet_type = ((header&MQTT_HEADER_TYPE_MASK)>>MQTT_HEADER_TYPE_SHIFT);
+    *dup  = ((header&MQTT_HEADER_DUP_MASK)>>MQTT_HEADER_DUP_SHIFT);
 
     /* read remaining length */
     rc = mqtt_read_packet_rem_len_form_buf(curdata, &decodedLen, &readBytesLen);
@@ -399,7 +398,7 @@ int deserialize_suback_packet(uint16_t *packet_id, uint32_t max_count, uint32_t 
     POINTER_SANITY_CHECK(count, QCLOUD_ERR_INVAL);
     POINTER_SANITY_CHECK(grantedQoSs, QCLOUD_ERR_INVAL);
 
-    MQTTHeader header = {0};
+    unsigned char header, type = 0;
     unsigned char *curdata = buf;
     unsigned char *enddata = NULL;
     int decodeRc;
@@ -411,8 +410,9 @@ int deserialize_suback_packet(uint16_t *packet_id, uint32_t max_count, uint32_t 
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_BUF_TOO_SHORT);
     }
     // 读取报文固定头部的第一个字节
-    header.byte = mqtt_read_char(&curdata);
-    if (header.bits.type != SUBACK) {
+    header = mqtt_read_char(&curdata);
+    type = (header&MQTT_HEADER_TYPE_MASK)>>MQTT_HEADER_TYPE_SHIFT;
+    if (type != SUBACK) {
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
     }
 
@@ -483,7 +483,7 @@ int serialize_packet_with_zero_payload(unsigned char *buf, size_t buf_len, Messa
     POINTER_SANITY_CHECK(buf, QCLOUD_ERR_INVAL);
     POINTER_SANITY_CHECK(serialized_len, QCLOUD_ERR_INVAL);
 
-    MQTTHeader header = {0};
+    unsigned char header = 0;
     unsigned char *ptr = buf;
     int rc;
 
@@ -498,7 +498,7 @@ int serialize_packet_with_zero_payload(unsigned char *buf, size_t buf_len, Messa
     }
 
     /* write header */
-    mqtt_write_char(&ptr, header.byte);
+    mqtt_write_char(&ptr, header);
 
     /* write remaining length */
     ptr += mqtt_write_packet_rem_len(ptr, 0);
@@ -601,15 +601,19 @@ static int _read_mqtt_packet(Qcloud_IoT_Client *pClient, Timer *timer, uint8_t *
     POINTER_SANITY_CHECK(pClient, QCLOUD_ERR_INVAL);
     POINTER_SANITY_CHECK(timer, QCLOUD_ERR_INVAL);
 
-    MQTTHeader header = {0};
     uint32_t len = 0;
     uint32_t rem_len = 0;
     size_t read_len = 0;
     int rc;
+	int timer_left_ms = left_ms(timer);
+	
+	 if (timer_left_ms <= 0) {
+        timer_left_ms = 1;
+    }
 
     // 1. 读取报文固定头部的第一个字节
-    rc = pClient->network_stack.read(&(pClient->network_stack), pClient->read_buf, 1, (uint32_t)left_ms(timer), &read_len);
-    if (rc == QCLOUD_ERR_SSL_NOTHING_TO_READ) {
+    rc = pClient->network_stack.read(&(pClient->network_stack), pClient->read_buf, 1, timer_left_ms, &read_len);
+    if (rc == QCLOUD_ERR_SSL_NOTHING_TO_READ || rc == QCLOUD_ERR_TCP_NOTHING_TO_READ) {
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_MQTT_NOTHING_TO_READ);
     } else if (rc != QCLOUD_ERR_SUCCESS) {
         IOT_FUNC_EXIT_RC(rc);
@@ -618,7 +622,13 @@ static int _read_mqtt_packet(Qcloud_IoT_Client *pClient, Timer *timer, uint8_t *
     len = 1;
 
     // 2. 读取报文固定头部剩余长度部分
-    rc = _decode_packet_rem_len_with_net_read(pClient, &rem_len, (uint32_t) left_ms(timer));
+	timer_left_ms = left_ms(timer);
+    if (timer_left_ms <= 0) {
+        timer_left_ms = 1;
+    }
+    timer_left_ms += QCLOUD_IOT_MQTT_MAX_REMAIN_WAIT_MS; //确保一包MQTT报文接收完
+	
+    rc = _decode_packet_rem_len_with_net_read(pClient, &rem_len, timer_left_ms);
     if (QCLOUD_ERR_SUCCESS != rc) {
         IOT_FUNC_EXIT_RC(rc);
     }
@@ -629,9 +639,15 @@ static int _read_mqtt_packet(Qcloud_IoT_Client *pClient, Timer *timer, uint8_t *
         size_t bytes_to_be_read;
         int32_t ret_val = 0;
 
+		timer_left_ms = left_ms(timer);
+        if (timer_left_ms <= 0) {
+            timer_left_ms = 1;
+        }
+        timer_left_ms += QCLOUD_IOT_MQTT_MAX_REMAIN_WAIT_MS;
+
         bytes_to_be_read = pClient->read_buf_size;
         do {
-            ret_val = pClient->network_stack.read(&(pClient->network_stack), pClient->read_buf, bytes_to_be_read, left_ms(timer),
+            ret_val = pClient->network_stack.read(&(pClient->network_stack), pClient->read_buf, bytes_to_be_read, timer_left_ms,
                                                &read_len);
             if (ret_val == QCLOUD_ERR_SUCCESS) {
                 total_bytes_read += read_len;
@@ -651,21 +667,33 @@ static int _read_mqtt_packet(Qcloud_IoT_Client *pClient, Timer *timer, uint8_t *
 
     // 3. 读取报文的剩余部分数据
     if (rem_len > 0 && ((len + rem_len) > pClient->read_buf_size)) {
-    	pClient->network_stack.read(&(pClient->network_stack), pClient->read_buf, rem_len, left_ms(timer), &read_len);
+		
+		timer_left_ms = left_ms(timer);
+        if (timer_left_ms <= 0) {
+            timer_left_ms = 1;
+        }
+        timer_left_ms += QCLOUD_IOT_MQTT_MAX_REMAIN_WAIT_MS;
+	
+    	pClient->network_stack.read(&(pClient->network_stack), pClient->read_buf, rem_len, timer_left_ms, &read_len);
     	IOT_FUNC_EXIT_RC(QCLOUD_ERR_BUF_TOO_SHORT);
     }
     else {
         if (rem_len > 0) {
-        	rc = pClient->network_stack.read(&(pClient->network_stack), pClient->read_buf + len, rem_len, left_ms(timer), &read_len);
+
+			timer_left_ms = left_ms(timer);
+	        if (timer_left_ms <= 0) {
+	            timer_left_ms = 1;
+	        }
+	        timer_left_ms += QCLOUD_IOT_MQTT_MAX_REMAIN_WAIT_MS;
+        	rc = pClient->network_stack.read(&(pClient->network_stack), pClient->read_buf + len, rem_len, timer_left_ms, &read_len);
         	if (rc != QCLOUD_ERR_SUCCESS) {
 				IOT_FUNC_EXIT_RC(rc);
         	}
         }
     }
 
-    header.byte = pClient->read_buf[0];
-    *packet_type = header.bits.type;
-
+    *packet_type = (pClient->read_buf[0]&MQTT_HEADER_TYPE_MASK)>>MQTT_HEADER_TYPE_SHIFT;
+    
     IOT_FUNC_EXIT_RC(QCLOUD_ERR_SUCCESS);
 }
 
@@ -1154,7 +1182,7 @@ static int _handle_publish_packet(Qcloud_IoT_Client *pClient, Timer *timer) {
 #endif
     }
     
-
+    HAL_MutexLock(pClient->lock_write_buf);
     if (QOS1 == msg.qos) {
         rc = serialize_pub_ack_packet(pClient->write_buf, pClient->write_buf_size, PUBACK, 0, msg.id, &len);
     } else { /* Message is not QOS0 or 1 means only option left is QOS2 */
@@ -1162,14 +1190,17 @@ static int _handle_publish_packet(Qcloud_IoT_Client *pClient, Timer *timer) {
     }
 
     if (QCLOUD_ERR_SUCCESS != rc) {
+        HAL_MutexUnlock(pClient->lock_write_buf);
         IOT_FUNC_EXIT_RC(rc);
     }
 
     rc = send_mqtt_packet(pClient, len, timer);
     if (QCLOUD_ERR_SUCCESS != rc) {
+        HAL_MutexUnlock(pClient->lock_write_buf);
         IOT_FUNC_EXIT_RC(rc);
     }
 
+    HAL_MutexUnlock(pClient->lock_write_buf);
     IOT_FUNC_EXIT_RC(QCLOUD_ERR_SUCCESS);
 }
 
@@ -1192,18 +1223,22 @@ static int _handle_pubrec_packet(Qcloud_IoT_Client *pClient, Timer *timer) {
         IOT_FUNC_EXIT_RC(rc);
     }
 
+    HAL_MutexLock(pClient->lock_write_buf);
     rc = serialize_pub_ack_packet(pClient->write_buf, pClient->write_buf_size, PUBREL, 0, packet_id, &len);
     if (QCLOUD_ERR_SUCCESS != rc) {
+        HAL_MutexUnlock(pClient->lock_write_buf);
         IOT_FUNC_EXIT_RC(rc);
     }
 
     /* send the PUBREL packet */
     rc = send_mqtt_packet(pClient, len, timer);
     if (QCLOUD_ERR_SUCCESS != rc) {
+        HAL_MutexUnlock(pClient->lock_write_buf);
         /* there was a problem */
         IOT_FUNC_EXIT_RC(rc);
     }
 
+    HAL_MutexUnlock(pClient->lock_write_buf);
     IOT_FUNC_EXIT_RC(QCLOUD_ERR_SUCCESS);
 }
 
@@ -1216,8 +1251,7 @@ static void _handle_pingresp_packet(Qcloud_IoT_Client *pClient) {
     IOT_FUNC_ENTRY;
 
     HAL_MutexLock(pClient->lock_generic);
-    pClient->is_ping_outstanding = 0;
-    countdown(&pClient->ping_timer, pClient->options.keep_alive_interval);
+    pClient->is_ping_outstanding = 0;    
     HAL_MutexUnlock(pClient->lock_generic);
 
     IOT_FUNC_EXIT;
@@ -1241,6 +1275,10 @@ int cycle_for_read(Qcloud_IoT_Client *pClient, Timer *timer, uint8_t *packet_typ
         IOT_FUNC_EXIT_RC(rc);
     }
 
+    HAL_MutexLock(pClient->lock_generic);    
+    countdown(&pClient->ping_timer, pClient->options.keep_alive_interval);
+    HAL_MutexUnlock(pClient->lock_generic);
+    
     switch (*packet_type) {
         case CONNACK:
             break;
@@ -1261,6 +1299,10 @@ int cycle_for_read(Qcloud_IoT_Client *pClient, Timer *timer, uint8_t *packet_typ
             rc = _handle_pubrec_packet(pClient, timer);
             break;
         }
+        case PUBREL: {
+            Log_e("Packet type PUBREL is currently NOT handled!");
+            break;
+        }
         case PUBCOMP:
             break;
         case PINGRESP: {
@@ -1270,6 +1312,7 @@ int cycle_for_read(Qcloud_IoT_Client *pClient, Timer *timer, uint8_t *packet_typ
         default: {
             /* Either unknown packet type or Failure occurred
              * Should not happen */
+             
             IOT_FUNC_EXIT_RC(QCLOUD_ERR_RX_MESSAGE_INVAL);
             break;
         }
@@ -1292,14 +1335,8 @@ int wait_for_read(Qcloud_IoT_Client *pClient, uint8_t packet_type, Timer *timer,
 			break;
 		}
 		rc = cycle_for_read(pClient, timer, &read_packet_type, qos);
-	} while (QCLOUD_ERR_SSL_READ_TIMEOUT != rc && QCLOUD_ERR_SSL_READ != rc && read_packet_type != packet_type);
+	} while (QCLOUD_ERR_SUCCESS == rc && read_packet_type != packet_type );
 
-	if (QCLOUD_ERR_MQTT_REQUEST_TIMEOUT != rc
-		&& QCLOUD_ERR_SSL_READ_TIMEOUT != rc && QCLOUD_ERR_SSL_READ != rc && read_packet_type != packet_type) {
-		IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
-	}
-
-	/* Something failed or we didn't receive the expected packet, return error code */
 	IOT_FUNC_EXIT_RC(rc);
 }
 

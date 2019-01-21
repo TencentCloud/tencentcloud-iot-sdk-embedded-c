@@ -35,6 +35,12 @@ $(call CompLib_Map, NBIOT_COMM_ENABLED, \
 	src/nbiot/src \
 )
 
+$(call CompLib_Map, GATEWAY_ENABLED, \
+	src/gateway/src \
+)
+
+
+
 IOTSDK_SRC_FILES := \
 
 $(foreach v, \
@@ -104,6 +110,11 @@ $(call CompInc_Map, OTA_COMM_ENABLED, \
 $(call CompInc_Map, NBIOT_COMM_ENABLED, \
 	src/nbiot/include \
 )
+
+$(call CompInc_Map, GATEWAY_ENABLED, \
+	src/gateway/include \
+)
+
     
 IOTSDK_INCLUDE_FILES := \
 

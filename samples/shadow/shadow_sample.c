@@ -19,7 +19,7 @@
 #include <string.h>
 #include <limits.h>
 #include <unistd.h>
-
+#include <signal.h>
 #include "qcloud_iot_export.h"
 
 /* 产品名称, 与云端同步设备状态时需要  */
@@ -157,6 +157,9 @@ int demo_device_shadow()
 int main()
 {
 	IOT_Log_Set_Level(DEBUG);
+    
+    // to avoid process crash when writing to a broken socket
+    signal(SIGPIPE, SIG_IGN);
 
 	demo_device_shadow();
 

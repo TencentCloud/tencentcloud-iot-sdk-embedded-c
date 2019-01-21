@@ -60,7 +60,7 @@ static int _serialize_unsubscribe_packet(unsigned char *buf, size_t buf_len,
     POINTER_SANITY_CHECK(serialized_len, QCLOUD_ERR_INVAL);
 
     unsigned char *ptr = buf;
-    MQTTHeader header = {0};
+    unsigned char header = 0;
     uint32_t rem_len = 0;
     uint32_t i = 0;
     int rc;
@@ -74,7 +74,7 @@ static int _serialize_unsubscribe_packet(unsigned char *buf, size_t buf_len,
     if (QCLOUD_ERR_SUCCESS != rc) {
         IOT_FUNC_EXIT_RC(rc);
     }
-    mqtt_write_char(&ptr, header.byte); /* write header */
+    mqtt_write_char(&ptr, header); /* write header */
 
     ptr += mqtt_write_packet_rem_len(ptr, rem_len); /* write remaining length */
 

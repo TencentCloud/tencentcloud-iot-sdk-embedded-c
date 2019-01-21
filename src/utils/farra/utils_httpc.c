@@ -367,11 +367,11 @@ static int _http_client_recv(HTTPClient *client, char *buf, int min_len, int max
 
     rc = client->network_stack.read(&client->network_stack, (unsigned char *)buf, max_len, (uint32_t)left_ms(&timer), (size_t *)p_read_len);
         
-    if (rc == QCLOUD_ERR_SSL_NOTHING_TO_READ) {
+    if (rc == QCLOUD_ERR_SSL_NOTHING_TO_READ || rc == QCLOUD_ERR_TCP_NOTHING_TO_READ) {
         Log_d("HTTP read already complete");
         rc = QCLOUD_ERR_SUCCESS;
     }
-    else if (rc == QCLOUD_ERR_SSL_READ_TIMEOUT) {
+    else if (rc == QCLOUD_ERR_SSL_READ_TIMEOUT || rc == QCLOUD_ERR_TCP_READ_TIMEOUT) {
         if (*p_read_len == client_data->retrieve_len || client_data->retrieve_len == 0)
             rc = QCLOUD_ERR_SUCCESS;
     }

@@ -52,7 +52,7 @@ static void _reconnect_callback(Qcloud_IoT_Client* pClient)
 static int _handle_disconnect(Qcloud_IoT_Client *pClient) {
     IOT_FUNC_ENTRY;
     int rc;
-
+    
     if (0 == get_client_conn_state(pClient)) {
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_MQTT_NO_CONN);
     }
@@ -89,7 +89,7 @@ static int _handle_reconnect(Qcloud_IoT_Client *pClient) {
     }
 
     if (NULL != pClient->network_stack.is_connected) {
-        isPhysicalLayerConnected = (int8_t) pClient->network_stack.is_connected(&(pClient->network_stack)); // always return 1
+        isPhysicalLayerConnected = (int8_t) pClient->network_stack.is_connected(&(pClient->network_stack)); // always return 1        
     }
 
     if (isPhysicalLayerConnected) {
@@ -144,19 +144,25 @@ static int _mqtt_keep_alive(Qcloud_IoT_Client *pClient) {
     /* there is no ping outstanding - send one */
     InitTimer(&timer);
     countdown_ms(&timer, pClient->command_timeout_ms);
+    HAL_MutexLock(pClient->lock_write_buf);
     rc = serialize_packet_with_zero_payload(pClient->write_buf, pClient->write_buf_size, PINGREQ, &serialized_len);
     if (QCLOUD_ERR_SUCCESS != rc) {
+        HAL_MutexUnlock(pClient->lock_write_buf);
         IOT_FUNC_EXIT_RC(rc);
     }
 
     /* send the ping packet */
     rc = send_mqtt_packet(pClient, serialized_len, &timer);
     if (QCLOUD_ERR_SUCCESS != rc) {
-        //If sending a PING fails we can no longer determine if we are connected.  In this case we decide we are disconnected and begin reconnection attempts
+        HAL_MutexUnlock(pClient->lock_write_buf);
+        //Reaching here means we haven't received any MQTT packet for a long time (keep_alive_interval)
+        //If sending a PING fails, propably the connection is not OK and we decide to disconnect and begin reconnection attempts
+        Log_e("Fail to send PING request. Something wrong with the connection.");
         rc = _handle_disconnect(pClient);
         IOT_FUNC_EXIT_RC(rc);
     }
-
+    HAL_MutexUnlock(pClient->lock_write_buf);
+    
     HAL_MutexLock(pClient->lock_generic);
     pClient->is_ping_outstanding = 1;
     /* start a timer to wait for PINGRESP from server */
@@ -211,13 +217,11 @@ int qcloud_iot_mqtt_yield(Qcloud_IoT_Client *pClient, uint32_t timeout_ms) {
             qcloud_iot_mqtt_sub_info_proc(pClient);
 
             rc = _mqtt_keep_alive(pClient);
-        } 
-        else if (rc == QCLOUD_ERR_SSL_READ || rc == QCLOUD_ERR_SSL_READ_TIMEOUT) {
-            rc = _handle_disconnect(pClient);
-        }
-        else {
-        	Log_e("fault error in mqtt read buffer, errCode: %d", rc);
-        	return rc;
+        }          
+        else if (rc == QCLOUD_ERR_SSL_READ_TIMEOUT || rc == QCLOUD_ERR_SSL_READ ||
+                 rc == QCLOUD_ERR_TCP_PEER_SHUTDOWN || rc == QCLOUD_ERR_TCP_READ_FAIL){
+        	Log_e("Failed in network read with errCode: %d. Disconnect and reconnect...", rc);
+        	rc = _handle_disconnect(pClient);
         }
 
         if (rc == QCLOUD_ERR_MQTT_NO_CONN) {

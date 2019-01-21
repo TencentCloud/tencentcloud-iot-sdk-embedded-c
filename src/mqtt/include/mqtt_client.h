@@ -84,27 +84,18 @@ typedef enum {
 } ConnStatus;
 
 
-/**
- * Bitfields for the MQTT header byte.
+/** 
+ * MQTT byte 1: fixed header
+ * bits  |7654: Message Type  | 3:DUP flag |  21:QoS level | 0:RETAIN |
  */
-typedef union {
-	unsigned char byte;	                /**< the whole byte */
-#if defined(REVERSED)
-	struct {
-		unsigned int type : 4;			/**< message type nibble */
-		unsigned int dup : 1;				/**< DUP flag bit */
-		unsigned int qos : 2;				/**< QoS value, 0, 1 or 2 */
-		unsigned int retain : 1;		/**< retained flag bit */
-	} bits;
-#else
-	struct {
-		unsigned int retain : 1;		/**< retained flag bit */
-		unsigned int qos : 2;				/**< QoS value, 0, 1 or 2 */
-		unsigned int dup : 1;				/**< DUP flag bit */
-		unsigned int type : 4;			/**< message type nibble */
-	} bits;
-#endif
-} MQTTHeader;
+#define MQTT_HEADER_TYPE_SHIFT          0x04
+#define MQTT_HEADER_TYPE_MASK           0xF0
+#define MQTT_HEADER_DUP_SHIFT           0x03
+#define MQTT_HEADER_DUP_MASK            0x08
+#define MQTT_HEADER_QOS_SHIFT           0x01
+#define MQTT_HEADER_QOS_MASK            0x06
+#define MQTT_HEADER_RETAIN_MASK	        0x01
+
 
 /**
  * @brief MQTT 遗嘱消息参数结构体定义
@@ -394,7 +385,7 @@ void get_next_conn_id(MQTTConnectParams *options);
  * @param retained
  * @return
  */
-int mqtt_init_packet_header(MQTTHeader *header, MessageTypes message_type, QoS qos, uint8_t dup, uint8_t retained);
+int mqtt_init_packet_header(unsigned char *header, MessageTypes message_type, QoS qos, uint8_t dup, uint8_t retained);
 
 /**
  * @brief 接收服务端消息

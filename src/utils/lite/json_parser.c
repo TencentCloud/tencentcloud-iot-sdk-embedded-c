@@ -90,7 +90,7 @@ char *json_get_next_object(int type, char *str, char **key, int *key_len,
             iValueType = JSARRAY;
             p_cValue = p_cPos++;
             break;
-        } else if (*p_cPos >= '0' && *p_cPos <= '9') {
+        } else if ((*p_cPos == '-') || (*p_cPos >= '0' && *p_cPos <= '9')) {
             iValueType = JSNUMBER;
             p_cValue = p_cPos++;
             break;
