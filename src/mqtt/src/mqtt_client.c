@@ -61,6 +61,7 @@ void* IOT_MQTT_Construct(MQTTInitParams *pParams)
 	STRING_PTR_SANITY_CHECK(pParams->product_id, NULL);
 	STRING_PTR_SANITY_CHECK(pParams->device_name, NULL);
 
+    Log_i("SDK version: %s", QCLOUD_IOT_DEVICE_SDK_VERSION);
     iot_device_info_init();
 	if (iot_device_info_set(pParams->product_id, pParams->device_name) != QCLOUD_ERR_SUCCESS)
     {

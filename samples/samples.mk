@@ -21,6 +21,18 @@ mqtt_sample:
 	mv door_$@ $(FINAL_DIR)/bin && \
 	mv $@ $(FINAL_DIR)/bin
 
+ifneq (,$(filter -DMULTITHREAD_TEST_ENABLED,$(CFLAGS)))
+multi_thread_mqtt_sample:
+	$(eval CFLAGS := $(filter-out $(IOTSDK_INCLUDE_FILES),$(CFLAGS)) \
+		-I$(TOP_DIR)/src/sdk-impl -I$(TOP_DIR)/src/sdk-impl/exports -pthread)
+
+	$(TOP_Q) \
+	$(PLATFORM_CC) $(CFLAGS) $(SAMPLE_DIR)/mqtt/$@.c $(LDFLAGS) -o $@
+
+	$(TOP_Q) \
+	mv $@ $(FINAL_DIR)/bin
+endif
+
 ifneq (,$(filter -DOTA_COMM_ENABLED,$(CFLAGS)))
 ifneq (,$(filter -DOTA_MQTT_CHANNEL,$(CFLAGS)))
 ota_mqtt_sample:

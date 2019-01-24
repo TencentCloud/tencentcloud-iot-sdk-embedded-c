@@ -23,49 +23,35 @@
 #include "qcloud_iot_export.h"
 
 
-#ifdef AUTH_MODE_CERT
-/* 产品名称, 与云端同步设备状态时需要  */
-#define QCLOUD_IOT_MY_PRODUCT_ID            "YOUR_GATE_WAY_PRODUCT_ID"
-/* 设备名称, 与云端同步设备状态时需要 */
-#define QCLOUD_IOT_MY_DEVICE_NAME           "YOUR_GATE_WAY_DEVICE_NAME"
-
-/* 客户端证书文件名  非对称加密使用*/
-#define QCLOUD_IOT_CERT_FILENAME		    "YOUR_GATE_WAY_cert.crt"
-/* 客户端私钥文件名 非对称加密使用*/
-#define QCLOUD_IOT_KEY_FILENAME 		    "YOUR_GATE_WAY_private.key"
-
-static char sg_cert_file[PATH_MAX + 1]; 	 //客户端证书全路径
-static char sg_key_file[PATH_MAX + 1];		 //客户端密钥全路径
-
-
-#else
-/* 产品名称, 与云端同步设备状态时需要  */
-#define QCLOUD_IOT_MY_PRODUCT_ID            "YOUR_GATE_WAY_PRODUCT_ID"
-/* 设备名称, 与云端同步设备状态时需要 */
-#define QCLOUD_IOT_MY_DEVICE_NAME           "YOUR_GATE_WAY_DEVICE_NAME"
-
-/*非证书方式下的设备密钥*/
-#define QCLOUD_IOT_DEVICE_SECRET				"YOUR_GATE_WAY_DEV_PSK"
-
-#endif
+/* 网关产品名称, 与云端同步设备状态时需要  */
+#define QCLOUD_IOT_MY_PRODUCT_ID            "YOUR_GW_PRODUCT_ID"
+/* 网关设备名称, 与云端同步设备状态时需要 */
+#define QCLOUD_IOT_MY_DEVICE_NAME           "YOUR_GW_DEVICE_NAME"
 
 #ifdef AUTH_MODE_CERT
-/* 子产品名称, 与云端同步设备状态时需要  */
-#define QCLOUD_IOT_SUBDEV_PRODUCT_ID            "YOUR_SUB_DEV_PRODUCT_ID"
-/* 子设备名称, 与云端同步设备状态时需要 */
-#define QCLOUD_IOT_SUBDEV_DEVICE_NAME           "YOUR_SUB_DEV_NAME"
+    /* 网关客户端证书文件名 非对称加密使用*/
+    #define QCLOUD_IOT_CERT_FILENAME          "YOUR_GW_DEVICE_NAME_cert.crt"
+    /* 网关客户端私钥文件名 非对称加密使用*/
+    #define QCLOUD_IOT_KEY_FILENAME           "YOUR_GW_DEVICE_NAME_private.key"
+
+    static char sg_cert_file[PATH_MAX + 1];      //客户端证书全路径
+    static char sg_key_file[PATH_MAX + 1];       //客户端密钥全路径
+
 #else
-/* 子产品名称, 与云端同步设备状态时需要  */
-#define QCLOUD_IOT_SUBDEV_PRODUCT_ID            "YOUR_SUB_DEV_PRODUCT_ID"
-/* 子设备名称, 与云端同步设备状态时需要 */
-#define QCLOUD_IOT_SUBDEV_DEVICE_NAME           "YOUR_SUB_DEV_NAME"
+    #define QCLOUD_IOT_DEVICE_SECRET                  "YOUR_GW_IOT_PSK"
 #endif
+
+/* 子产品名称, 与云端同步设备状态时需要  */
+#define QCLOUD_IOT_SUBDEV_PRODUCT_ID            "YOUR_SUBDEV_PRODUCT_ID"
+/* 子设备名称, 与云端同步设备状态时需要 */
+#define QCLOUD_IOT_SUBDEV_DEVICE_NAME           "YOUR_SUBDEV_DEVICE_NAME"
 
 
 #define MAX_SIZE_OF_TOPIC (128)
 #define MAX_SIZE_OF_DATA (128)
 
 
+#if 1
 
 //static int sg_count = 0;
 static int sg_sub_packet_id = -1;
@@ -165,7 +151,7 @@ static void _message_handler(void *client, MQTTMessage *message, void *user_data
 
 	return;
 }
-
+#endif
 
 int demo_gateway()
 {

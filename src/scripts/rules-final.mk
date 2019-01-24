@@ -16,6 +16,6 @@ endif
 	$(TOP_Q) \
 	rm -rf ${TEMP_DIR}
 	
-.PHONY: mqtt_sample ota_mqtt_sample ota_coap_sample shadow_sample coap_sample nbiot_sample samples_final gateway_sample 
+.PHONY: mqtt_sample ota_mqtt_sample ota_coap_sample shadow_sample coap_sample nbiot_sample samples_final gateway_sample multi_thread_mqtt_sample
 	
-final : mqtt_sample ota_mqtt_sample ota_coap_sample shadow_sample coap_sample nbiot_sample samples_final gateway_sample 
+final : mqtt_sample ota_mqtt_sample ota_coap_sample shadow_sample coap_sample nbiot_sample samples_final gateway_sample multi_thread_mqtt_sample

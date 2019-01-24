@@ -23,6 +23,9 @@ extern "C" {
 /* IoT C-SDK APPID */
 #define QCLOUD_IOT_DEVICE_SDK_APPID                                	"21010406"
 
+/* IoT C-SDK version info */
+#define QCLOUD_IOT_DEVICE_SDK_VERSION                               "2.3.0"
+
 /* MQTT心跳消息发送周期, 单位:ms */
 #define QCLOUD_IOT_MQTT_KEEP_ALIVE_INTERNAL                         (240 * 1000)
 

@@ -56,8 +56,7 @@ static void _gateway_message_handler(void *client, MQTTMessage *message, void *u
 	int32_t result = 0;
 	char client_id[MAX_SIZE_OF_CLIENT_ID+1] = {0};
 	int size = 0;
-
-	Log_d("_gateway_message_handler.");
+	
 
 	POINTER_SANITY_CHECK_RTN(client);
 	POINTER_SANITY_CHECK_RTN(message);

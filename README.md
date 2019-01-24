@@ -21,9 +21,13 @@
 
 ![](https://main.qcloudimg.com/raw/a0da21dc6ac9a9e1dede0077d40cfb22.png)
 
-在弹出的产品窗口中，输入产品名称，选择认证方式，输入产品描述，然后点击创建。
+在弹出的产品窗口中，选择节点类型和产品类型，输入产品名称，选择认证方式和数据格式，输入产品描述，然后点击确定创建。如果是普通直连设备，可按下图选择。
 
-![](https://main.qcloudimg.com/raw/a4cda31d9b3a8309c900c5eac042f350.png)
+![](https://main.qcloudimg.com/raw/7ee90122a01f5f277785885669a56aec.png)
+
+如果是普通网关设备，可按下图选择。
+
+![](https://main.qcloudimg.com/raw/d3f5de3bd07a779f9b1306085fa4d1f1.png)
 
 在生成的产品页面下，点击**设备列表**页面添加新设备。
 
@@ -37,6 +41,15 @@
 
 ![](https://main.qcloudimg.com/raw/fe7a013b1d8c29c477d0ed6d00643751.png)
 
+如果是网关产品，还需要按照普通产品的方式先创建子产品和子设备，并在网关产品页面添加子产品和子设备。需要注意的是子设备是无法直连物联网平台的产品，由网关设备代理连接，所以子设备的认证方式不影响连接，由网关设备来负责认证接入。
+创建好子产品之后，先到网关产品页面的子产品栏目添加子产品
+
+![](https://main.qcloudimg.com/raw/00da59942515b1d772323c7087f627e3.png)
+
+再到网关设备页面的子设备栏目添加子设备
+
+![](https://main.qcloudimg.com/raw/c24938ac8ed3aa3e0834cb40598740ca.png)
+
 #### 4. 创建可订阅可发布的Topic
 
 按照**第三步**中进入产品设置页面的方法进入页面后, 点击权限列表，再点击**添加Topic权限**。
@@ -48,6 +61,10 @@
 ![](https://main.qcloudimg.com/raw/f429b32b12e3cb0cf319b1efe11ccceb.png)
 
 随后将会创建出 productID/\${deviceName}/data 的 Topic，在产品页面的权限列表中可以查看该产品的所有权限。
+
+对于网关产品，除了添加本产品的Topic权限，还需要为子产品添加Topic权限
+
+![](https://main.qcloudimg.com/raw/3de74cfd5b235fe942fe18c359ad08af.png)
 
 ## 二. 编译示例程序
 
@@ -68,7 +85,58 @@ FEATURE_AUTH_WITH_NOTLS  = n      # 接入认证是否不使用TLS，证书方�
 
 2. 若使用**秘钥认证**加密方式，填写 **QCLOUD_IOT_DEVICE_SECRET**。将根目录下 make.settings 文件中的配置项 FEATURE_AUTH_MODE 设置为 KEY，FEATURE_AUTH_WITH_NOTLS 设置为 n 时通过 TLS 密钥认证方式连接，设置为 y 时，则通过 HMAC-SHA1 加密算法连接。
 
-![](https://main.qcloudimg.com/raw/17fbbc7c0e4314903b94ffe3da5ee5d0.png)
+```
+/* 产品名称, 与云端同步设备状态时需要  */
+#define QCLOUD_IOT_MY_PRODUCT_ID            "YOUR_PRODUCT_ID"
+/* 设备名称, 与云端同步设备状态时需要 */
+#define QCLOUD_IOT_MY_DEVICE_NAME           "YOUR_DEVICE_NAME"
+
+#ifdef AUTH_MODE_CERT
+    /* 客户端证书文件名  非对称加密使用*/
+    #define QCLOUD_IOT_CERT_FILENAME          "YOUR_DEVICE_NAME_cert.crt"
+    /* 客户端私钥文件名 非对称加密使用*/
+    #define QCLOUD_IOT_KEY_FILENAME           "YOUR_DEVICE_NAME_private.key"
+
+    static char sg_cert_file[PATH_MAX + 1];      //客户端证书全路径
+    static char sg_key_file[PATH_MAX + 1];       //客户端密钥全路径
+
+#else
+    #define QCLOUD_IOT_DEVICE_SECRET                  "YOUR_IOT_PSK"
+#endif
+```
+
+3. 若为**网关产品**，需要将根目录下 make.settings 文件中的配置项 FEATURE_GATEWAY_ENABLED 设置为 y。
+
+```
+FEATURE_GATEWAY_ENABLED  = y      # 是否打开网关功能
+```
+
+并编辑samples/gateway/gateway_sample.c 文件中如下代码段, 填入之前创建网关产品和子产品及设备步骤中得到的**网关产品ID**，**网关设备名称**，**子产品ID**，**子设备名称**：
+
+```
+/* 网关产品名称, 与云端同步设备状态时需要  */
+#define QCLOUD_IOT_MY_PRODUCT_ID            "YOUR_GW_PRODUCT_ID"
+/* 网关设备名称, 与云端同步设备状态时需要 */
+#define QCLOUD_IOT_MY_DEVICE_NAME           "YOUR_GW_DEVICE_NAME"
+
+#ifdef AUTH_MODE_CERT
+    /* 网关客户端证书文件名 非对称加密使用*/
+    #define QCLOUD_IOT_CERT_FILENAME          "YOUR_GW_DEVICE_NAME_cert.crt"
+    /* 网关客户端私钥文件名 非对称加密使用*/
+    #define QCLOUD_IOT_KEY_FILENAME           "YOUR_GW_DEVICE_NAME_private.key"
+
+    static char sg_cert_file[PATH_MAX + 1];      //客户端证书全路径
+    static char sg_key_file[PATH_MAX + 1];       //客户端密钥全路径
+
+#else
+    #define QCLOUD_IOT_DEVICE_SECRET                  "YOUR_GW_IOT_PSK"
+#endif
+
+/* 子产品名称, 与云端同步设备状态时需要  */
+#define QCLOUD_IOT_SUBDEV_PRODUCT_ID            "YOUR_SUBDEV_PRODUCT_ID"
+/* 子设备名称, 与云端同步设备状态时需要 */
+#define QCLOUD_IOT_SUBDEV_DEVICE_NAME           "YOUR_SUBDEV_DEVICE_NAME"
+```
 
 #### 3. 编译 SDK 产生示例程序
 在根目录执行
@@ -91,6 +159,7 @@ output/release/bin/
 ├── coap_sample
 ├── door_coap_sample
 ├── door_mqtt_sample
+├── gateway_sample
 ├── mqtt_sample
 ├── ota_mqtt_sample
 └── shadow_sample
@@ -183,6 +252,54 @@ DBG|2018-04-27 17:54:18|coap_client_message.c|_coap_message_handle(297): receive
 INF|2018-04-27 17:54:18|coap_sample.c|event_handler(90): message received ACK, msgid: 56648
 ```
 
+#### 7. 执行网关实例程序
+如下日志信息显示示例程序通过MQTT网关代理子设备上下线状态变化，发布和订阅消息成功。
+```
+./gateway_sample
+INF|2019-01-23 16:35:56|mqtt_client.c|IOT_MQTT_Construct(64): SDK version: 2.3.0
+INF|2019-01-23 16:35:56|device.c|iot_device_info_init(37): device info init success!
+INF|2019-01-23 16:35:56|device.c|iot_device_info_set(42): start to set device info!
+INF|2019-01-23 16:35:56|device.c|iot_device_info_set(66): device info set successfully!
+DBG|2019-01-23 16:35:56|mqtt_client.c|qcloud_iot_mqtt_init(192): product_id: NINEPLMEB6
+DBG|2019-01-23 16:35:56|mqtt_client.c|qcloud_iot_mqtt_init(193): device_name: Gateway-demo
+DBG|2019-01-23 16:35:56|HAL_TLS_mbedtls.c|HAL_TLS_Connect(204):  Connecting to /NINEPLMEB6.iotcloud.tencentdevices.com/8883...
+DBG|2019-01-23 16:35:57|HAL_TLS_mbedtls.c|HAL_TLS_Connect(209):  Setting up the SSL/TLS structure...
+DBG|2019-01-23 16:35:57|HAL_TLS_mbedtls.c|HAL_TLS_Connect(251): Performing the SSL/TLS handshake...
+INF|2019-01-23 16:35:57|mqtt_client.c|IOT_MQTT_Construct(114): mqtt connect with id: Ms237 success
+DBG|2019-01-23 16:35:57|mqtt_client_subscribe.c|qcloud_iot_mqtt_subscribe(129): topicName=$gateway/operation/result/NINEPLMEB6/Gateway-demo|packet_id=25279|pUserdata=(null)
+INF|2019-01-23 16:35:58|gateway_api.c|_gateway_event_handler(19): event type 3
+DBG|2019-01-23 16:35:58|gateway_api.c|IOT_Gateway_Subdev_Online(126): there is no session, create a new session
+DBG|2019-01-23 16:35:58|mqtt_client_publish.c|qcloud_iot_mqtt_publish(337): publish packetID=0|topicName=$gateway/operation/NINEPLMEB6/Gateway-demo|payload={"type":"online","payload":{"devices":[{"product_id":"S3EUVBRJLB","device_name":"test_dev_key"}]}}
+DBG|2019-01-23 16:35:58|gateway_common.c|_gateway_message_handler(124): client_id(S3EUVBRJLB/test_dev_key), online success. result 0
+DBG|2019-01-23 16:35:58|gateway_common.c|_gateway_message_handler(135): type(online),devices([{"product_id":"S3EUVBRJLB","device_name":"test_dev_key","result":0}]),product_id(S3EUVBRJLB),device_name(test_dev_key),result(0)
+DBG|2019-01-23 16:35:58|mqtt_client_subscribe.c|qcloud_iot_mqtt_subscribe(129): topicName=S3EUVBRJLB/test_dev_key/data|packet_id=25280|pUserdata=(null)
+INF|2019-01-23 16:35:58|gateway_api.c|_gateway_event_handler(19): event type 3
+INF|2019-01-23 16:35:58|gateway_sample.c|_event_handler(103): subscribe success, packet-id=25280
+DBG|2019-01-23 16:35:58|mqtt_client_publish.c|qcloud_iot_mqtt_publish(329): publish topic seq=25281|topicName=S3EUVBRJLB/test_dev_key/data|payload={"data":"test gateway"}
+DBG|2019-01-23 16:35:58|gateway_sample.c|_message_handler(159): topic(S3EUVBRJLB/test_dev_key/data),len(28)
+DBG|2019-01-23 16:35:58|gateway_sample.c|_message_handler(166): payload({"data":"test gateway"}),len(24)
+DBG|2019-01-23 16:36:00|mqtt_client_publish.c|qcloud_iot_mqtt_publish(329): publish topic seq=25282|topicName=S3EUVBRJLB/test_dev_key/data|payload={"data":"test gateway"}
+INF|2019-01-23 16:36:00|gateway_api.c|_gateway_event_handler(19): event type 9
+INF|2019-01-23 16:36:00|gateway_sample.c|_event_handler(130): publish success, packet-id=25281
+DBG|2019-01-23 16:36:00|gateway_sample.c|_message_handler(159): topic(S3EUVBRJLB/test_dev_key/data),len(28)
+DBG|2019-01-23 16:36:00|gateway_sample.c|_message_handler(166): payload({"data":"test gateway"}),len(24)
+DBG|2019-01-23 16:36:01|mqtt_client_publish.c|qcloud_iot_mqtt_publish(329): publish topic seq=25283|topicName=S3EUVBRJLB/test_dev_key/data|payload={"data":"test gateway"}
+INF|2019-01-23 16:36:01|gateway_api.c|_gateway_event_handler(19): event type 9
+INF|2019-01-23 16:36:01|gateway_sample.c|_event_handler(130): publish success, packet-id=25282
+DBG|2019-01-23 16:36:01|gateway_sample.c|_message_handler(159): topic(S3EUVBRJLB/test_dev_key/data),len(28)
+DBG|2019-01-23 16:36:01|gateway_sample.c|_message_handler(166): payload({"data":"test gateway"}),len(24)
+DBG|2019-01-23 16:36:02|mqtt_client_publish.c|qcloud_iot_mqtt_publish(337): publish packetID=0|topicName=$gateway/operation/NINEPLMEB6/Gateway-demo|payload={"type":"offline","payload":{"devices":[{"product_id":"S3EUVBRJLB","device_name":"test_dev_key"}]}}
+INF|2019-01-23 16:36:02|gateway_api.c|_gateway_event_handler(19): event type 9
+INF|2019-01-23 16:36:02|gateway_sample.c|_event_handler(130): publish success, packet-id=25283
+DBG|2019-01-23 16:36:02|gateway_common.c|_gateway_message_handler(129): client_id(S3EUVBRJLB/test_dev_key), offline success. result 0
+DBG|2019-01-23 16:36:02|gateway_common.c|_gateway_message_handler(135): type(offline),devices([{"product_id":"S3EUVBRJLB","device_name":"test_dev_key","result":0}]),product_id(S3EUVBRJLB),device_name(test_dev_key),result(0)
+INF|2019-01-23 16:36:03|mqtt_client_connect.c|qcloud_iot_mqtt_disconnect(441): mqtt disconnect!
+INF|2019-01-23 16:36:03|mqtt_client.c|IOT_MQTT_Destroy(143): mqtt release!
+```
+
+#### 8. 多线程环境实例程序
+SDK对于多线程环境有注意事项，详细可以参考samples/mqtt/multi_thread_mqtt_sample.c
+
 ## 四. 可变接入参数配置
 
 可变接入参数配置：SDK 的使用可以根据具体场景需求，配置相应的参数，满足实际业务的运行。可变接入参数包括：
@@ -219,4 +336,4 @@ INF|2018-04-27 17:54:18|coap_sample.c|event_handler(90): message received ACK, m
 #define MAX_RECONNECT_WAIT_INTERVAL                                 (60000)
 ```
 
-#关于 SDK 的更多使用方式及接口了解, 请访问[官方 WiKi](https://github.com/tencentyun/qcloud-iot-sdk-embedded-c/wiki)
+##关于 SDK 的更多使用方式及接口了解, 请访问[官方 WiKi](https://github.com/tencentyun/qcloud-iot-sdk-embedded-c/wiki)
