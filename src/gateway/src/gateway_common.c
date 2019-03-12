@@ -55,8 +55,7 @@ static void _gateway_message_handler(void *client, MQTTMessage *message, void *u
 	char *device_name = NULL;
 	int32_t result = 0;
 	char client_id[MAX_SIZE_OF_CLIENT_ID+1] = {0};
-	int size = 0;
-	
+	int size = 0;	
 
 	POINTER_SANITY_CHECK_RTN(client);
 	POINTER_SANITY_CHECK_RTN(message);
@@ -69,12 +68,12 @@ static void _gateway_message_handler(void *client, MQTTMessage *message, void *u
 	topic_len = message->topic_len;
 	if (NULL == topic || topic_len <= 0) {
 		Log_e("topic == NULL or topic_len <= 0.");
-		goto End;
+		return;
 	}
 
 	if (message->payload_len > GATEWAY_RECEIVE_BUFFER_LEN) {
 		Log_e("message->payload_len > GATEWAY_RECEIVE_BUFFER_LEN.");
-		goto End;
+		return;
 	}
 
 	cloud_rcv_len = min(GATEWAY_RECEIVE_BUFFER_LEN - 1, message->payload_len);
@@ -83,14 +82,15 @@ static void _gateway_message_handler(void *client, MQTTMessage *message, void *u
 
 	if (!get_json_type(cloud_rcv_buf, &type))
 	{
-		Log_e("Fail to parse type.");
-		goto End;
+		Log_e("Fail to parse type from msg: %s", cloud_rcv_buf);
+		return;
 	}
 
 	if (!get_json_devices(cloud_rcv_buf, &devices))
 	{
-		Log_e("Fail to parse devices.");
-		goto End;
+		Log_e("Fail to parse devices from msg: %s", cloud_rcv_buf);
+        HAL_Free(type);
+		return;
 	}
 
 	if(devices[0] == '[') {
@@ -100,46 +100,54 @@ static void _gateway_message_handler(void *client, MQTTMessage *message, void *u
 	}
 
 	if (!get_json_result(devices_strip, &result)) {
-		Log_e("Fail to parse result.");
-		goto End;
+		Log_e("Fail to parse result from msg: %s", cloud_rcv_buf);
+        HAL_Free(type);
+        HAL_Free(devices);
+		return;
 	}
 	if (!get_json_product_id(devices_strip, &product_id)) {
-		Log_e("Fail to parse product_id.");
-		goto End;
+		Log_e("Fail to parse product_id from msg: %s", cloud_rcv_buf);
+        HAL_Free(type);
+        HAL_Free(devices);        
+		return;
 	}
 	if (!get_json_device_name(devices_strip, &device_name)) {
-		Log_e("Fail to parse device_name.");
-		goto End;
+		Log_e("Fail to parse device_name from msg: %s", cloud_rcv_buf);
+        HAL_Free(type);
+        HAL_Free(devices);        
+        HAL_Free(product_id);
+		return;
 	}
 
 	size = HAL_Snprintf(client_id, MAX_SIZE_OF_CLIENT_ID+1, GATEWAY_CLIENT_ID_FMT, product_id, device_name);
 	if (size < 0 || size > MAX_SIZE_OF_CLIENT_ID){
-		Log_e("client_id fail.");
-		goto End;
+		Log_e("generate client_id fail.");
+		HAL_Free(type);
+        HAL_Free(devices);
+        HAL_Free(product_id);
+        HAL_Free(device_name);
+		return;
 	}
 
 
 	if (strncmp(type, "online", sizeof("online")-1) == 0) {
 		if(strncmp(client_id,  gateway->gateway_data.online.client_id, size) == 0) {
-			Log_d("client_id(%s), online success. result %d", client_id, result);
+			Log_i("client_id(%s), online success. result %d", client_id, result);
 			gateway->gateway_data.online.result = result;
 		}
 	} else if(strncmp(type, "offline", sizeof("offline")-1) == 0) {
 		if(strncmp(client_id,  gateway->gateway_data.offline.client_id, size) == 0) {
-			Log_d("client_id(%s), offline success. result %d", client_id, result);
+			Log_i("client_id(%s), offline success. result %d", client_id, result);
 			gateway->gateway_data.offline.result = result;
 		}
-	} 
+	}	
+	
+    HAL_Free(type);
+    HAL_Free(devices);
+    HAL_Free(product_id);
+    HAL_Free(device_name);
+    return;
 
-	
-	Log_d("type(%s),devices(%s),product_id(%s),device_name(%s),result(%d)", type, devices, product_id, device_name, result);
-End:
-	HAL_Free(type);
-	HAL_Free(product_id);
-	HAL_Free(device_name);
-	HAL_Free(devices);
-	
-	IOT_FUNC_EXIT;
 }
 
 int gateway_subscribe_unsubscribe_topic(Gateway *gateway, char *topic_filter, SubscribeParams *params, int is_subscribe)

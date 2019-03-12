@@ -15,11 +15,12 @@ void _gateway_event_handler(void *client, void *context, MQTTEventMsg *msg)
 
 	POINTER_SANITY_CHECK_RTN(context);
 	POINTER_SANITY_CHECK_RTN(msg);
-
-	Log_i("event type %d", msg->event_type);
+	MQTTMessage* topic_info = (MQTTMessage*)msg->msg;
+    
 	switch (msg->event_type) {
 		case MQTT_EVENT_SUBCRIBE_SUCCESS:
 		case MQTT_EVENT_UNSUBCRIBE_SUCCESS:
+            Log_d("gateway sub|unsub(%d) success, packet-id=%u", msg->event_type, (unsigned int)packet_id);
 			if (gateway->gateway_data.sync_status == packet_id) {
 				gateway->gateway_data.sync_status = 0;
 				return;
@@ -30,6 +31,7 @@ void _gateway_event_handler(void *client, void *context, MQTTEventMsg *msg)
 		case MQTT_EVENT_UNSUBCRIBE_TIMEOUT:
 		case MQTT_EVENT_SUBCRIBE_NACK:
 		case MQTT_EVENT_UNSUBCRIBE_NACK:
+            Log_d("gateway timeout|nack(%d) event, packet-id=%u", msg->event_type, (unsigned int)packet_id);
 			if (gateway->gateway_data.sync_status == packet_id) {
 				gateway->gateway_data.sync_status = -1;
 				return;
@@ -37,14 +39,11 @@ void _gateway_event_handler(void *client, void *context, MQTTEventMsg *msg)
 			break;
 
 		case MQTT_EVENT_PUBLISH_RECVEIVED: 
-			{
-				/* printf payload */
-				//Log_i("topic message arrived : topic [%.*s]\n", topic_info->topic_len, topic_info->ptopic);
-
-				//if(strcmp(topic_info->ptopic, "$gateway/operation/result") == 0){
-				//	return;
-				//}
-			}
+			Log_d("gateway topic message arrived but without any related handle: topic=%.*s, topic_msg=%.*s",
+					 topic_info->topic_len,
+					 topic_info->ptopic,
+					 topic_info->payload_len,
+					 topic_info->payload);
 			break;
 
 		default:

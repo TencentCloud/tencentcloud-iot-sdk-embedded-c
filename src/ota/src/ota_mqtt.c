@@ -98,7 +98,7 @@ static void _otamqtt_upgrage_cb(void *pClient, MQTTMessage *message, void *pcont
     OTA_MQTT_Struct_t *handle = (OTA_MQTT_Struct_t *) pcontext;
 
     Log_d("topic=%.*s", message->topic_len, message->ptopic);
-    Log_d("len=%u, topic_msg=%.*s", message->payload_len, message->payload_len, (char *)message->payload);
+    Log_i("len=%u, topic_msg=%.*s", message->payload_len, message->payload_len, (char *)message->payload);
 
     if (NULL != handle->msg_callback) {
         handle->msg_callback(handle->context, message->payload, message->payload_len);

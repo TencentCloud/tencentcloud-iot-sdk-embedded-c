@@ -19,7 +19,7 @@ extern "C" {
     
 #include "utils_timer.h"
     
-char expired(Timer *timer) {
+bool expired(Timer *timer) {
     return HAL_Timer_expired(timer);
 }
 

@@ -22,21 +22,22 @@ extern "C" {
 #include <string.h>
 
 #include "qcloud_iot_import.h"
+#include "log_upload.h"
 
-#define MAX_LOG_MSG_LEN 			(255)
-
-#if defined(__linux__)
-	#undef  MAX_LOG_MSG_LEN
-	#define MAX_LOG_MSG_LEN                  (1023)
-#endif
 
 static char *level_str[] = {
-    "DBG", "INF", "WRN", "ERR",
+    "DIS", "ERR", "WRN", "INF", "DBG"
 };
 
 static LogMessageHandler sg_log_message_handler= NULL;
 
-LOG_LEVEL g_log_level = INFO;
+LOG_LEVEL g_log_print_level = INFO;
+
+#ifdef LOG_UPLOAD
+LOG_LEVEL g_log_upload_level = ERROR;
+#else
+LOG_LEVEL g_log_upload_level = DISABLE;
+#endif
 
 static const char *_get_filename(const char *p)
 {
@@ -54,53 +55,82 @@ static const char *_get_filename(const char *p)
 }
 
 void IOT_Log_Set_Level(LOG_LEVEL logLevel) {
-    g_log_level = logLevel;
+    g_log_print_level = logLevel;
 }
 
 LOG_LEVEL IOT_Log_Get_Level() {
-    return g_log_level;
+    return g_log_print_level;
 }
 
 void IOT_Log_Set_MessageHandler(LogMessageHandler handler) {
 	sg_log_message_handler = handler;
 }
 
+void IOT_Log_Set_Upload_Level(LOG_LEVEL logLevel) {
+    g_log_upload_level = logLevel;
+}
+
+LOG_LEVEL IOT_Log_Get_Upload_Level() {
+    return g_log_upload_level;
+}
+
+void IOT_Log_Init_Uploader(LogUploadInitParams *init_params)
+{
+#ifdef LOG_UPLOAD
+    return init_log_uploader(init_params);
+#else
+    return ;
+#endif
+}
+
+int IOT_Log_Upload(bool force_upload)
+{
+#ifdef LOG_UPLOAD
+    return do_log_upload(force_upload);
+#else
+    return 0;
+#endif
+}
+
 void Log_writter(const char *file, const char *func, const int line, const int level, const char *fmt, ...)
 {
-	if (level < g_log_level) {
+	if (level > g_log_print_level && level > g_log_upload_level) {
 		return;
 	}
 
+    /* format log content */
 	const char *file_name = _get_filename(file);
 
-	if (sg_log_message_handler) {
-		static char sg_text_buf[MAX_LOG_MSG_LEN + 1];
-		char		*tmp_buf = sg_text_buf;
-		char        *o = tmp_buf;
-	    memset(tmp_buf, 0, sizeof(sg_text_buf));
+	char sg_text_buf[MAX_LOG_MSG_LEN + 1];
+	char		*tmp_buf = sg_text_buf;
+	char        *o = tmp_buf;
+    memset(tmp_buf, 0, sizeof(sg_text_buf));
 
-	    o += HAL_Snprintf(o, sizeof(sg_text_buf), "%s|%s|%s|%s(%d): ", level_str[level], HAL_Timer_current(), file_name, func, line);
+    o += HAL_Snprintf(o, sizeof(sg_text_buf), "%s|%s|%s|%s(%d): ", level_str[level], HAL_Timer_current(), file_name, func, line);
 
-	    va_list     ap;
-	    va_start(ap, fmt);
-	    o += vsnprintf(o, MAX_LOG_MSG_LEN - 2 - strlen(tmp_buf), fmt, ap);
-	    va_end(ap);
-
-	    strcat(tmp_buf, "\n");
-
-		if (sg_log_message_handler(tmp_buf)) {
-			return;
-		}
-	}
-
-    HAL_Printf("%s|%s|%s|%s(%d): ", level_str[level], HAL_Timer_current(), file_name, func, line);
-
-    va_list ap;
+    va_list     ap;
     va_start(ap, fmt);
-    vprintf(fmt, ap);
+    o += vsnprintf(o, MAX_LOG_MSG_LEN - 2 - strlen(tmp_buf), fmt, ap);
     va_end(ap);
 
-    HAL_Printf("\r\n");
+    strcat(tmp_buf, "\r\n");
+
+#ifdef LOG_UPLOAD
+    /* append to upload buffer */
+    if (level <= g_log_upload_level) {
+        append_to_upload_buffer(tmp_buf, strlen(tmp_buf));
+    }
+#endif
+
+    if (level <= g_log_print_level) {
+        /* customer defined log print handler */
+    	if (sg_log_message_handler != NULL && sg_log_message_handler(tmp_buf)) {
+    		return;
+    	}
+
+        /* default log handler: print to console */
+        HAL_Printf("%s", tmp_buf);
+    }
 
     return;
 }

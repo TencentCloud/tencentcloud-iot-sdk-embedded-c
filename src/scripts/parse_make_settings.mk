@@ -82,3 +82,7 @@ endif
 ifeq (y, $(strip $(FEATURE_MULTITHREAD_TEST_ENABLED)))
 CFLAGS += -DMULTITHREAD_TEST_ENABLED
 endif
+
+ifeq (y, $(strip $(FEATURE_LOG_UPLOAD_ENABLED)))
+CFLAGS += -DLOG_UPLOAD
+endif

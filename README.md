@@ -170,135 +170,114 @@ output/release/bin/
 #### 1. 执行 MQTT 示例程序
 ```
 ./mqtt_sample
-INF|2018-04-27 17:39:35|device.c|iot_device_info_init(37): device info init success!
-INF|2018-04-27 17:39:35|device.c|iot_device_info_set(42): start to set device info!
-INF|2018-04-27 17:39:35|device.c|iot_device_info_set(66): device info set successfully!
-DBG|2018-04-27 17:39:35|mqtt_client.c|qcloud_iot_mqtt_init(185): product_id: QICJYEM1T4
-DBG|2018-04-27 17:39:35|mqtt_client.c|qcloud_iot_mqtt_init(186): device_name: Demo1
-DBG|2018-04-27 17:39:35|mqtt_client.c|qcloud_iot_mqtt_init(259): cert file: /home/ubuntu/skyztmeng/v2_10_coap_ota/output/release/bin/certs/Demo1_cert.crt
-DBG|2018-04-27 17:39:35|mqtt_client.c|qcloud_iot_mqtt_init(260): key file: /home/ubuntu/skyztmeng/v2_10_coap_ota/output/release/bin/certs/Demo1_private.key
-DBG|2018-04-27 17:39:35|HAL_TLS_mbedtls.c|HAL_TLS_Connect(204):  Connecting to /iotcloud-mqtt.gz.tencentdevices.com/8883...
-DBG|2018-04-27 17:39:35|HAL_TLS_mbedtls.c|HAL_TLS_Connect(209):  Setting up the SSL/TLS structure...
-DBG|2018-04-27 17:39:35|HAL_TLS_mbedtls.c|HAL_TLS_Connect(251): Performing the SSL/TLS handshake...
-INF|2018-04-27 17:39:35|mqtt_client.c|IOT_MQTT_Construct(107): mqtt connect with id: mgiO5 success
-INF|2018-04-27 17:39:35|mqtt_sample.c|main(243): Cloud Device Construct Success
-DBG|2018-04-27 17:39:35|mqtt_client_subscribe.c|qcloud_iot_mqtt_subscribe(123): topicName=$sys/operation/result/QICJYEM1T4/Demo1|packet_id=30134|pUserdata=(null)
-INF|2018-04-27 17:39:35|system_mqtt.c|system_mqtt_event_handler(56): subscribe success, packet-id=30134
-DBG|2018-04-27 17:39:35|system_mqtt.c|IOT_SYSTEM_GET_TIME(155): the count of subscribe is 0, 
-DBG|2018-04-27 17:39:35|mqtt_client_publish.c|qcloud_iot_mqtt_publish(325): publish packetID=0|topicName=$sys/operation/QICJYEM1T4/Demo1|payload={"type": "get", "resource": ["time"]}
-INF|2018-04-27 17:39:35|system_mqtt.c|on_system_mqtt_message_callback(35): Receive Message With topicName:$sys/operation/result/QICJYEM1T4/Demo1, payload:{"type":"get","time":1524821975}
-INF|2018-04-27 17:39:35|system_mqtt.c|on_system_mqtt_message_callback(44): the value of time is 1524821975
-INF|2018-04-27 17:39:35|system_mqtt.c|IOT_SYSTEM_GET_TIME(181): receive time info success: 1, yield count is 1
-INF|2018-04-27 17:39:35|system_mqtt.c|IOT_SYSTEM_GET_TIME(183): the time is 1524821975
-INF|2018-04-27 17:39:35|mqtt_sample.c|main(254): the time is 1524821975
-DBG|2018-04-27 17:39:35|mqtt_client_subscribe.c|qcloud_iot_mqtt_subscribe(123): topicName=QICJYEM1T4/Demo1/data|packet_id=30135|pUserdata=(null)
-INF|2018-04-27 17:39:35|mqtt_sample.c|event_handler(80): subscribe success, packet-id=30135
-DBG|2018-04-27 17:39:35|mqtt_client_publish.c|qcloud_iot_mqtt_publish(317): publish topic seq=30136|topicName=QICJYEM1T4/Demo1/data|payload={"action": "publish_test", "count": "0"}
-INF|2018-04-27 17:39:35|mqtt_sample.c|event_handler(107): publish success, packet-id=30136
-INF|2018-04-27 17:39:35|mqtt_sample.c|on_message_callback(137): Receive Message With topicName:QICJYEM1T4/Demo1/data, payload:{"action": "publish_test", "count": "0"}
-INF|2018-04-27 17:39:36|mqtt_client_connect.c|qcloud_iot_mqtt_disconnect(472): mqtt disconnect!
-INF|2018-04-27 17:39:36|mqtt_client.c|IOT_MQTT_Destroy(136): mqtt release!
+INF|2019-03-06 17:20:17|device.c|iot_device_info_set(65): SDK_Ver: 2.3.1, Product_ID: S3EUVBRJLB, Device_Name: demo-device
+DBG|2019-03-06 17:20:17|HAL_TLS_mbedtls.c|HAL_TLS_Connect(204): Connecting to /S3EUVBRJLB.iotcloud.tencentdevices.com/8883...
+DBG|2019-03-06 17:20:17|HAL_TLS_mbedtls.c|HAL_TLS_Connect(209): Setting up the SSL/TLS structure...
+DBG|2019-03-06 17:20:17|HAL_TLS_mbedtls.c|HAL_TLS_Connect(251): Performing the SSL/TLS handshake...
+INF|2019-03-06 17:20:17|HAL_TLS_mbedtls.c|HAL_TLS_Connect(269): connected with /S3EUVBRJLB.iotcloud.tencentdevices.com/8883...
+INF|2019-03-06 17:20:17|mqtt_client.c|IOT_MQTT_Construct(115): mqtt connect with id: jwPv6 success
+INF|2019-03-06 17:20:17|mqtt_sample.c|main(340): Cloud Device Construct Success
+DBG|2019-03-06 17:20:17|mqtt_client_subscribe.c|qcloud_iot_mqtt_subscribe(129): topicName=S3EUVBRJLB/demo-device/data|packet_id=21872|pUserdata=(null)
+INF|2019-03-06 17:20:17|mqtt_sample.c|event_handler(82): subscribe success, packet-id=21872
+DBG|2019-03-06 17:20:17|mqtt_client_publish.c|qcloud_iot_mqtt_publish(329): publish topic seq=21873|topicName=S3EUVBRJLB/demo-device/data|payload={"action": "publish_test", "count": "0"}
+INF|2019-03-06 17:20:17|mqtt_sample.c|on_message_callback(139): Receive Message With topicName:S3EUVBRJLB/demo-device/data, payload:{"action": "publish_test", "count": "0"}
+INF|2019-03-06 17:20:18|mqtt_sample.c|event_handler(109): publish success, packet-id=21873
+INF|2019-03-06 17:20:18|mqtt_client_connect.c|qcloud_iot_mqtt_disconnect(441): mqtt disconnect!
+INF|2019-03-06 17:20:18|mqtt_client.c|IOT_MQTT_Destroy(159): mqtt release!
 
 ```
 
 #### 2. 观察消息发送
-如下日志信息显示示例程序通过 MQTT 的 Publish 类型消息, 上报数据到 /{productID}/{deviceName}/data 成功。
+如下日志信息显示示例程序通过 MQTT 的 Publish 类型消息, 上报数据到 /{productID}/{deviceName}/data, 服务器已经收到并成功完成了该消息的处理 
 ```
-INF|2018-04-27 17:39:35|mqtt_sample.c|event_handler(107): publish success, packet-id=30136
+INF|2019-03-06 17:20:18|mqtt_sample.c|event_handler(109): publish success, packet-id=21873
 ```
 
 #### 3. 观察消息接收
 如下日志信息显示该消息因为是到达已被订阅的 Topic, 所以又被服务器原样推送到示例程序, 并进入相应的回调函数
 ```
-INF|2018-04-27 17:39:35|mqtt_sample.c|on_message_callback(137): Receive Message With topicName:QICJYEM1T4/Demo1/data, payload:{"action": "publish_test", "count": "0"}
+INF|2019-03-06 17:20:17|mqtt_sample.c|on_message_callback(139): Receive Message With topicName:S3EUVBRJLB/demo-device/data, payload:{"action": "publish_test", "count": "0"}
 ```
 
 #### 4. 观察控制台日志
 可以登录物联网通信控制台, 点击左边导航栏中的**云日志**, 查看刚才上报的消息
-![](https://main.qcloudimg.com/raw/5f8e96c89b1828e8e5ae4b35fdc23d5e.png)
+![](https://main.qcloudimg.com/raw/09d3ec0ec827eaa274dad8ca8e1bf04c.png)
 
 #### 5. 执行 CoAP 示例程序
 ```
 ./coap_sample
-INF|2018-04-27 17:54:17|device.c|iot_device_info_init(37): device info init success!
-INF|2018-04-27 17:54:17|device.c|iot_device_info_set(42): start to set device info!
-INF|2018-04-27 17:54:17|device.c|iot_device_info_set(66): device info set successfully!
-DBG|2018-04-27 17:54:17|coap_client.c|qcloud_iot_coap_init(286): cert file: /home/ubuntu/skyztmeng/v2_10_coap_ota/output/release/bin/certs/Demo1_cert.crt
-DBG|2018-04-27 17:54:17|coap_client.c|qcloud_iot_coap_init(287): key file: /home/ubuntu/skyztmeng/v2_10_coap_ota/output/release/bin/certs/Demo1_private.key
-INF|2018-04-27 17:54:17|coap_client.c|IOT_COAP_Construct(83): coap connect success
-INF|2018-04-27 17:54:17|coap_client_message.c|coap_message_send(404): add coap message id: 56647 into wait list ret: 0
-DBG|2018-04-27 17:54:17|coap_client_message.c|_coap_message_handle(297): receive coap piggy ACK message, id 56647
-INF|2018-04-27 17:54:17|coap_client_auth.c|_coap_client_auth_callback(42): auth token message success, code_class: 2 code_detail: 5
-DBG|2018-04-27 17:54:17|coap_client_auth.c|_coap_client_auth_callback(52): auth_token_len = 11, auth_token = QEWMYSSYUYC
-DBG|2018-04-27 17:54:17|coap_client_message.c|_coap_message_list_proc(148): remove the message id 56647 from list
-INF|2018-04-27 17:54:17|coap_client_message.c|_coap_message_list_proc(87): remove node
-INF|2018-04-27 17:54:17|coap_client.c|IOT_COAP_Construct(92): device auth successfully, connid: I75BN
-ERR|2018-04-27 17:54:17|coap_sample.c|main(153): 0x25f0010
-INF|2018-04-27 17:54:17|coap_sample.c|main(166): topic name is QICJYEM1T4/Demo1/data
-INF|2018-04-27 17:54:17|coap_client_message.c|coap_message_send(404): add coap message id: 56648 into wait list ret: 0
-DBG|2018-04-27 17:54:17|coap_sample.c|main(173): client topic has been sent, msg_id: 56648
-DBG|2018-04-27 17:54:18|coap_client_message.c|_coap_message_handle(297): receive coap piggy ACK message, id 56648
-INF|2018-04-27 17:54:18|coap_sample.c|event_handler(90): message received ACK, msgid: 56648
-DBG|2018-04-27 17:54:18|coap_client_message.c|_coap_message_list_proc(148): remove the message id 56648 from list
-INF|2018-04-27 17:54:18|coap_client_message.c|_coap_message_list_proc(87): remove node
-INF|2018-04-27 17:54:18|coap_client.c|IOT_COAP_Destroy(126): coap release!
-
+INF|2019-03-06 17:34:28|device.c|iot_device_info_set(65): SDK_Ver: 2.3.1, Product_ID: S3EUVBRJLB, Device_Name: demo-device
+INF|2019-03-06 17:34:30|coap_client.c|IOT_COAP_Construct(83): coap connect success
+INF|2019-03-06 17:34:30|coap_client_message.c|coap_message_send(404): add coap message id: 53915 into wait list ret: 0
+DBG|2019-03-06 17:34:30|coap_client_message.c|_coap_message_handle(297): receive coap piggy ACK message, id 53915
+INF|2019-03-06 17:34:30|coap_client_auth.c|_coap_client_auth_callback(42): auth token message success, code_class: 2 code_detail: 5
+DBG|2019-03-06 17:34:30|coap_client_auth.c|_coap_client_auth_callback(52): auth_token_len = 10, auth_token = SJGRYBBEGM
+DBG|2019-03-06 17:34:30|coap_client_message.c|_coap_message_list_proc(148): remove the message id 53915 from list
+INF|2019-03-06 17:34:30|coap_client_message.c|_coap_message_list_proc(87): remove node
+INF|2019-03-06 17:34:30|coap_client.c|IOT_COAP_Construct(92): device auth successfully, connid: Vu501
+INF|2019-03-06 17:34:30|coap_sample.c|main(163): topic name is S3EUVBRJLB/demo-device/data
+INF|2019-03-06 17:34:30|coap_client_message.c|coap_message_send(404): add coap message id: 53916 into wait list ret: 0
+DBG|2019-03-06 17:34:30|coap_sample.c|main(170): client topic has been sent, msg_id: 53916
+DBG|2019-03-06 17:34:31|coap_client_message.c|_coap_message_handle(297): receive coap piggy ACK message, id 53916
+INF|2019-03-06 17:34:31|coap_sample.c|event_handler(90): message received ACK, msgid: 53916
+DBG|2019-03-06 17:34:31|coap_client_message.c|_coap_message_list_proc(148): remove the message id 53916 from list
+INF|2019-03-06 17:34:31|coap_client_message.c|_coap_message_list_proc(87): remove node
+INF|2019-03-06 17:34:31|coap_client.c|IOT_COAP_Destroy(126): coap release!
 ```
 
 #### 6. 观察消息发送
 如下日志信息显示示例程序通过 CoAP 上报数据到 /{productID}/{deviceName}/data 成功。
 ```
-DBG|2018-04-27 17:54:18|coap_client_message.c|_coap_message_handle(297): receive coap piggy ACK message, id 56648
-INF|2018-04-27 17:54:18|coap_sample.c|event_handler(90): message received ACK, msgid: 56648
+INF|2019-03-06 17:34:31|coap_sample.c|event_handler(90): message received ACK, msgid: 53916
 ```
 
 #### 7. 执行网关实例程序
 如下日志信息显示示例程序通过MQTT网关代理子设备上下线状态变化，发布和订阅消息成功。
 ```
 ./gateway_sample
-INF|2019-01-23 16:35:56|mqtt_client.c|IOT_MQTT_Construct(64): SDK version: 2.3.0
-INF|2019-01-23 16:35:56|device.c|iot_device_info_init(37): device info init success!
-INF|2019-01-23 16:35:56|device.c|iot_device_info_set(42): start to set device info!
-INF|2019-01-23 16:35:56|device.c|iot_device_info_set(66): device info set successfully!
-DBG|2019-01-23 16:35:56|mqtt_client.c|qcloud_iot_mqtt_init(192): product_id: NINEPLMEB6
-DBG|2019-01-23 16:35:56|mqtt_client.c|qcloud_iot_mqtt_init(193): device_name: Gateway-demo
-DBG|2019-01-23 16:35:56|HAL_TLS_mbedtls.c|HAL_TLS_Connect(204):  Connecting to /NINEPLMEB6.iotcloud.tencentdevices.com/8883...
-DBG|2019-01-23 16:35:57|HAL_TLS_mbedtls.c|HAL_TLS_Connect(209):  Setting up the SSL/TLS structure...
-DBG|2019-01-23 16:35:57|HAL_TLS_mbedtls.c|HAL_TLS_Connect(251): Performing the SSL/TLS handshake...
-INF|2019-01-23 16:35:57|mqtt_client.c|IOT_MQTT_Construct(114): mqtt connect with id: Ms237 success
-DBG|2019-01-23 16:35:57|mqtt_client_subscribe.c|qcloud_iot_mqtt_subscribe(129): topicName=$gateway/operation/result/NINEPLMEB6/Gateway-demo|packet_id=25279|pUserdata=(null)
-INF|2019-01-23 16:35:58|gateway_api.c|_gateway_event_handler(19): event type 3
-DBG|2019-01-23 16:35:58|gateway_api.c|IOT_Gateway_Subdev_Online(126): there is no session, create a new session
-DBG|2019-01-23 16:35:58|mqtt_client_publish.c|qcloud_iot_mqtt_publish(337): publish packetID=0|topicName=$gateway/operation/NINEPLMEB6/Gateway-demo|payload={"type":"online","payload":{"devices":[{"product_id":"S3EUVBRJLB","device_name":"test_dev_key"}]}}
-DBG|2019-01-23 16:35:58|gateway_common.c|_gateway_message_handler(124): client_id(S3EUVBRJLB/test_dev_key), online success. result 0
-DBG|2019-01-23 16:35:58|gateway_common.c|_gateway_message_handler(135): type(online),devices([{"product_id":"S3EUVBRJLB","device_name":"test_dev_key","result":0}]),product_id(S3EUVBRJLB),device_name(test_dev_key),result(0)
-DBG|2019-01-23 16:35:58|mqtt_client_subscribe.c|qcloud_iot_mqtt_subscribe(129): topicName=S3EUVBRJLB/test_dev_key/data|packet_id=25280|pUserdata=(null)
-INF|2019-01-23 16:35:58|gateway_api.c|_gateway_event_handler(19): event type 3
-INF|2019-01-23 16:35:58|gateway_sample.c|_event_handler(103): subscribe success, packet-id=25280
-DBG|2019-01-23 16:35:58|mqtt_client_publish.c|qcloud_iot_mqtt_publish(329): publish topic seq=25281|topicName=S3EUVBRJLB/test_dev_key/data|payload={"data":"test gateway"}
-DBG|2019-01-23 16:35:58|gateway_sample.c|_message_handler(159): topic(S3EUVBRJLB/test_dev_key/data),len(28)
-DBG|2019-01-23 16:35:58|gateway_sample.c|_message_handler(166): payload({"data":"test gateway"}),len(24)
-DBG|2019-01-23 16:36:00|mqtt_client_publish.c|qcloud_iot_mqtt_publish(329): publish topic seq=25282|topicName=S3EUVBRJLB/test_dev_key/data|payload={"data":"test gateway"}
-INF|2019-01-23 16:36:00|gateway_api.c|_gateway_event_handler(19): event type 9
-INF|2019-01-23 16:36:00|gateway_sample.c|_event_handler(130): publish success, packet-id=25281
-DBG|2019-01-23 16:36:00|gateway_sample.c|_message_handler(159): topic(S3EUVBRJLB/test_dev_key/data),len(28)
-DBG|2019-01-23 16:36:00|gateway_sample.c|_message_handler(166): payload({"data":"test gateway"}),len(24)
-DBG|2019-01-23 16:36:01|mqtt_client_publish.c|qcloud_iot_mqtt_publish(329): publish topic seq=25283|topicName=S3EUVBRJLB/test_dev_key/data|payload={"data":"test gateway"}
-INF|2019-01-23 16:36:01|gateway_api.c|_gateway_event_handler(19): event type 9
-INF|2019-01-23 16:36:01|gateway_sample.c|_event_handler(130): publish success, packet-id=25282
-DBG|2019-01-23 16:36:01|gateway_sample.c|_message_handler(159): topic(S3EUVBRJLB/test_dev_key/data),len(28)
-DBG|2019-01-23 16:36:01|gateway_sample.c|_message_handler(166): payload({"data":"test gateway"}),len(24)
-DBG|2019-01-23 16:36:02|mqtt_client_publish.c|qcloud_iot_mqtt_publish(337): publish packetID=0|topicName=$gateway/operation/NINEPLMEB6/Gateway-demo|payload={"type":"offline","payload":{"devices":[{"product_id":"S3EUVBRJLB","device_name":"test_dev_key"}]}}
-INF|2019-01-23 16:36:02|gateway_api.c|_gateway_event_handler(19): event type 9
-INF|2019-01-23 16:36:02|gateway_sample.c|_event_handler(130): publish success, packet-id=25283
-DBG|2019-01-23 16:36:02|gateway_common.c|_gateway_message_handler(129): client_id(S3EUVBRJLB/test_dev_key), offline success. result 0
-DBG|2019-01-23 16:36:02|gateway_common.c|_gateway_message_handler(135): type(offline),devices([{"product_id":"S3EUVBRJLB","device_name":"test_dev_key","result":0}]),product_id(S3EUVBRJLB),device_name(test_dev_key),result(0)
-INF|2019-01-23 16:36:03|mqtt_client_connect.c|qcloud_iot_mqtt_disconnect(441): mqtt disconnect!
-INF|2019-01-23 16:36:03|mqtt_client.c|IOT_MQTT_Destroy(143): mqtt release!
+INF|2019-03-06 20:18:57|device.c|iot_device_info_set(65): SDK_Ver: 2.3.1, Product_ID: NINEPLMEB6, Device_Name: Gateway-demo
+DBG|2019-03-06 20:18:57|HAL_TLS_mbedtls.c|HAL_TLS_Connect(204): Connecting to /NINEPLMEB6.iotcloud.tencentdevices.com/8883...
+DBG|2019-03-06 20:18:57|HAL_TLS_mbedtls.c|HAL_TLS_Connect(209): Setting up the SSL/TLS structure...
+DBG|2019-03-06 20:18:57|HAL_TLS_mbedtls.c|HAL_TLS_Connect(251): Performing the SSL/TLS handshake...
+INF|2019-03-06 20:18:58|HAL_TLS_mbedtls.c|HAL_TLS_Connect(269): connected with /NINEPLMEB6.iotcloud.tencentdevices.com/8883...
+INF|2019-03-06 20:18:58|mqtt_client.c|IOT_MQTT_Construct(115): mqtt connect with id: 35L53 success
+DBG|2019-03-06 20:18:58|mqtt_client_subscribe.c|qcloud_iot_mqtt_subscribe(129): topicName=$gateway/operation/result/NINEPLMEB6/Gateway-demo|packet_id=56164|pUserdata=(null)
+DBG|2019-03-06 20:18:58|gateway_api.c|_gateway_event_handler(23): gateway sub|unsub(3) success, packet-id=56164
+DBG|2019-03-06 20:18:58|gateway_api.c|IOT_Gateway_Subdev_Online(125): there is no session, create a new session
+DBG|2019-03-06 20:18:58|mqtt_client_publish.c|qcloud_iot_mqtt_publish(337): publish packetID=0|topicName=$gateway/operation/NINEPLMEB6/Gateway-demo|payload={"type":"online","payload":{"devices":[{"product_id":"S3EUVBRJLB","device_name":"demo-device"}]}
+INF|2019-03-06 20:18:58|gateway_common.c|_gateway_message_handler(135): client_id(S3EUVBRJLB/demo-device), online success. result 0
+DBG|2019-03-06 20:18:59|mqtt_client_subscribe.c|qcloud_iot_mqtt_subscribe(129): topicName=S3EUVBRJLB/demo-device/data|packet_id=56165|pUserdata=(null)
+DBG|2019-03-06 20:18:59|gateway_api.c|_gateway_event_handler(23): gateway sub|unsub(3) success, packet-id=56165
+INF|2019-03-06 20:18:59|gateway_sample.c|_event_handler(101): subscribe success, packet-id=56165
+DBG|2019-03-06 20:18:59|mqtt_client_publish.c|qcloud_iot_mqtt_publish(329): publish topic seq=56166|topicName=S3EUVBRJLB/demo-device/data|payload={"data":"test gateway"}
+INF|2019-03-06 20:18:59|gateway_sample.c|_message_handler(152): Receive Message With topicName:S3EUVBRJLB/demo-device/data, payload:{"data":"test gateway"}
+DBG|2019-03-06 20:19:00|mqtt_client_publish.c|qcloud_iot_mqtt_publish(329): publish topic seq=56167|topicName=S3EUVBRJLB/demo-device/data|payload={"data":"test gateway"}
+INF|2019-03-06 20:19:00|gateway_sample.c|_event_handler(128): publish success, packet-id=56166
+INF|2019-03-06 20:19:00|gateway_sample.c|_message_handler(152): Receive Message With topicName:S3EUVBRJLB/demo-device/data, payload:{"data":"test gateway"}
+DBG|2019-03-06 20:19:01|mqtt_client_publish.c|qcloud_iot_mqtt_publish(337): publish packetID=0|topicName=$gateway/operation/NINEPLMEB6/Gateway-demo|payload={"type":"offline","payload":{"devices":[{"product_id":"S3EUVBRJLB","device_name":"demo-device"}]
+INF|2019-03-06 20:19:01|gateway_sample.c|_event_handler(128): publish success, packet-id=56167
+INF|2019-03-06 20:19:02|gateway_common.c|_gateway_message_handler(140): client_id(S3EUVBRJLB/demo-device), offline success. result 0
+INF|2019-03-06 20:19:02|mqtt_client_connect.c|qcloud_iot_mqtt_disconnect(441): mqtt disconnect!
+INF|2019-03-06 20:19:02|mqtt_client.c|IOT_MQTT_Destroy(159): mqtt release!
 ```
 
 #### 8. 多线程环境实例程序
-SDK对于多线程环境有注意事项，详细可以参考samples/mqtt/multi_thread_mqtt_sample.c
+SDK对于MQTT接口在多线程环境下的使用有如下注意事项，详细代码用例可以参考samples/mqtt/multi_thread_mqtt_sample.c
+```
+1. 不允许多线程调用IOT_MQTT_Yield，IOT_MQTT_Construct以及IOT_MQTT_Destroy
+2. 可以多线程调用IOT_MQTT_Publish，IOT_MQTT_Subscribe及IOT_MQTT_Unsubscribe
+3. IOT_MQTT_Yield 作为从socket读取并处理MQTT报文的函数，应保证一定的执行时间，避免被长时间挂起或抢占
+```
+
+#### 9. 设备日志上报功能
+从版本v2.3.1开始，SDK增加设备端日志上报功能，可将设备端的Log通过HTTP上报到云端，并可在控制台展示，方便用户远程调试、诊断及监控设备运行状况。目前该功能仅支持MQTT模式。
+只要将SDK的编译宏FEATURE_LOG_UPLOAD_ENABLED置为y（默认为y），并在控制台设置上报级别，则在代码中调用Log_e/w/i/d接口的日志除了会在终端打印出来，还会上报云端并在控制台展示，如下图。
+![](https://main.qcloudimg.com/raw/cae7f9e7cf1e354cfc1e3578eb6746bc.png)
+
+上报级别设置可参见下图，Level级别越大则上报的日志越多，比如Level3(信息)会将ERROR/WARN/INFO级别的日志都上报而DEBUG级别则不上报。控制台默认为关闭状态，则表示设备端仅在MQTT连接失败的时候才会上报ERROR级别日志。
+![](https://main.qcloudimg.com/raw/826b648993a267b1cc2f082148d8d073.png)
+
+代码具体用例可以参考mqtt_sample以及qcloud_iot_export_log.h注释说明，用户除了打开编译宏开关，还需要调用IOT_Log_Init_Uploader函数进行初始化。SDK在IOT_MQTT_Yield函数中会定时进行上报，此外，用户可根据自身需要，在程序出错退出的时候调用IOT_Log_Upload(true)强制上报。同时SDK提供在HTTP通讯出错无法上报日志时的缓存和恢复正常后重新上报机制，但需要用户根据设备具体情况提供相关回调函数，如不提供回调或回调函数提供不全则该缓存机制不生效，HTTP通讯失败时日志会被丢掉。
 
 ## 四. 可变接入参数配置
 

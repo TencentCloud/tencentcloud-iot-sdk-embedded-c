@@ -976,7 +976,7 @@ static int _handle_suback_packet(Qcloud_IoT_Client *pClient, Timer *timer, QoS q
     if (grantedQoS[0] == 0x80) {
         MQTTEventMsg msg;
 
-        Log_e("MQTT SUBSCRIBE failed, ack code is 0x80");
+        Log_e("MQTT SUBSCRIBE failed, ack code: 0x80");
 
         msg.event_type = MQTT_EVENT_SUBCRIBE_NACK;
         msg.msg = (void *)(uintptr_t)packet_id;
@@ -992,7 +992,7 @@ static int _handle_suback_packet(Qcloud_IoT_Client *pClient, Timer *timer, QoS q
     (void)_mask_sub_info_from(pClient, (unsigned int)packet_id, &sub_handle);
 
     if (/*(NULL == sub_handle.message_handler) || */(NULL == sub_handle.topic_filter)) {
-        Log_e("sub_handle is illegal, handle is null:%d, topic is null:%d", (NULL == sub_handle.message_handler), (NULL == sub_handle.topic_filter));
+        Log_e("sub_handle is illegal, topic is null");
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_MQTT_SUB);
     }
 
@@ -1002,7 +1002,7 @@ static int _handle_suback_packet(Qcloud_IoT_Client *pClient, Timer *timer, QoS q
             if (0 == _check_handle_is_identical(&pClient->sub_handles[i], &sub_handle)) {
                 
                 flag_dup = 1;
-                Log_e("There is a identical topic and related handle in list!");
+                Log_w("There is a identical topic and related handle in list!");
                 break;
             }
         } else {
@@ -1014,7 +1014,7 @@ static int _handle_suback_packet(Qcloud_IoT_Client *pClient, Timer *timer, QoS q
 
     if (0 == flag_dup) {
         if (-1 == i_free) {
-            Log_e("NOT more @sub_handles space!");
+            Log_e("NO more @sub_handles space!");
             HAL_MutexUnlock(pClient->lock_generic);
             IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
         } else {
@@ -1374,7 +1374,7 @@ int push_sub_info_to(Qcloud_IoT_Client *c, int len, unsigned short msgId, Messag
 
     if (c->list_sub_wait_ack->len >= MAX_MESSAGE_HANDLERS) {
         HAL_MutexUnlock(c->lock_list_sub);
-        Log_e("number of sub_info more than max!,size = %d", c->list_sub_wait_ack->len);
+        Log_e("number of sub_info more than max! size = %d", c->list_sub_wait_ack->len);
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_MQTT_MAX_SUBSCRIPTIONS);
     }
 
@@ -1382,7 +1382,7 @@ int push_sub_info_to(Qcloud_IoT_Client *c, int len, unsigned short msgId, Messag
             QcloudIotSubInfo) + len);
     if (NULL == sub_info) {
         HAL_MutexUnlock(c->lock_list_sub);
-        Log_e("run memory malloc is error!");
+        Log_e("malloc failed!");
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
     }
 
@@ -1402,7 +1402,7 @@ int push_sub_info_to(Qcloud_IoT_Client *c, int len, unsigned short msgId, Messag
     *node = list_node_new(sub_info);
     if (NULL == *node) {
         HAL_MutexUnlock(c->lock_list_sub);
-        Log_e("run list_node_new is error!");
+        Log_e("list_node_new failed!");
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
     }
 

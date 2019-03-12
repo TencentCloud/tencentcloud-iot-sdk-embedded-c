@@ -295,12 +295,12 @@ static int _http_client_send_header(HTTPClient *client, const char *url, HttpMet
     
     _http_client_get_info(client, send_buf, &len, "\r\n", 0);
     
-    Log_d("REQUEST:\n%s", send_buf);
+    //Log_d("REQUEST:\n%s", send_buf);
 
     size_t written_len = 0;
     rc = client->network_stack.write(&client->network_stack, send_buf, len, 5000, &written_len);
     if (written_len > 0) {
-        Log_d("Written %lu bytes", written_len);
+        //Log_d("Written %lu bytes", written_len);
     } else if (written_len == 0) {
         Log_e("written_len == 0,Connection was closed by server");
         return QCLOUD_ERR_HTTP_CLOSED; /* Connection was closed by server */
@@ -322,17 +322,17 @@ static int _http_client_send_header(HTTPClient *client, const char *url, HttpMet
 static int _http_client_send_userdata(HTTPClient *client, HTTPClientData *client_data)
 {    
     if (client_data->post_buf && client_data->post_buf_len) {
-        Log_d("client_data->post_buf: %s", client_data->post_buf);
+        //Log_d("client_data->post_buf: %s", client_data->post_buf);
         {
             size_t written_len = 0;
             int rc = client->network_stack.write(&client->network_stack, (unsigned char *)client_data->post_buf, client_data->post_buf_len, 5000,  &written_len);
             if (written_len > 0) {
-                Log_d("Written %d bytes", rc);
+                //Log_d("Written %d bytes", written_len);
             } else if (written_len == 0) {
                 Log_e("written_len == 0,Connection was closed by server");
                 return QCLOUD_ERR_HTTP_CLOSED;
             } else {
-                Log_e("Connection error (send returned %lu)", written_len);
+                Log_e("Connection error (send returned %lu)", rc);
                 return QCLOUD_ERR_HTTP_CONN;
             }
         }
@@ -368,12 +368,17 @@ static int _http_client_recv(HTTPClient *client, char *buf, int min_len, int max
     rc = client->network_stack.read(&client->network_stack, (unsigned char *)buf, max_len, (uint32_t)left_ms(&timer), (size_t *)p_read_len);
         
     if (rc == QCLOUD_ERR_SSL_NOTHING_TO_READ || rc == QCLOUD_ERR_TCP_NOTHING_TO_READ) {
-        Log_d("HTTP read already complete");
+        Log_d("HTTP read nothing and timeout");
         rc = QCLOUD_ERR_SUCCESS;
     }
     else if (rc == QCLOUD_ERR_SSL_READ_TIMEOUT || rc == QCLOUD_ERR_TCP_READ_TIMEOUT) {
         if (*p_read_len == client_data->retrieve_len || client_data->retrieve_len == 0)
             rc = QCLOUD_ERR_SUCCESS;
+    }
+    else if (rc == QCLOUD_ERR_TCP_PEER_SHUTDOWN && p_read_len > 0) {
+        /* HTTP server give response and close this connection */
+        client->network_stack.disconnect(&client->network_stack);
+        rc = QCLOUD_ERR_SUCCESS;
     }
     else if (rc != QCLOUD_ERR_SUCCESS) { // 其他错误
         Log_e("Connection error rc = %d (recv returned %d)", rc, *p_read_len);
@@ -415,7 +420,7 @@ static int _http_client_retrieve_content(HTTPClient *client, char *data, int len
             rc = _http_client_recv(client, data, 1, max_len, &len, (uint32_t)left_ms(&timer), client_data);
             
             /* Receive data */
-            Log_d("data len: %d %d", len, count);
+            //Log_d("data len: %d %d", len, count);
             
             if (rc != QCLOUD_ERR_SUCCESS) {
                 IOT_FUNC_EXIT_RC(rc);
@@ -423,7 +428,7 @@ static int _http_client_retrieve_content(HTTPClient *client, char *data, int len
             
             if (len == 0) {
                 /* read no more data */
-                Log_d("no more len == 0");
+                Log_d("no more data, len == 0");
                 client_data->is_more = IOT_FALSE;
                 IOT_FUNC_EXIT_RC(QCLOUD_ERR_SUCCESS);
             }
@@ -494,8 +499,6 @@ static int _http_client_retrieve_content(HTTPClient *client, char *data, int len
             readLen = client_data->retrieve_len;
         }
         
-        Log_d("Total-Payload: %d Bytes", readLen);
-        
         do {
             templen = HTTP_CLIENT_MIN(len, readLen);
             if (count + templen < client_data->response_buf_len - 1) {
@@ -550,7 +553,7 @@ static int _http_client_retrieve_content(HTTPClient *client, char *data, int len
             memmove(data, &data[2], len - 2); /* remove the \r\n */
             len -= 2;
         } else {
-            Log_d("no more (content-length)");
+            //Log_d("no more (content-length)");
             client_data->is_more = IOT_FALSE;
             break;
         }
@@ -611,8 +614,8 @@ static int _http_client_response_parse(HTTPClient *client, char *data, int len, 
         if (client->response_code == 404)
             IOT_FUNC_EXIT_RC(QCLOUD_ERR_HTTP_NOT_FOUND);
     }
-    
-    Log_d("Reading headers : %s", data);
+
+    //Log_d("Reading headers : %s", data);
     
     // 移除null终止字符
     memmove(data, &data[crlf_pos + 2], len - (crlf_pos + 2) + 1);
@@ -660,8 +663,7 @@ static int _http_client_response_parse(HTTPClient *client, char *data, int len, 
 
 static int _http_client_connect(HTTPClient *client)
 {
-    if (QCLOUD_ERR_SUCCESS != client->network_stack.connect(&client->network_stack)) {
-        Log_e("establish connection failed");
+    if (QCLOUD_ERR_SUCCESS != client->network_stack.connect(&client->network_stack)) {        
         return QCLOUD_ERR_HTTP_CONN;
     }
 
@@ -674,7 +676,7 @@ static int _http_client_send_request(HTTPClient *client, const char *url, HttpMe
 
     rc = _http_client_send_header(client, url, method, client_data);
     if (rc != 0) {
-        Log_e("httpclient_send_header is error,rc = %d", rc);
+        Log_e("httpclient_send_header is error, rc = %d", rc);
         return rc;
     }
 
@@ -705,7 +707,7 @@ static int _http_client_recv_response(HTTPClient *client, uint32_t timeout_ms, H
     countdown_ms(&timer, timeout_ms);
     
     if (0 == client->network_stack.handle) {
-        Log_d("not connection have been established");
+        Log_e("Connection has not been established");
         IOT_FUNC_EXIT_RC(rc);
     }
     
@@ -714,7 +716,8 @@ static int _http_client_recv_response(HTTPClient *client, uint32_t timeout_ms, H
         rc = _http_client_retrieve_content(client, buf, reclen, left_ms(&timer), client_data);
     } else {
         client_data->is_more = IOT_TRUE;
-        rc = _http_client_recv(client, buf, 1, HTTP_CLIENT_CHUNK_SIZE - 1, &reclen, left_ms(&timer), client_data);
+        rc = _http_client_recv(client, buf, 1, HTTP_CLIENT_CHUNK_SIZE - 1, &reclen, left_ms(&timer), client_data);        
+        
         if (rc != QCLOUD_ERR_SUCCESS) {
             IOT_FUNC_EXIT_RC(rc);
         }
@@ -722,7 +725,7 @@ static int _http_client_recv_response(HTTPClient *client, uint32_t timeout_ms, H
         buf[reclen] = '\0';
         
         if (reclen) {
-            Log_d("RESPONSE:\n%s", buf);
+            //HAL_Printf("RESPONSE:\n%s", buf);
             rc = _http_client_response_parse(client, buf, reclen, left_ms(&timer), client_data);
         }
     }
@@ -730,14 +733,7 @@ static int _http_client_recv_response(HTTPClient *client, uint32_t timeout_ms, H
     IOT_FUNC_EXIT_RC(rc);
 }
 
-static void _http_client_close(HTTPClient *client)
-{
-    if (client->network_stack.handle != 0) {
-        client->network_stack.disconnect(&client->network_stack);
-    }
-}
-    
-static int _qcloud_iot_http_network_init(Network *pNetwork, const char *host, int port, const char *ca_crt_dir)
+static int _http_network_init(Network *pNetwork, const char *host, int port, const char *ca_crt_dir)
 {
     int rc = QCLOUD_ERR_SUCCESS;
     if (pNetwork == NULL) {
@@ -758,7 +754,7 @@ static int _qcloud_iot_http_network_init(Network *pNetwork, const char *host, in
     return rc;
 }
 
-static int _qcloud_http_connect(HTTPClient *client, const char *url, int port, const char *ca_crt)
+int qcloud_http_client_connect(HTTPClient *client, const char *url, int port, const char *ca_crt)
 {
     if (client->network_stack.handle != 0) {
         Log_e("http client has connected to host!");
@@ -770,31 +766,44 @@ static int _qcloud_http_connect(HTTPClient *client, const char *url, int port, c
     rc = _http_client_parse_host(url, host, sizeof(host));
     if (rc != QCLOUD_ERR_SUCCESS) return rc;
 
-    rc = _qcloud_iot_http_network_init(&client->network_stack, host, port, ca_crt);
+    rc = _http_network_init(&client->network_stack, host, port, ca_crt);
     if (rc != QCLOUD_ERR_SUCCESS)
         return rc;
 
     rc = _http_client_connect(client);
     if (rc != QCLOUD_ERR_SUCCESS) {
         Log_e("http_client_connect is error,rc = %d", rc);
-        _http_client_close(client);
+        qcloud_http_client_close(client);
     } else {
-        Log_d("http client connect success");
+        /* reduce log print due to frequent log server connect/disconnect */
+        if (port == LOG_UPLOAD_SERVER_PORT)
+            UPLOAD_DBG("http client connect success");
+        else
+            Log_d("http client connect success");
     }
     return rc;
 }
-    
+
+void qcloud_http_client_close(HTTPClient *client)
+{
+    if (client->network_stack.handle != 0) {
+        client->network_stack.disconnect(&client->network_stack);
+    }
+}
+
 int qcloud_http_client_common(HTTPClient *client, const char *url, int port, const char *ca_crt, HttpMethod method, HTTPClientData *client_data)
 {
     int rc;
 
-    rc = _qcloud_http_connect(client, url, port, ca_crt);
-    if (rc != QCLOUD_ERR_SUCCESS) return rc;
+    if (client->network_stack.handle == 0) {
+        rc = qcloud_http_client_connect(client, url, port, ca_crt);
+        if (rc != QCLOUD_ERR_SUCCESS) return rc;
+    }    
 
     rc = _http_client_send_request(client, url, method, client_data);
     if (rc != QCLOUD_ERR_SUCCESS) {
         Log_e("http_client_send_request is error,rc = %d", rc);
-        _http_client_close(client);
+        qcloud_http_client_close(client);
         return rc;
     }
     
@@ -816,13 +825,15 @@ int qcloud_http_recv_data(HTTPClient *client, uint32_t timeout_ms, HTTPClientDat
         rc = _http_client_recv_response(client, left_ms(&timer), client_data);
         if (rc < 0) {
             Log_e("http_client_recv_response is error,rc = %d", rc);
-            _http_client_close(client);
+            qcloud_http_client_close(client);
             IOT_FUNC_EXIT_RC(rc);
         }
     }
     IOT_FUNC_EXIT_RC(QCLOUD_ERR_SUCCESS);
 }
-    
+
+
+
 #ifdef __cplusplus
 }
 #endif

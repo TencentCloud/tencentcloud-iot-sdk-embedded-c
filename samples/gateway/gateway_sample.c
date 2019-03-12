@@ -129,27 +129,12 @@ void _event_handler(void *client, void *context, MQTTEventMsg *msg)
 
 static void _message_handler(void *client, MQTTMessage *message, void *user_data)
 {
-	char data[MAX_SIZE_OF_DATA+1] = {0};	
-	int len;
-	Log_d("_message_handler.");
-	if(message == NULL) {
-		return;	
+	if (message == NULL) {
+		return;
 	}
 
-	len = message->topic_len > MAX_SIZE_OF_DATA?MAX_SIZE_OF_DATA:message->topic_len;
-	if(message->ptopic != NULL) {
-		memcpy(data, message->ptopic, len);
-		Log_d("topic(%s),len(%d)", data, message->topic_len);	
-	}
-
-
-	len = message->payload_len> MAX_SIZE_OF_DATA?MAX_SIZE_OF_DATA:message->payload_len;
-	if(message->payload != NULL) {
-		memcpy(data, message->payload, len);
-		Log_d("payload(%s),len(%d)", data, message->payload_len);
-	}
-
-	return;
+	Log_i("Receive Message With topicName:%.*s, payload:%.*s",
+		  (int) message->topic_len, message->ptopic, (int) message->payload_len, (char *) message->payload);
 }
 #endif
 
@@ -209,7 +194,7 @@ int demo_gateway()
 	//订阅消息
 	char topic_filter[MAX_SIZE_OF_TOPIC+1] = {0};
 	SubscribeParams sub_param = DEFAULT_SUB_PARAMS;
-	int size = HAL_Snprintf(topic_filter, MAX_SIZE_OF_TOPIC+1, "%s/%s/control", QCLOUD_IOT_SUBDEV_PRODUCT_ID, QCLOUD_IOT_SUBDEV_DEVICE_NAME);
+	int size = HAL_Snprintf(topic_filter, MAX_SIZE_OF_TOPIC+1, "%s/%s/data", QCLOUD_IOT_SUBDEV_PRODUCT_ID, QCLOUD_IOT_SUBDEV_DEVICE_NAME);
 	if (size < 0 || size > MAX_SIZE_OF_TOPIC)
 	{
 		Log_e("buf size < topic length!");
@@ -227,7 +212,7 @@ int demo_gateway()
 	//发布消息
 	char topic_name[MAX_SIZE_OF_TOPIC+1] = {0};
 	PublishParams pub_param = DEFAULT_PUB_PARAMS;
-	size = HAL_Snprintf(topic_name, MAX_SIZE_OF_TOPIC+1, "%s/%s/control", QCLOUD_IOT_SUBDEV_PRODUCT_ID, QCLOUD_IOT_SUBDEV_DEVICE_NAME);
+	size = HAL_Snprintf(topic_name, MAX_SIZE_OF_TOPIC+1, "%s/%s/data", QCLOUD_IOT_SUBDEV_PRODUCT_ID, QCLOUD_IOT_SUBDEV_DEVICE_NAME);
 	if (size < 0 || size > MAX_SIZE_OF_TOPIC)
 	{
 		Log_e("buf size < topic length!");
@@ -258,7 +243,7 @@ int demo_gateway()
 
 		sleep(1);
 
-	} while (count++ < 5);
+	} while (count++ < 1);
 #endif	
 	//下线子设备
 	rc = IOT_Gateway_Subdev_Offline(client, &param);

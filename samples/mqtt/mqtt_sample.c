@@ -24,6 +24,7 @@
 #include "qcloud_iot_export.h"
 #include "qcloud_iot_import.h"
 
+
 /* 产品名称, 与云端同步设备状态时需要  */
 #define QCLOUD_IOT_MY_PRODUCT_ID            "YOUR_PRODUCT_ID"
 /* 设备名称, 与云端同步设备状态时需要 */
@@ -224,12 +225,90 @@ static int _register_subscribe_topics(void *client)
     return IOT_MQTT_Subscribe(client, topic_name, &sub_params);
 }
 
+#ifdef LOG_UPLOAD
+
+#define LOG_SAVE_FILE_PATH "./upload-fail-save.log"
+
+/**
+ * 日志上报功能用户自定义回调函数，用于上报失败时的缓存和通讯恢复后的重传
+ * sample示例采用读写文件的方式来处理，需要有文件系统支持
+ */
+//缓存指定长度日志到非易失性存储(比如文件)，返回值为成功写入的长度
+static size_t _log_save_callback(const char *msg, size_t wLen)
+{
+    FILE *fp;
+    size_t len;    
+
+    if( ( fp = fopen(LOG_SAVE_FILE_PATH, "a+" ) ) == NULL ) {
+        Log_e("fail to open file %s", LOG_SAVE_FILE_PATH);
+        return 0;
+    }    
+    
+    len = fwrite((void *)msg, 1, wLen, fp);
+    Log_d("write %d of %d to log file", len, wLen);
+    
+    fclose(fp);
+
+    return len;
+}
+
+//从非易失性存储(比如文件)读取指定长度日志，返回值为成功读取的长度
+static size_t _log_read_callback(char *buff, size_t rLen)
+{
+    FILE *fp;
+    size_t len;    
+
+    if( ( fp = fopen(LOG_SAVE_FILE_PATH, "r" ) ) == NULL ) {
+        Log_e("fail to open file %s", LOG_SAVE_FILE_PATH);
+        return 0;
+    }
+
+    len = fread((void *)buff, 1, rLen, fp);
+    Log_d("read %d of %d from log file", len, rLen);
+    
+    fclose(fp);
+
+    return len;
+}
+
+//从非易失性存储(比如文件)删除缓存的日志，返回值为0删除成功，非0删除失败
+static int _log_del_callback(void)
+{
+    return remove(LOG_SAVE_FILE_PATH);
+}
+
+//获取存储在非易失性存储(比如文件)中的log长度，返回0为没有缓存
+static size_t _log_get_size_callback()
+{
+    long length;
+    FILE *fp;
+
+    /* check if file exists */
+    if (access(LOG_SAVE_FILE_PATH, 0))
+        return 0;
+    
+    if( ( fp = fopen(LOG_SAVE_FILE_PATH, "r" ) ) == NULL ) {
+        Log_e("fail to open file %s", LOG_SAVE_FILE_PATH);
+        return 0;
+    }    
+    
+    fseek(fp, 0L, SEEK_END);
+    length = ftell(fp);
+    fclose(fp);
+    if (length > 0)
+        return (size_t)length;
+    else
+        return 0;
+}
+
+#endif
+
 int main(int argc, char **argv) {
 
     //init log level
     IOT_Log_Set_Level(DEBUG);
     IOT_Log_Set_MessageHandler(log_handler);
-
+    
     int rc;
 
     // to avoid process crash when writing to a broken socket
@@ -242,11 +321,26 @@ int main(int argc, char **argv) {
 		return rc;
 	}
 
+#ifdef LOG_UPLOAD
+    // IOT_Log_Init_Uploader should be done after _setup_connect_init_params
+    LogUploadInitParams log_init_params = {.product_id = QCLOUD_IOT_MY_PRODUCT_ID, 
+                        .device_name = QCLOUD_IOT_MY_DEVICE_NAME, .sign_key = NULL,
+                        .read_func = _log_read_callback, .save_func = _log_save_callback,
+                        .del_func = _log_del_callback, .get_size_func = _log_get_size_callback};
+#ifdef AUTH_MODE_CERT    
+    log_init_params.sign_key = sg_cert_file;
+#else
+    log_init_params.sign_key = QCLOUD_IOT_DEVICE_SECRET;
+#endif
+    IOT_Log_Init_Uploader(&log_init_params);
+#endif
+
     void *client = IOT_MQTT_Construct(&init_params);
     if (client != NULL) {
         Log_i("Cloud Device Construct Success");
     } else {
         Log_e("Cloud Device Construct Failed");
+        IOT_Log_Upload(true);
         return QCLOUD_ERR_FAILURE;
     }
 
@@ -255,7 +349,7 @@ int main(int argc, char **argv) {
 
 	rc = IOT_SYSTEM_GET_TIME(client, &time);
 	if (QCLOUD_ERR_SUCCESS == rc){
-		Log_i("the time is %ld", time);
+		Log_i("system time is %ld", time);
 	}
 	else{
 		Log_e("get system time failed!");
@@ -266,6 +360,7 @@ int main(int argc, char **argv) {
     rc = _register_subscribe_topics(client);
     if (rc < 0) {
         Log_e("Client Subscribe Topic Failed: %d", rc);
+        IOT_Log_Upload(true);
         return rc;
     }
 
@@ -287,7 +382,7 @@ int main(int argc, char **argv) {
 			continue;
 		}
 		else if (rc != QCLOUD_ERR_SUCCESS && rc != QCLOUD_ERR_MQTT_RECONNECTED){
-			Log_e("exit with error: %d", rc);
+			Log_e("exit with error: %d", rc);            
 			break;
 		}
 
@@ -297,8 +392,9 @@ int main(int argc, char **argv) {
     } while (argc >= 2 && !strcmp("loop", argv[1]));
 
     rc = IOT_MQTT_Destroy(&client);
-
     //注意进程异常退出情况
-
+    
+    IOT_Log_Upload(true);
+    
     return rc;
 }

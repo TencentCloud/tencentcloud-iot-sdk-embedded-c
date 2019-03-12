@@ -29,9 +29,9 @@ extern "C" {
  * Call this function passing in a timer to check if that timer has expired.
  *
  * @param timer - pointer to the timer to be checked for expiration
- * @return character - 1 = timer expired, 0 = timer not expired
+ * @return bool - true = timer expired, false = timer not expired
  */
-char expired(Timer *timer);
+bool expired(Timer *timer);
 
 /**
  * @brief Create a timer (milliseconds)

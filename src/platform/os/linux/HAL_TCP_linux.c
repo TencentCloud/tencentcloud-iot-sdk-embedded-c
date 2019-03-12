@@ -22,6 +22,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <netinet/tcp.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include <netdb.h>
 
 #include "qcloud_iot_import.h"
@@ -66,12 +68,14 @@ uintptr_t HAL_TCP_Connect(const char *host, uint16_t port)
     memset(&hints, 0x00, sizeof(hints));
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
-    hints.ai_protocol = IPPROTO_TCP;
+    hints.ai_protocol = IPPROTO_TCP;    
 
-    Log_d("establish tcp connection with server(host=%s port=%s)", host, port_str);
-
-    if (getaddrinfo(host, port_str, &hints, &addr_list) != 0) {       
-		Log_e("getaddrinfo error,errno:%s",strerror(errno));
+    ret = getaddrinfo(host, port_str, &hints, &addr_list);
+    if (ret) {   
+        if (ret == EAI_SYSTEM)
+            Log_e("getaddrinfo(%s:%s) error: %s", host, port_str, strerror(errno));
+        else
+            Log_e("getaddrinfo(%s:%s) error: %s", host, port_str, gai_strerror(ret));
         return 0;
     }
 
@@ -94,9 +98,13 @@ uintptr_t HAL_TCP_Connect(const char *host, uint16_t port)
     }
 
     if (0 == ret) {
-        Log_e("fail to establish tcp");
+        Log_e("fail to connect with TCP server: %s:%s", host, port_str);
     } else {
-        Log_d("success to establish tcp, fd=%d", ret);
+        /* reduce log print due to frequent log server connect/disconnect */
+        if (port == LOG_UPLOAD_SERVER_PORT)
+            UPLOAD_DBG("connected with TCP server: %s:%s", host, port_str);
+        else
+            Log_i("connected with TCP server: %s:%s", host, port_str);
     }
 
     freeaddrinfo(addr_list);
@@ -112,13 +120,13 @@ int HAL_TCP_Disconnect(uintptr_t fd)
     /* Shutdown both send and receive operations. */
     rc = shutdown((int) fd, 2);
     if (0 != rc) {       
-		Log_e("shutdown error,errno:%s",strerror(errno));
+		Log_e("shutdown error: %s", strerror(errno));
         return -1;
     }
 
     rc = close((int) fd);
     if (0 != rc) {
-		Log_e("closesocket error,errno:%s",strerror(errno));
+		Log_e("closesocket error: %s", strerror(errno));
         return -1;
     }
 
@@ -168,7 +176,7 @@ int HAL_TCP_Write(uintptr_t fd, const unsigned char *buf, uint32_t len, uint32_t
                 }
 
                 ret = QCLOUD_ERR_TCP_WRITE_FAIL;               
-				Log_e("select-write fail,errno:%s",strerror(errno));
+				Log_e("select-write fail: %s", strerror(errno));
                 break;
             }
         }
@@ -189,7 +197,7 @@ int HAL_TCP_Write(uintptr_t fd, const unsigned char *buf, uint32_t len, uint32_t
                 }
 
                 ret = QCLOUD_ERR_TCP_WRITE_FAIL;                
-				Log_e("send fail,errno:%s",strerror(errno));
+				Log_e("send fail: %s", strerror(errno));
                 break;
             }
         }
@@ -232,7 +240,18 @@ int HAL_TCP_Read(uintptr_t fd, unsigned char *buf, uint32_t len, uint32_t timeou
             if (ret > 0) {
                 len_recv += ret;
             } else if (0 == ret) {
-				Log_e("connection is closed,errno:%s",strerror(errno));
+                struct sockaddr_in peer;
+                socklen_t sLen = sizeof(peer);
+                int peer_port = 0;
+                getpeername(fd, (struct sockaddr*)&peer, &sLen);
+                peer_port = ntohs(peer.sin_port);
+
+                /* reduce log print due to frequent log server connect/disconnect */
+                if (peer_port == LOG_UPLOAD_SERVER_PORT)
+    				UPLOAD_DBG("connection is closed by server: %s:%d", inet_ntoa(peer.sin_addr), peer_port);
+                else
+                    Log_e("connection is closed by server: %s:%d", inet_ntoa(peer.sin_addr), peer_port);
+                
                 err_code = QCLOUD_ERR_TCP_PEER_SHUTDOWN;
                 break;
             } else {
@@ -240,7 +259,7 @@ int HAL_TCP_Read(uintptr_t fd, unsigned char *buf, uint32_t len, uint32_t timeou
                     Log_e("EINTR be caught");
                     continue;
                 }              
-				Log_e("recv fail,errno:%s",strerror(errno));
+				Log_e("recv error: %s", strerror(errno));
                 err_code = QCLOUD_ERR_TCP_READ_FAIL;
                 break;
             }
@@ -248,7 +267,7 @@ int HAL_TCP_Read(uintptr_t fd, unsigned char *buf, uint32_t len, uint32_t timeou
             err_code = QCLOUD_ERR_TCP_READ_TIMEOUT;
             break;
         } else {
-			Log_e("select-recv fail,errno:%s",strerror(errno));
+			Log_e("select-recv error: %s", strerror(errno));
             err_code = QCLOUD_ERR_TCP_READ_FAIL;
             break;
         }

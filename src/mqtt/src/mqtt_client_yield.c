@@ -19,6 +19,7 @@ extern "C" {
 #endif
 
 #include "mqtt_client.h"
+#include "log_upload.h"
 
 static void _iot_disconnect_callback(Qcloud_IoT_Client *pClient)
 {
@@ -64,6 +65,8 @@ static int _handle_disconnect(Qcloud_IoT_Client *pClient) {
         set_client_conn_state(pClient, NOTCONNECTED);
     }
 
+    Log_e("disconnect MQTT for some reasons..");
+    
     _iot_disconnect_callback(pClient);
 
     // 非手动断开连接
@@ -97,6 +100,12 @@ static int _handle_reconnect(Qcloud_IoT_Client *pClient) {
         if (rc == QCLOUD_ERR_MQTT_RECONNECTED) {
             Log_e("attempt to reconnect success.");
             _reconnect_callback(pClient);
+#ifdef LOG_UPLOAD            
+            int log_level;            
+            if (qcloud_get_log_level(pClient, &log_level) < 0) {
+                Log_e("client get log topic failed: %d", rc);
+            }
+#endif            
             IOT_FUNC_EXIT_RC(rc);
         }
         else {
@@ -196,7 +205,8 @@ int qcloud_iot_mqtt_yield(Qcloud_IoT_Client *pClient, uint32_t timeout_ms) {
     countdown_ms(&timer, timeout_ms);
 
     // 3. 循环读取消息以及心跳包管理
-    while (!expired(&timer)) {
+    while (!expired(&timer)) {        
+        
         if (!get_client_conn_state(pClient)) {
             if (pClient->current_reconnect_wait_interval > MAX_RECONNECT_WAIT_INTERVAL) {
                 rc = QCLOUD_ERR_MQTT_RECONNECT_TIMEOUT;
@@ -205,7 +215,7 @@ int qcloud_iot_mqtt_yield(Qcloud_IoT_Client *pClient, uint32_t timeout_ms) {
             rc = _handle_reconnect(pClient);
 
             continue;
-        }
+        }        
 
         rc = cycle_for_read(pClient, &timer, &packet_type, 0);
 
@@ -220,7 +230,7 @@ int qcloud_iot_mqtt_yield(Qcloud_IoT_Client *pClient, uint32_t timeout_ms) {
         }          
         else if (rc == QCLOUD_ERR_SSL_READ_TIMEOUT || rc == QCLOUD_ERR_SSL_READ ||
                  rc == QCLOUD_ERR_TCP_PEER_SHUTDOWN || rc == QCLOUD_ERR_TCP_READ_FAIL){
-        	Log_e("Failed in network read with errCode: %d. Disconnect and reconnect...", rc);
+        	Log_e("network read failed, rc: %d. MQTT Disconnect.", rc);
         	rc = _handle_disconnect(pClient);
         }
 

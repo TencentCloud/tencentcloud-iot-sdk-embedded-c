@@ -24,7 +24,7 @@ extern "C" {
 #define QCLOUD_IOT_DEVICE_SDK_APPID                                	"21010406"
 
 /* IoT C-SDK version info */
-#define QCLOUD_IOT_DEVICE_SDK_VERSION                               "2.3.0"
+#define QCLOUD_IOT_DEVICE_SDK_VERSION                               "2.3.1"
 
 /* MQTT心跳消息发送周期, 单位:ms */
 #define QCLOUD_IOT_MQTT_KEEP_ALIVE_INTERNAL                         (240 * 1000)
@@ -46,7 +46,7 @@ extern "C" {
 #define MAX_SIZE_OF_PRODUCT_ID                                    	(10)
 
 /* 设备ID的最大长度 */
-#define MAX_SIZE_OF_DEVICE_NAME                                     (64)
+#define MAX_SIZE_OF_DEVICE_NAME                                     (48)
 
 /* MQTT消息发送buffer大小, 支持最大256*1024 */
 #define QCLOUD_IOT_MQTT_TX_BUF_LEN                                  (512)

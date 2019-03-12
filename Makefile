@@ -15,6 +15,10 @@ $(call CompLib_Map, MQTT_COMM_ENABLED, \
     src/mqtt/src \
 )
 
+$(call CompLib_Map, MQTT_COMM_ENABLED, \
+    src/system/src \
+)
+
 $(call CompLib_Map, MQTT_DEVICE_SHADOW, \
 	src/shadow/src \
 )
@@ -25,10 +29,6 @@ $(call CompLib_Map, COAP_COMM_ENABLED, \
 
 $(call CompLib_Map, OTA_COMM_ENABLED, \
 	src/ota/src \
-)
-
-$(call CompLib_Map, SYSTEM_COMM_ENABLED, \
-	src/system/src \
 )
 
 $(call CompLib_Map, NBIOT_COMM_ENABLED, \
@@ -90,6 +90,7 @@ COMP_LIB_COMPONENTS_INCLUDES := \
     src/sdk-impl \
     src/sdk-impl/exports \
     external_libs/mbedtls/include \
+    src/system/include \
     
 $(call CompInc_Map, MQTT_COMM_ENABLED, \
     src/mqtt/include \
@@ -126,7 +127,7 @@ $(foreach v, \
     ) \
 )
 
-CFLAGS += -Werror -Wall -Wno-error=sign-compare -Wno-error=format -Os ${IOTSDK_INCLUDE_FILES}
+CFLAGS += -Werror -Wall -Wno-error=sign-compare -Wno-error=format -Os ${IOTSDK_INCLUDE_FILES} -pthread
 
 include src/scripts/rules.mk
 include samples/samples.mk

@@ -66,6 +66,44 @@ static int _connect_tls(Network *pNetwork)
 	return ret;
 }
 
+/*** TCP connection ***/
+/*when tls enable, noTls also can be used*/
+
+static int _read_tcp(Network *pNetwork, unsigned char *data, size_t datalen, uint32_t timeout_ms, size_t *read_len)
+{
+	return HAL_TCP_Read(pNetwork->handle, data, (uint32_t)datalen, timeout_ms, read_len);
+}
+
+static int _write_tcp(Network *pNetwork, unsigned char *data, size_t datalen, uint32_t timeout_ms, size_t *written_len)
+{
+	return HAL_TCP_Write(pNetwork->handle, data, datalen, timeout_ms, written_len);
+}
+
+static int _disconnect_tcp(Network *pNetwork)
+{
+	POINTER_SANITY_CHECK(pNetwork, QCLOUD_ERR_INVAL);
+
+	if (0 == pNetwork->handle) {
+		return -1;
+	}
+
+	HAL_TCP_Disconnect(pNetwork->handle);
+	pNetwork->handle = 0;
+	return 0;
+}
+
+static int _connect_tcp(Network *pNetwork)
+{
+	POINTER_SANITY_CHECK(pNetwork, QCLOUD_ERR_INVAL);
+
+	pNetwork->handle = HAL_TCP_Connect(pNetwork->host, pNetwork->port);
+	if (0 == pNetwork->handle) {
+		return -1;
+	}
+	return 0;
+}
+
+
 #else
 /*** TCP connection ***/
 static int _read_tcp(Network *pNetwork, unsigned char *data, size_t datalen, uint32_t timeout_ms, size_t *read_len)
@@ -110,7 +148,12 @@ int utils_net_read(Network *pNetwork, unsigned char *data, size_t datalen, uint3
     int rc = 0;
 
 #ifndef AUTH_WITH_NOTLS
-	rc = _read_tls(pNetwork, data, datalen, timeout_ms, read_len);
+	if(NULL != pNetwork->ssl_connect_params.ca_crt){
+		rc = _read_tls(pNetwork, data, datalen, timeout_ms, read_len);
+	}else{
+		rc = _read_tcp(pNetwork, data, datalen, timeout_ms, read_len);
+	}
+
 #else
 	rc = _read_tcp(pNetwork, data, datalen, timeout_ms, read_len);
 #endif
@@ -124,8 +167,13 @@ int utils_net_write(Network *pNetwork, unsigned char *data, size_t datalen, uint
 
     int rc = 0;
 
-#ifndef AUTH_WITH_NOTLS
-	rc = _write_tls(pNetwork, data, datalen, timeout_ms, written_len);
+#ifndef AUTH_WITH_NOTLS	
+	if(NULL != pNetwork->ssl_connect_params.ca_crt){
+		rc = _write_tls(pNetwork, data, datalen, timeout_ms, written_len);
+	}else{
+		rc = _write_tcp(pNetwork, data, datalen, timeout_ms, written_len);
+	}
+
 #else
     rc = _write_tcp(pNetwork, data, datalen, timeout_ms, written_len);
 #endif
@@ -138,7 +186,12 @@ void utils_net_disconnect(Network *pNetwork)
 	POINTER_SANITY_CHECK_RTN(pNetwork);
 
 #ifndef AUTH_WITH_NOTLS
-	_disconnect_tls(pNetwork);
+	if(NULL != pNetwork->ssl_connect_params.ca_crt){
+		_disconnect_tls(pNetwork);
+	}else{
+		_disconnect_tcp(pNetwork);
+	}
+
 #else
     _disconnect_tcp(pNetwork);
 #endif
@@ -151,7 +204,13 @@ int utils_net_connect(Network *pNetwork)
     int rc = 0;
 
 #ifndef AUTH_WITH_NOTLS
-	rc = _connect_tls(pNetwork);
+	/*when tls enable, noTls also can be used*/
+	if(NULL != pNetwork->ssl_connect_params.ca_crt){
+		rc = _connect_tls(pNetwork);
+	}else{
+		rc = _connect_tcp(pNetwork);
+	}
+	
 #else
     rc = _connect_tcp(pNetwork);
 #endif

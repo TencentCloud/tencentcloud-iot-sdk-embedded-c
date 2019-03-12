@@ -33,13 +33,11 @@ int iot_device_info_init() {
 
 	memset(&sg_device_info, 0x0, sizeof(DeviceInfo));
 	sg_devinfo_initialized = true;
-
-	Log_i("device info init success!");
+	
 	return QCLOUD_ERR_SUCCESS;
 }
 
-int iot_device_info_set(const char *product_id, const char *device_name) {
-	Log_i("start to set device info!");
+int iot_device_info_set(const char *product_id, const char *device_name) {	
 
 	memset(&sg_device_info, 0x0, sizeof(DeviceInfo));
 	if ((MAX_SIZE_OF_PRODUCT_ID) < strlen(product_id))
@@ -63,7 +61,8 @@ int iot_device_info_set(const char *product_id, const char *device_name) {
         Log_e("set device info failed");
         return QCLOUD_ERR_FAILURE;
     }
-	Log_i("device info set successfully!");
+
+    Log_i("SDK_Ver: %s, Product_ID: %s, Device_Name: %s", QCLOUD_IOT_DEVICE_SDK_VERSION, product_id, device_name);
 	return QCLOUD_ERR_SUCCESS;
 }
 

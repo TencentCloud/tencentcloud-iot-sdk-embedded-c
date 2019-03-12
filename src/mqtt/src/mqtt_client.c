@@ -30,9 +30,10 @@ extern "C" {
 #include "qcloud_iot_import.h"
 #include "qcloud_iot_export.h"
 
-
 #include "utils_base64.h"
 #include "utils_list.h"
+#include "log_upload.h"
+#include "lite-utils.h"
 
 #define HOST_STR_LENGTH 64
 static char s_qcloud_iot_host[HOST_STR_LENGTH] = {0};
@@ -49,6 +50,7 @@ static unsigned char sg_psk_str[DECODE_PSK_LENGTH];
 
 #define min(a,b) (a) < (b) ? (a) : (b)
 
+
 static uint16_t _get_random_start_packet_id(void)
 {
     srand((unsigned)time(NULL));
@@ -60,12 +62,11 @@ void* IOT_MQTT_Construct(MQTTInitParams *pParams)
 	POINTER_SANITY_CHECK(pParams, NULL);
 	STRING_PTR_SANITY_CHECK(pParams->product_id, NULL);
 	STRING_PTR_SANITY_CHECK(pParams->device_name, NULL);
-
-    Log_i("SDK version: %s", QCLOUD_IOT_DEVICE_SDK_VERSION);
+    
     iot_device_info_init();
 	if (iot_device_info_set(pParams->product_id, pParams->device_name) != QCLOUD_ERR_SUCCESS)
     {
-        Log_e("faile to set device info!");
+        Log_e("failed to set device info!");
         return NULL;
     }
 
@@ -73,7 +74,7 @@ void* IOT_MQTT_Construct(MQTTInitParams *pParams)
 
 	// 初始化MQTTClient
 	if ((mqtt_client = (Qcloud_IoT_Client*) HAL_Malloc (sizeof(Qcloud_IoT_Client))) == NULL) {
-		Log_e("memory not enough to malloc MQTTClient");
+		Log_e("malloc MQTTClient failed");
 		return NULL;
 	}
 
@@ -98,7 +99,7 @@ void* IOT_MQTT_Construct(MQTTInitParams *pParams)
 	connect_params.device_secret = (char *)sg_psk_str;
 	connect_params.device_secret_len = len;
 	if (rc != QCLOUD_ERR_SUCCESS) {
-		Log_e("Device secret decode err,secret:%s", pParams->device_secret);
+		Log_e("Device secret decode err, secret:%s", pParams->device_secret);
 		HAL_Free(mqtt_client);
 		return NULL;
 	}
@@ -113,6 +114,19 @@ void* IOT_MQTT_Construct(MQTTInitParams *pParams)
 	else {
 		Log_i("mqtt connect with id: %s success", mqtt_client->options.conn_id);
 	}
+
+#ifdef LOG_UPLOAD    
+	//log subscribe topics
+	int log_level;
+    rc = qcloud_get_log_level(mqtt_client, &log_level);
+    //rc = qcloud_log_topic_subscribe(mqtt_client);
+    if (rc < 0) {
+        Log_e("client get log topic failed: %d", rc);
+    }
+    set_log_mqtt_client((void *)mqtt_client);
+
+    IOT_Log_Upload(true);
+#endif
 
 	return mqtt_client;
 }
@@ -139,7 +153,9 @@ int IOT_MQTT_Destroy(void **pClient) {
 
     HAL_Free(*pClient);
     *pClient = NULL;
-
+#ifdef LOG_UPLOAD    
+    set_log_mqtt_client(NULL);
+#endif    
     Log_i("mqtt release!");
 
 	return rc;
@@ -148,8 +164,17 @@ int IOT_MQTT_Destroy(void **pClient) {
 int IOT_MQTT_Yield(void *pClient, uint32_t timeout_ms) {
 
 	Qcloud_IoT_Client   *mqtt_client = (Qcloud_IoT_Client *)pClient;
+    int rc = qcloud_iot_mqtt_yield(mqtt_client, timeout_ms);
 
-	return qcloud_iot_mqtt_yield(mqtt_client, timeout_ms);
+#ifdef LOG_UPLOAD
+    /* do instant log uploading if MQTT communication error */
+    if (rc == QCLOUD_ERR_SUCCESS)
+        IOT_Log_Upload(false);
+    else
+        IOT_Log_Upload(true);
+#endif
+
+	return rc;
 }
 
 int IOT_MQTT_Publish(void *pClient, char *topicName, PublishParams *pParams) {
@@ -189,13 +214,9 @@ int qcloud_iot_mqtt_init(Qcloud_IoT_Client *pClient, MQTTInitParams *pParams) {
     POINTER_SANITY_CHECK(pClient, QCLOUD_ERR_INVAL);
     POINTER_SANITY_CHECK(pParams, QCLOUD_ERR_INVAL);
 
-    Log_d("product_id: %s", pParams->product_id);
-    Log_d("device_name: %s", pParams->device_name);
-
 	memset(pClient, 0x0, sizeof(Qcloud_IoT_Client));
 
     int size = HAL_Snprintf(s_qcloud_iot_host, HOST_STR_LENGTH, "%s.%s", pParams->product_id, QCLOUD_IOT_MQTT_DIRECT_DOMAIN);
-    //int size = HAL_Snprintf(s_qcloud_iot_host, HOST_STR_LENGTH, "%s", QCLOUD_IOT_MQTT_DIRECT_DOMAIN);
     if (size < 0 || size > HOST_STR_LENGTH - 1) {
 		IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
 	}

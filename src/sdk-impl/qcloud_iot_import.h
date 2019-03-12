@@ -48,11 +48,19 @@ void *HAL_MutexCreate(void);
 void HAL_MutexDestroy(_IN_ void *mutex);
 
 /**
- * @brief 加锁
+ * @brief 阻塞式加锁
  *
  * @param Mutex指针
  */
 void HAL_MutexLock(_IN_ void *mutex);
+
+/**
+ * @brief 非阻塞式加锁
+ *
+ * @param Mutex指针
+ * @return 如果成功拿到锁，则返回0，否则返回错误值
+ */
+int HAL_MutexTryLock(_IN_ void *mutex);
 
 /**
  * @brief 释放锁
@@ -133,9 +141,9 @@ typedef struct Timer Timer;
  * @brief 判断定时器时间是否已经过期
  *
  * @param timer     定时器结构体
- * @return          返回1, 表示定时器已过期
+ * @return          返回true, 表示定时器已过期
  */
-char HAL_Timer_expired(Timer *timer);
+bool HAL_Timer_expired(Timer *timer);
 
 /**
  * @brief 根据定时器开始计时, 单位:ms
@@ -262,6 +270,51 @@ int HAL_TLS_Write(uintptr_t handle, unsigned char *data, size_t totalLen, uint32
  */
 int HAL_TLS_Read(uintptr_t handle, unsigned char *data, size_t totalLen, uint32_t timeout_ms,
                                 size_t *read_len);
+
+/********** TCP network **********/
+/**
+ * @brief 为MQTT客户端建立TCP连接
+ *
+ * @host	连接域名
+ * @port	连接端口
+ * @return	返回0 表示TCP连接失败；返回 > 0 表示TCP连接描述符FD值
+ */
+uintptr_t HAL_TCP_Connect(const char *host, uint16_t port);
+
+/**
+ * @brief 断开TCP连接
+ *
+ * @param fd TCP Socket描述符
+ * @return	返回0 表示TCP断连成功
+ */
+int HAL_TCP_Disconnect(uintptr_t fd);
+
+/**
+ * @brief 通过TCP Socket写数据
+ *
+ * @param fd				TCP Socket描述符
+ * @param buf				写入数据
+ * @param len				写入数据长度
+ * @param timeout_ms		超时时间
+ * @param written_len		已写入数据长度
+ * @return					若写数据成功, 则返回写入数据的长度
+ */
+int HAL_TCP_Write(uintptr_t fd, const unsigned char *buf, uint32_t len, uint32_t timeout_ms,
+				size_t *written_len);
+
+/**
+ * @brief 通过TCP Socket读数据
+ *
+ * @param fd				TCP Socket描述符
+ * @param buf				读入数据
+ * @param len				读入数据长度
+ * @param timeout_ms		超时时间
+ * @param written_len		已读入数据长度
+ * @return					若读数据成功, 则返回读入数据的长度
+ */
+int HAL_TCP_Read(uintptr_t fd, unsigned char *buf, uint32_t len, uint32_t timeout_ms,
+				size_t *read_len);
+
 
 
 /********** DTLS network **********/

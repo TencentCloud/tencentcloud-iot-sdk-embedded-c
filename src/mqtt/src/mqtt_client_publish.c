@@ -76,7 +76,7 @@ static int _mask_push_pubInfo_to(Qcloud_IoT_Client *c, int len, unsigned short m
     IOT_FUNC_ENTRY;
 
     if (!c || !node) {
-        Log_e("the param of c is error!");
+        Log_e("invalid parameters!");
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_MQTT_PUSH_TO_LIST_FAILED);
     }
 
@@ -96,7 +96,7 @@ static int _mask_push_pubInfo_to(Qcloud_IoT_Client *c, int len, unsigned short m
     QcloudIotPubInfo *repubInfo = (QcloudIotPubInfo *)HAL_Malloc(sizeof(QcloudIotPubInfo) + len);
     if (NULL == repubInfo) {
         HAL_MutexUnlock(c->lock_list_pub);
-        Log_e("run iot memory malloc is error!");
+        Log_e("memory malloc failed!");
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
     }
 
@@ -113,7 +113,7 @@ static int _mask_push_pubInfo_to(Qcloud_IoT_Client *c, int len, unsigned short m
     *node = list_node_new(repubInfo);
     if (NULL == *node) {
         HAL_MutexUnlock(c->lock_list_pub);
-        Log_e("run list_node_new is error!");
+        Log_e("list_node_new failed!");
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
     }
 

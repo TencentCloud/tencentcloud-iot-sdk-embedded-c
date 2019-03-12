@@ -24,7 +24,7 @@ extern "C" {
 
 static char now_time_str[20] = {0};
     
-char HAL_Timer_expired(Timer *timer) {
+bool HAL_Timer_expired(Timer *timer) {
     struct timeval now, res;
     gettimeofday(&now, NULL);
     timersub(&timer->end_time, &now, &res);

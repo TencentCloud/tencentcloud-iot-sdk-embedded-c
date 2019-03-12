@@ -35,7 +35,7 @@ void *HAL_MutexCreate(void)
     }
 
     if (0 != (err_num = pthread_mutex_init(mutex, NULL))) {
-		HAL_Printf("create mutex failed");
+		HAL_Printf("%s: create mutex failed\n", __FUNCTION__);
         HAL_Free(mutex);
         return NULL;
     }
@@ -47,7 +47,7 @@ void HAL_MutexDestroy(_IN_ void *mutex)
 {
     int err_num;
     if (0 != (err_num = pthread_mutex_destroy((pthread_mutex_t *)mutex))) {
-		HAL_Printf("destroy mutex failed");
+		HAL_Printf("%s: destroy mutex failed\n", __FUNCTION__);
     }
 
     HAL_Free(mutex);
@@ -57,15 +57,22 @@ void HAL_MutexLock(_IN_ void *mutex)
 {
     int err_num;
     if (0 != (err_num = pthread_mutex_lock((pthread_mutex_t *)mutex))) {     
-		HAL_Printf("lock mutex failed");
+		HAL_Printf("%s: lock mutex failed\n", __FUNCTION__);
     }
 }
+
+int HAL_MutexTryLock(_IN_ void *mutex)
+{
+    return pthread_mutex_trylock((pthread_mutex_t *)mutex);
+    //return 0;
+}
+
 
 void HAL_MutexUnlock(_IN_ void *mutex)
 {
     int err_num;
     if (0 != (err_num = pthread_mutex_unlock((pthread_mutex_t *)mutex))) {       
-		HAL_Printf("lock mutex failed");
+		HAL_Printf("%s: unlock mutex failed\n", __FUNCTION__);
     }
 }
 

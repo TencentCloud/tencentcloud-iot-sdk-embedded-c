@@ -378,7 +378,7 @@ int qcloud_iot_mqtt_attempt_reconnect(Qcloud_IoT_Client *pClient) {
     int rc;
     POINTER_SANITY_CHECK(pClient, QCLOUD_ERR_INVAL);
 
-    Log_i("attempt to reconnect %s = %p", pClient, pClient);
+    Log_i("attempt to reconnect...");
 
     if (get_client_conn_state(pClient)) {
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_MQTT_ALREADY_CONNECTED);

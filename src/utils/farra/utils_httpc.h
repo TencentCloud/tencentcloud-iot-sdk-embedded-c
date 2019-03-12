@@ -71,37 +71,9 @@ int qcloud_http_client_common(HTTPClient *client, const char *url, int port, con
 
 int qcloud_http_recv_data(HTTPClient *client, uint32_t timeout_ms, HTTPClientData *client_data);
     
-/**
- * @brief http get请求
- *
- * @param client        http client
- * @param url           请求url
- * @param ca_crt_dir    ca证书路径
- * @param timeout_ms    超时时间
- * @param client_data   http数据负载
- * @return              返回QCLOUD_ERR_SUCCESS, 表示设置成功
- */
-// int qcloud_iot_get(HTTPClient *client,
-//                      const char *url,
-//                      const char *ca_crt_dir,
-//                      uint32_t timeout_ms,
-//                      HTTPClientData *client_data);
+int qcloud_http_client_connect(HTTPClient *client, const char *url, int port, const char *ca_crt);
 
-/**
- * @brief http post请求
- *
- * @param client        http client
- * @param url           请求url
- * @param ca_crt_dir    ca证书路径
- * @param timeout_ms    超时时间
- * @param client_data   http数据负载
- * @return              返回QCLOUD_ERR_SUCCESS, 表示设置成功
- */
-// int qcloud_iot_post(HTTPClient *client,
-//                       const char *url,
-//                       const char *ca_crt_dir,
-//                       uint32_t timeout_ms,
-//                       HTTPClientData *client_data);
+void qcloud_http_client_close(HTTPClient *client);
 
 
 #ifdef __cplusplus
