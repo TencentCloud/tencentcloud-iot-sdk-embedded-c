@@ -659,6 +659,7 @@ static int _read_mqtt_packet(Qcloud_IoT_Client *pClient, Timer *timer, uint8_t *
             }
         } while (total_bytes_read < rem_len && ret_val == QCLOUD_ERR_SUCCESS);
 
+        Log_e("MQTT Recv buffer not enough: %d < %d", pClient->read_buf_size, rem_len);
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_BUF_TOO_SHORT);
     }
 

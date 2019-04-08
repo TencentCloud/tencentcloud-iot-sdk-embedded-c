@@ -205,7 +205,7 @@ int main(int argc, char **argv)
                     Log_e("The firmware is invalid");
                     upgrade_fetch_success = false;
                 } else {
-                    Log_e("The firmware is valid");
+                    Log_i("The firmware is valid");
                     upgrade_fetch_success = true;
                 }
             }
