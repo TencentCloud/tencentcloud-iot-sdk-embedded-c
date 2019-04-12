@@ -40,7 +40,7 @@ extern "C" {
 #define MAX_CONN_ID_LEN												(6)
 
 /* 成功订阅主题的最大个数 */
-#define MAX_MESSAGE_HANDLERS        								(5)
+#define MAX_MESSAGE_HANDLERS        								(10)
 
 /* 在列表中最大的重新发布数量 */
 #define MAX_REPUB_NUM                                               (20)
