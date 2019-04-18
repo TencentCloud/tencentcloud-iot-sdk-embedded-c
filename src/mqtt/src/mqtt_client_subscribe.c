@@ -119,6 +119,16 @@ int qcloud_iot_mqtt_subscribe(Qcloud_IoT_Client *pClient, char *topicFilter, Sub
     if (!get_client_conn_state(pClient)) {
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_MQTT_NO_CONN)
     }
+
+    /* topic filter should be valid in the whole sub life */
+    char *topic_filter_stored = HAL_Malloc(topicLen + 1);
+    if (topic_filter_stored == NULL) {
+        Log_e("malloc failed");
+        IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
+    }
+    
+    strcpy(topic_filter_stored, topicFilter);
+    topic_filter_stored[topicLen] = 0;
     
     InitTimer(&timer);
     countdown_ms(&timer, pClient->command_timeout_ms);
@@ -126,18 +136,19 @@ int qcloud_iot_mqtt_subscribe(Qcloud_IoT_Client *pClient, char *topicFilter, Sub
     HAL_MutexLock(pClient->lock_write_buf);
     // 序列化SUBSCRIBE报文
     packet_id = get_next_packet_id(pClient);
-    Log_d("topicName=%s|packet_id=%d|pUserdata=%s", topicFilter, packet_id, (char *)pParams->user_data);
+    Log_d("topicName=%s|packet_id=%d|pUserdata=%s", topic_filter_stored, packet_id, (char *)pParams->user_data);
 
-    rc = _serialize_subscribe_packet(pClient->write_buf, pClient->write_buf_size, 0, packet_id, 1, &topicFilter,
+    rc = _serialize_subscribe_packet(pClient->write_buf, pClient->write_buf_size, 0, packet_id, 1, &topic_filter_stored,
                                      &pParams->qos, &len);
     if (QCLOUD_ERR_SUCCESS != rc) {
     	HAL_MutexUnlock(pClient->lock_write_buf);
+    	HAL_Free(topic_filter_stored);
         IOT_FUNC_EXIT_RC(rc);
     }
 
     /* 等待 sub ack 列表中添加元素 */
     SubTopicHandle sub_handle;
-    sub_handle.topic_filter = topicFilter;
+    sub_handle.topic_filter = topic_filter_stored;
     sub_handle.message_handler = pParams->on_message_handler;
     sub_handle.qos = pParams->qos;
     sub_handle.message_handler_data = pParams->user_data;
@@ -146,6 +157,7 @@ int qcloud_iot_mqtt_subscribe(Qcloud_IoT_Client *pClient, char *topicFilter, Sub
     if (QCLOUD_ERR_SUCCESS != rc) {
         Log_e("push publish into to pubInfolist failed!");
         HAL_MutexUnlock(pClient->lock_write_buf);
+        HAL_Free(topic_filter_stored);
         IOT_FUNC_EXIT_RC(rc);
     }
     
@@ -157,6 +169,7 @@ int qcloud_iot_mqtt_subscribe(Qcloud_IoT_Client *pClient, char *topicFilter, Sub
         HAL_MutexUnlock(pClient->lock_list_sub);
 
     	HAL_MutexUnlock(pClient->lock_write_buf);
+    	HAL_Free(topic_filter_stored);
         IOT_FUNC_EXIT_RC(rc);
     }
 

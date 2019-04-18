@@ -430,6 +430,9 @@ int qcloud_iot_mqtt_sub_info_proc(Qcloud_IoT_Client *pClient)
                 pClient->event_handle.h_fp(pClient, pClient->event_handle.context, &msg);
             }
 
+            if (NULL != sub_info->handler.topic_filter)
+                HAL_Free((void *)(sub_info->handler.topic_filter));
+                
             temp_node = node;
         }
 

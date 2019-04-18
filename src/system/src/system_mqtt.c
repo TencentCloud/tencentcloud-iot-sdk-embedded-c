@@ -35,10 +35,7 @@ static void on_system_mqtt_message_callback(void *pClient, MQTTMessage *message,
 {
 #define MAX_RECV_LEN (512)
 
-    POINTER_SANITY_CHECK_RTN(message);
-
-	Log_d("Recv Msg Topic:%.*s, payload:%.*s",
-		  (int) message->topic_len, message->ptopic, (int) message->payload_len, (char *) message->payload);
+    POINTER_SANITY_CHECK_RTN(message);	
 
     static char rcv_buf[MAX_RECV_LEN + 1];
 	size_t len = (message->payload_len > MAX_RECV_LEN)?MAX_RECV_LEN:(message->payload_len);
@@ -48,6 +45,8 @@ static void on_system_mqtt_message_callback(void *pClient, MQTTMessage *message,
 	}
     memcpy(rcv_buf, message->payload, len);
     rcv_buf[len] = '\0';    // jsmn_parse relies on a string    
+
+    Log_d("Recv Msg Topic:%s, payload:%s", message->ptopic, rcv_buf);
 
     char* value = LITE_json_value_of("time", rcv_buf);
     if (value != NULL) {
@@ -120,7 +119,7 @@ static int _iot_system_info_result_subscribe(void *pClient, OnMessageHandler pCa
     DeviceInfo          *dev_info = iot_device_info_get();
     POINTER_SANITY_CHECK(dev_info, QCLOUD_ERR_NULL);
 
-    static char topic_name[128] = {0};
+    char topic_name[128] = {0};
     int size = HAL_Snprintf(topic_name, sizeof(topic_name), "$sys/operation/result/%s/%s", dev_info->product_id, dev_info->device_name);
     if (size < 0 || size > sizeof(topic_name) - 1)
     {

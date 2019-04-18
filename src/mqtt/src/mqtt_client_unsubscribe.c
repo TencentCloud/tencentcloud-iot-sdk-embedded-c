@@ -111,10 +111,11 @@ int qcloud_iot_mqtt_unsubscribe(Qcloud_IoT_Client *pClient, char *topicFilter) {
     
     /* Remove from message handler array */
     HAL_MutexLock(pClient->lock_generic);
-    for (i = 0; i < MAX_MESSAGE_HANDLERS; ++i) {
-        Log_d("sub_handles topic=%s|unsub topic=%s", pClient->sub_handles[i].topic_filter, topicFilter);
+    for (i = 0; i < MAX_MESSAGE_HANDLERS; ++i) {        
         if ((pClient->sub_handles[i].topic_filter != NULL && !strcmp(pClient->sub_handles[i].topic_filter, topicFilter))
             || strstr(topicFilter,"/#") != NULL || strstr(topicFilter,"/+") != NULL) {
+            /* Free the topic filter malloced in qcloud_iot_mqtt_subscribe */
+            HAL_Free((void *)pClient->sub_handles[i].topic_filter);
             pClient->sub_handles[i].topic_filter = NULL;
             /* We don't want to break here, if the same topic is registered
              * with 2 callbacks. Unlikely scenario */
@@ -132,20 +133,30 @@ int qcloud_iot_mqtt_unsubscribe(Qcloud_IoT_Client *pClient, char *topicFilter) {
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_MQTT_NO_CONN);
     }
 
+    /* topic filter should be valid in the whole sub life */
+    char *topic_filter_stored = HAL_Malloc(topicLen + 1);
+    if (topic_filter_stored == NULL) {
+        Log_e("malloc failed");
+        IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
+    }
+    strcpy(topic_filter_stored, topicFilter);
+    topic_filter_stored[topicLen] = 0;
+
     InitTimer(&timer);
     countdown_ms(&timer, pClient->command_timeout_ms);
 
     HAL_MutexLock(pClient->lock_write_buf);
     packet_id = get_next_packet_id(pClient);
-    rc = _serialize_unsubscribe_packet(pClient->write_buf, pClient->write_buf_size, 0, packet_id, 1, &topicFilter,
+    rc = _serialize_unsubscribe_packet(pClient->write_buf, pClient->write_buf_size, 0, packet_id, 1, &topic_filter_stored,
                                        &len);
     if (QCLOUD_ERR_SUCCESS != rc) {
     	HAL_MutexUnlock(pClient->lock_write_buf);
+    	HAL_Free(topic_filter_stored);
         IOT_FUNC_EXIT_RC(rc);
     }
 
     SubTopicHandle sub_handle;
-    sub_handle.topic_filter = topicFilter;
+    sub_handle.topic_filter = topic_filter_stored;
     sub_handle.message_handler = NULL;
     sub_handle.message_handler_data = NULL;
 
@@ -153,6 +164,7 @@ int qcloud_iot_mqtt_unsubscribe(Qcloud_IoT_Client *pClient, char *topicFilter) {
     if (QCLOUD_ERR_SUCCESS != rc) {
         Log_e("push publish into to pubInfolist failed: %d", rc);
         HAL_MutexUnlock(pClient->lock_write_buf);
+        HAL_Free(topic_filter_stored);
         IOT_FUNC_EXIT_RC(rc);
     }
 
@@ -164,6 +176,7 @@ int qcloud_iot_mqtt_unsubscribe(Qcloud_IoT_Client *pClient, char *topicFilter) {
         HAL_MutexUnlock(pClient->lock_list_sub);
 
     	HAL_MutexUnlock(pClient->lock_write_buf);
+    	HAL_Free(topic_filter_stored);
         IOT_FUNC_EXIT_RC(rc);
     }
 

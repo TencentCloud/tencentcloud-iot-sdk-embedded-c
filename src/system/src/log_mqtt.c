@@ -54,12 +54,11 @@ static void _log_level_sub_cb(void *pClient, MQTTMessage *message, void *userDat
 		return;
 	}
 
-	Log_d("Receive Message With topicName:%.*s, payload:%.*s ",
-		  (int) message->topic_len, message->ptopic, (int) message->payload_len, (char *) message->payload);
-
     json_buf_len = min(LOG_JSON_LENGTH - 1, message->payload_len);
 	memcpy(json_buf, message->payload, json_buf_len);
 	json_buf[json_buf_len] = '\0';    // json_parse relies on a string
+
+	Log_d("Recv Msg Topic:%s, payload:%s", message->ptopic, json_buf);
 	
     if (!_get_json_log_level(json_buf, &sg_log_level)) {        
         return ;
@@ -150,7 +149,7 @@ static int _iot_log_level_get_publish(void *pClient)
 int qcloud_log_topic_subscribe(void *client)
 {
     /* subscribe the log topic: "$log/operation/result/${productId}/${deviceName}" */
-    static char topic_name[128] = {0};
+    char topic_name[128] = {0};
     int size = HAL_Snprintf(topic_name, sizeof(topic_name), "$log/operation/result/%s/%s", 
             iot_device_info_get()->product_id, iot_device_info_get()->device_name);
     if (size < 0 || size > sizeof(topic_name) - 1)

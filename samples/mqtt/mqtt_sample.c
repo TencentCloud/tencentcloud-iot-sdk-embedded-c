@@ -213,7 +213,7 @@ static int _publish_msg(void *client)
  */
 static int _register_subscribe_topics(void *client)
 {
-    static char topic_name[128] = {0};
+    char topic_name[128] = {0};
     int size = HAL_Snprintf(topic_name, sizeof(topic_name), "%s/%s/%s", QCLOUD_IOT_MY_PRODUCT_ID, QCLOUD_IOT_MY_DEVICE_NAME, "data");
     if (size < 0 || size > sizeof(topic_name) - 1)
     {

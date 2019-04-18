@@ -200,8 +200,7 @@ int gateway_subscribe_unsubscribe_default(Gateway *gateway, GatewayParam *param)
 {
 	int rc = 0;
 	int size = 0;
-	//注意每个订阅都要单端申请一个topic filter空间
-	static char topic_filter[MAX_SIZE_OF_CLOUD_TOPIC+1] = {0};
+	char topic_filter[MAX_SIZE_OF_CLOUD_TOPIC+1] = {0};
 	SubscribeParams subscribe_params = DEFAULT_SUB_PARAMS;  
 	
 	POINTER_SANITY_CHECK(param, QCLOUD_ERR_INVAL);                                                                                               

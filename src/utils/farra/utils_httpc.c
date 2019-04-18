@@ -332,7 +332,7 @@ static int _http_client_send_userdata(HTTPClient *client, HTTPClientData *client
                 Log_e("written_len == 0,Connection was closed by server");
                 return QCLOUD_ERR_HTTP_CLOSED;
             } else {
-                Log_e("Connection error (send returned %lu)", rc);
+                Log_e("Connection error (send returned %d)", rc);
                 return QCLOUD_ERR_HTTP_CONN;
             }
         }
@@ -375,7 +375,7 @@ static int _http_client_recv(HTTPClient *client, char *buf, int min_len, int max
         if (*p_read_len == client_data->retrieve_len || client_data->retrieve_len == 0)
             rc = QCLOUD_ERR_SUCCESS;
     }
-    else if (rc == QCLOUD_ERR_TCP_PEER_SHUTDOWN && p_read_len > 0) {
+    else if (rc == QCLOUD_ERR_TCP_PEER_SHUTDOWN && *p_read_len > 0) {
         /* HTTP server give response and close this connection */
         client->network_stack.disconnect(&client->network_stack);
         rc = QCLOUD_ERR_SUCCESS;

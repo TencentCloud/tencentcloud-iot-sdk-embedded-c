@@ -965,7 +965,8 @@ static int _handle_suback_packet(Qcloud_IoT_Client *pClient, Timer *timer, QoS q
     uint16_t packet_id = 0;
     QoS grantedQoS[3] = {QOS0, QOS0, QOS0};
     int rc;
-
+    bool sub_nack = false;
+    
     // 反序列化SUBACK报文
     rc = deserialize_suback_packet(&packet_id, 1, &count, grantedQoS, pClient->read_buf, pClient->read_buf_size);
     if (QCLOUD_ERR_SUCCESS != rc) {
@@ -975,15 +976,13 @@ static int _handle_suback_packet(Qcloud_IoT_Client *pClient, Timer *timer, QoS q
     int flag_dup = 0, i_free = -1;
     // 检查SUBACK报文中的返回码:0x00(QOS0, SUCCESS),0x01(QOS1, SUCCESS),0x02(QOS2, SUCCESS),0x80(Failure)
     if (grantedQoS[0] == 0x80) {
-        MQTTEventMsg msg;
-
-        Log_e("MQTT SUBSCRIBE failed, ack code: 0x80");
+        MQTTEventMsg msg;       
 
         msg.event_type = MQTT_EVENT_SUBCRIBE_NACK;
         msg.msg = (void *)(uintptr_t)packet_id;
         pClient->event_handle.h_fp(pClient, pClient->event_handle.context, &msg);
 
-        IOT_FUNC_EXIT_RC(QCLOUD_ERR_MQTT_SUB);
+        sub_nack = true;
     }
 
     HAL_MutexLock(pClient->lock_generic);
@@ -994,6 +993,15 @@ static int _handle_suback_packet(Qcloud_IoT_Client *pClient, Timer *timer, QoS q
 
     if (/*(NULL == sub_handle.message_handler) || */(NULL == sub_handle.topic_filter)) {
         Log_e("sub_handle is illegal, topic is null");
+        HAL_MutexUnlock(pClient->lock_generic);
+        IOT_FUNC_EXIT_RC(QCLOUD_ERR_MQTT_SUB);
+    }
+
+    if (sub_nack) {
+        Log_e("MQTT SUBSCRIBE failed, packet_id: %u topic: %s", packet_id, sub_handle.topic_filter);
+        HAL_Free((void *)sub_handle.topic_filter);
+        sub_handle.topic_filter = NULL;
+        HAL_MutexUnlock(pClient->lock_generic);
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_MQTT_SUB);
     }
 
@@ -1004,6 +1012,8 @@ static int _handle_suback_packet(Qcloud_IoT_Client *pClient, Timer *timer, QoS q
                 
                 flag_dup = 1;
                 Log_w("There is a identical topic and related handle in list!");
+                HAL_Free((void *)sub_handle.topic_filter);
+                sub_handle.topic_filter = NULL;
                 break;
             }
         } else {
@@ -1062,15 +1072,25 @@ static int _handle_unsuback_packet(Qcloud_IoT_Client *pClient, Timer *timer)
 
     /* Remove from message handler array */
     HAL_MutexLock(pClient->lock_generic);
+
+    /* actually below code is nonsense as unsub handle is different with sub handle even the same topic_filter*/
+    #if 0
     int i;
     for (i = 0; i < MAX_MESSAGE_HANDLERS; ++i) {
         if ((pClient->sub_handles[i].topic_filter != NULL)
-            && (0 == _check_handle_is_identical(&pClient->sub_handles[i], &messageHandler))) {
+            && (0 == _check_handle_is_identical(&pClient->sub_handles[i], &messageHandler))) {            
             memset(&pClient->sub_handles[i], 0, sizeof(SubTopicHandle));
 
             /* NOTE: in case of more than one register(subscribe) with different callback function,
              *       so we must keep continuously searching related message handle. */
         }
+    }
+    #endif
+
+    /* Free the topic filter malloced in qcloud_iot_mqtt_unsubscribe */
+    if (messageHandler.topic_filter) {
+        HAL_Free((void *)messageHandler.topic_filter);
+        messageHandler.topic_filter = NULL;
     }
 
     if (NULL != pClient->event_handle.h_fp) {
@@ -1151,7 +1171,7 @@ static int _handle_publish_packet(Qcloud_IoT_Client *pClient, Timer *timer) {
     char fix_topic[MAX_SIZE_OF_CLOUD_TOPIC] = {0};
 	
 	if(topic_len > MAX_SIZE_OF_CLOUD_TOPIC){
-		topic_len = MAX_SIZE_OF_CLOUD_TOPIC;
+		topic_len = MAX_SIZE_OF_CLOUD_TOPIC - 1;
 		Log_e("topic len exceed buffer len");
 	}
     memcpy(fix_topic, topic_name, topic_len);
@@ -1386,7 +1406,7 @@ int push_sub_info_to(Qcloud_IoT_Client *c, int len, unsigned short msgId, Messag
         Log_e("malloc failed!");
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
     }
-
+    
     sub_info->node_state = MQTT_NODE_STATE_NORMANL;
     sub_info->msg_id = msgId;
     sub_info->len = len;
