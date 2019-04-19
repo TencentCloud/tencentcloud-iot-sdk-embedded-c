@@ -188,6 +188,7 @@ int qcloud_iot_mqtt_resubscribe(Qcloud_IoT_Client *pClient) {
     uint32_t len = 0;
     uint32_t itr = 0;
     char *topic = NULL;
+    SubscribeParams temp_param;
     uint16_t packet_id = 0;
 
     ListNode *node = NULL;
@@ -205,7 +206,17 @@ int qcloud_iot_mqtt_resubscribe(Qcloud_IoT_Client *pClient) {
         if (topic == NULL) {
             continue;
         }
+        temp_param.on_message_handler = pClient->sub_handles[itr].message_handler;
+        temp_param.qos = pClient->sub_handles[itr].qos;
+        temp_param.user_data = pClient->sub_handles[itr].message_handler_data;
 
+        rc = qcloud_iot_mqtt_subscribe(pClient, topic, &temp_param);
+        if (rc < 0) {
+        	Log_e("resubscribe failed %d, topic: %s", rc, topic);
+            IOT_FUNC_EXIT_RC(rc);
+        }
+
+        #if 0
         InitTimer(&timer);
         countdown_ms(&timer, pClient->command_timeout_ms);
 
@@ -244,6 +255,7 @@ int qcloud_iot_mqtt_resubscribe(Qcloud_IoT_Client *pClient) {
 		}
 
 		HAL_MutexUnlock(pClient->lock_write_buf);
+		#endif
     }
 
     IOT_FUNC_EXIT_RC(QCLOUD_ERR_SUCCESS);
