@@ -184,14 +184,9 @@ int qcloud_iot_mqtt_resubscribe(Qcloud_IoT_Client *pClient) {
 
     POINTER_SANITY_CHECK(pClient, QCLOUD_ERR_INVAL);
 
-    Timer timer;
-    uint32_t len = 0;
     uint32_t itr = 0;
     char *topic = NULL;
     SubscribeParams temp_param;
-    uint16_t packet_id = 0;
-
-    ListNode *node = NULL;
 
     if (NULL == pClient) {
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_INVAL);
@@ -215,47 +210,6 @@ int qcloud_iot_mqtt_resubscribe(Qcloud_IoT_Client *pClient) {
         	Log_e("resubscribe failed %d, topic: %s", rc, topic);
             IOT_FUNC_EXIT_RC(rc);
         }
-
-        #if 0
-        InitTimer(&timer);
-        countdown_ms(&timer, pClient->command_timeout_ms);
-
-        HAL_MutexLock(pClient->lock_write_buf);
-        packet_id = get_next_packet_id(pClient);
-        rc = _serialize_subscribe_packet(pClient->write_buf, pClient->write_buf_size, 0, packet_id, 1,
-                                         &topic, &(pClient->sub_handles[itr].qos), &len);
-        if (QCLOUD_ERR_SUCCESS != rc) {
-        	HAL_MutexUnlock(pClient->lock_write_buf);
-            IOT_FUNC_EXIT_RC(rc);
-        }
-
-		/* 等待 sub ack 列表中添加元素 */
-		SubTopicHandle sub_handle;
-		sub_handle.topic_filter = topic;
-		sub_handle.message_handler = pClient->sub_handles[itr].message_handler;
-		sub_handle.qos = pClient->sub_handles[itr].qos;
-		sub_handle.message_handler_data = pClient->sub_handles[itr].message_handler_data;
-
-		rc = push_sub_info_to(pClient, len, (unsigned int)packet_id, SUBSCRIBE, &sub_handle, &node);
-		if (QCLOUD_ERR_SUCCESS != rc) {
-			Log_e("push publish into to pubInfolist failed!");
-			HAL_MutexUnlock(pClient->lock_write_buf);
-			IOT_FUNC_EXIT_RC(rc);
-		}
-
-		// 发送SUBSCRIBE报文
-		rc = send_mqtt_packet(pClient, len, &timer);
-		if (QCLOUD_ERR_SUCCESS != rc) {
-			HAL_MutexLock(pClient->lock_list_sub);
-			list_remove(pClient->list_sub_wait_ack, node);
-			HAL_MutexUnlock(pClient->lock_list_sub);
-
-			HAL_MutexUnlock(pClient->lock_write_buf);
-			IOT_FUNC_EXIT_RC(rc);
-		}
-
-		HAL_MutexUnlock(pClient->lock_write_buf);
-		#endif
     }
 
     IOT_FUNC_EXIT_RC(QCLOUD_ERR_SUCCESS);
