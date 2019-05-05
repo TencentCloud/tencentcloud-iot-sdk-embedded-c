@@ -130,7 +130,10 @@ static int _handle_reconnect(Qcloud_IoT_Client *pClient) {
  * @param pClient
  * @return
  */
-static int _mqtt_keep_alive(Qcloud_IoT_Client *pClient) {
+static int _mqtt_keep_alive(Qcloud_IoT_Client *pClient)
+{
+#define MQTT_PING_TIMES_IN_KEEPALIVE_INTERVAL   2
+
     IOT_FUNC_ENTRY;
 
     int rc;
@@ -145,14 +148,14 @@ static int _mqtt_keep_alive(Qcloud_IoT_Client *pClient) {
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_SUCCESS);
     }
 
-    if (pClient->is_ping_outstanding) {
+    if (pClient->is_ping_outstanding >= MQTT_PING_TIMES_IN_KEEPALIVE_INTERVAL) {
+        //Reaching here means we haven't received any MQTT packet for a long time (keep_alive_interval)
+        Log_e("Fail to recv MQTT msg. Something wrong with the connection.");
         rc = _handle_disconnect(pClient);
         IOT_FUNC_EXIT_RC(rc);
     }
 
-    /* there is no ping outstanding - send one */
-    InitTimer(&timer);
-    countdown_ms(&timer, pClient->command_timeout_ms);
+    /* there is no ping outstanding - send one */    
     HAL_MutexLock(pClient->lock_write_buf);
     rc = serialize_packet_with_zero_payload(pClient->write_buf, pClient->write_buf_size, PINGREQ, &serialized_len);
     if (QCLOUD_ERR_SUCCESS != rc) {
@@ -161,10 +164,15 @@ static int _mqtt_keep_alive(Qcloud_IoT_Client *pClient) {
     }
 
     /* send the ping packet */
-    rc = send_mqtt_packet(pClient, serialized_len, &timer);
+    int i = 0;
+    InitTimer(&timer);    
+    do {
+        countdown_ms(&timer, pClient->command_timeout_ms);
+        rc = send_mqtt_packet(pClient, serialized_len, &timer);
+    } while (QCLOUD_ERR_SUCCESS != rc && (i++ < 3));
+    
     if (QCLOUD_ERR_SUCCESS != rc) {
-        HAL_MutexUnlock(pClient->lock_write_buf);
-        //Reaching here means we haven't received any MQTT packet for a long time (keep_alive_interval)
+        HAL_MutexUnlock(pClient->lock_write_buf);        
         //If sending a PING fails, propably the connection is not OK and we decide to disconnect and begin reconnection attempts
         Log_e("Fail to send PING request. Something wrong with the connection.");
         rc = _handle_disconnect(pClient);
@@ -173,10 +181,11 @@ static int _mqtt_keep_alive(Qcloud_IoT_Client *pClient) {
     HAL_MutexUnlock(pClient->lock_write_buf);
     
     HAL_MutexLock(pClient->lock_generic);
-    pClient->is_ping_outstanding = 1;
+    pClient->is_ping_outstanding++;
     /* start a timer to wait for PINGRESP from server */
-    countdown(&pClient->ping_timer, pClient->options.keep_alive_interval/2);
+    countdown(&pClient->ping_timer, pClient->options.keep_alive_interval/MQTT_PING_TIMES_IN_KEEPALIVE_INTERVAL);
     HAL_MutexUnlock(pClient->lock_generic);
+    Log_d("PING request %u has been sent...", pClient->is_ping_outstanding);
 
     IOT_FUNC_EXIT_RC(QCLOUD_ERR_SUCCESS);
 }

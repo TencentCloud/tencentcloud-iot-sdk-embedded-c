@@ -126,7 +126,7 @@ int qcloud_iot_mqtt_unsubscribe(Qcloud_IoT_Client *pClient, char *topicFilter) {
 
     if (suber_exists == false) {
         Log_e("subscription does not exists: %s", topicFilter);
-        IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
+        IOT_FUNC_EXIT_RC(QCLOUD_ERR_MQTT_UNSUB_FAIL);
     }
 
     if (!get_client_conn_state(pClient)) {

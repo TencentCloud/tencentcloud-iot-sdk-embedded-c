@@ -63,6 +63,7 @@ typedef enum {
     QCLOUD_ERR_RX_MESSAGE_INVAL                              = -118,    // 表示收到的消息无效
     QCLOUD_ERR_BUF_TOO_SHORT                                 = -119,    // 表示消息接收缓冲区的长度小于消息的长度
     QCLOUD_ERR_MQTT_QOS_NOT_SUPPORT                          = -120,    // 表示该QOS级别不支持
+    QCLOUD_ERR_MQTT_UNSUB_FAIL                               = -121,    // 表示取消订阅主题失败,比如该主题不存在
 
     QCLOUD_ERR_JSON_PARSE                                    = -132,    // 表示JSON解析错误
     QCLOUD_ERR_JSON_BUFFER_TRUNCATED                         = -133,    // 表示JSON文档会被截断

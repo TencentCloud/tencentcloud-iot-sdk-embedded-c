@@ -1272,7 +1272,8 @@ static void _handle_pingresp_packet(Qcloud_IoT_Client *pClient) {
     IOT_FUNC_ENTRY;
 
     HAL_MutexLock(pClient->lock_generic);
-    pClient->is_ping_outstanding = 0;    
+    pClient->is_ping_outstanding = 0;
+    countdown(&pClient->ping_timer, pClient->options.keep_alive_interval);
     HAL_MutexUnlock(pClient->lock_generic);
 
     IOT_FUNC_EXIT;
@@ -1296,10 +1297,6 @@ int cycle_for_read(Qcloud_IoT_Client *pClient, Timer *timer, uint8_t *packet_typ
         IOT_FUNC_EXIT_RC(rc);
     }
 
-    HAL_MutexLock(pClient->lock_generic);    
-    countdown(&pClient->ping_timer, pClient->options.keep_alive_interval);
-    HAL_MutexUnlock(pClient->lock_generic);
-    
     switch (*packet_type) {
         case CONNACK:
             break;
@@ -1326,15 +1323,30 @@ int cycle_for_read(Qcloud_IoT_Client *pClient, Timer *timer, uint8_t *packet_typ
         }
         case PUBCOMP:
             break;
-        case PINGRESP: {
-            _handle_pingresp_packet(pClient);
+        case PINGRESP: 
             break;
-        }
         default: {
             /* Either unknown packet type or Failure occurred
              * Should not happen */
              
             IOT_FUNC_EXIT_RC(QCLOUD_ERR_RX_MESSAGE_INVAL);
+            break;
+        }
+    }
+
+    /* Receiving below msgs are all considered as PING OK */
+    switch (*packet_type) {        
+        case PUBACK:
+        case SUBACK:
+        case UNSUBACK:        
+        case PINGRESP: {
+            _handle_pingresp_packet(pClient);
+            break;
+        }
+        case PUBLISH: {
+            HAL_MutexLock(pClient->lock_generic);    
+            pClient->is_ping_outstanding = 0;
+            HAL_MutexUnlock(pClient->lock_generic);
             break;
         }
     }
