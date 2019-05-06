@@ -22,7 +22,6 @@
 #include "device.h"
 #include "log_upload.h"
 
-#define min(a,b) (a) < (b) ? (a) : (b)
 
 static bool sg_log_recv_ok   = false;
 static bool sg_log_sub_ok   = false;
@@ -54,7 +53,7 @@ static void _log_level_sub_cb(void *pClient, MQTTMessage *message, void *userDat
 		return;
 	}
 
-    json_buf_len = min(LOG_JSON_LENGTH - 1, message->payload_len);
+    json_buf_len = Min(LOG_JSON_LENGTH - 1, message->payload_len);
 	memcpy(json_buf, message->payload, json_buf_len);
 	json_buf[json_buf_len] = '\0';    // json_parse relies on a string
 
@@ -125,11 +124,11 @@ static void _log_mqtt_event_handler(void *pclient, void *handle_context, MQTTEve
 
 static int _iot_log_level_get_publish(void *pClient)
 {
-    POINTER_SANITY_CHECK(pClient, QCLOUD_ERR_NULL);
+    POINTER_SANITY_CHECK(pClient, QCLOUD_ERR_INVAL);
 
     Qcloud_IoT_Client   *mqtt_client = (Qcloud_IoT_Client *)pClient;
     DeviceInfo          *dev_info = iot_device_info_get();
-    POINTER_SANITY_CHECK(dev_info, QCLOUD_ERR_NULL);
+    POINTER_SANITY_CHECK(dev_info, QCLOUD_ERR_INVAL);
 
     char topic_name[128] = {0};
     char payload_content[128] = {0};
@@ -173,7 +172,7 @@ int qcloud_get_log_level(void* pClient, int *log_level)
     int cntSub = 0;
     int cntRev = 0;
 
-    POINTER_SANITY_CHECK(pClient, QCLOUD_ERR_NULL);
+    POINTER_SANITY_CHECK(pClient, QCLOUD_ERR_INVAL);
     Qcloud_IoT_Client   *mqtt_client = (Qcloud_IoT_Client *)pClient;
 
     //如果第一次订阅$log/operation/get/${productid}/${devicename}, 则执行订阅操作
@@ -204,6 +203,7 @@ int qcloud_get_log_level(void* pClient, int *log_level)
         return QCLOUD_ERR_FAILURE;
     }
 
+    sg_log_recv_ok = false;
     // 发布获取时间
 	ret = _iot_log_level_get_publish(mqtt_client);
 	if (ret < 0) {

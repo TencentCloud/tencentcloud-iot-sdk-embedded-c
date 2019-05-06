@@ -34,7 +34,7 @@ typedef enum tlvType {
 
 int toBigEnd32(unsigned char* buf, uint32_t x)
 {
-    POINTER_SANITY_CHECK(buf, QCLOUD_ERR_NULL);
+    POINTER_SANITY_CHECK(buf, QCLOUD_ERR_INVAL);
 
     buf[0] = (x >> 24) & 0xFF;
     buf[1] = (x >> 16) & 0xFF;
@@ -46,7 +46,7 @@ int toBigEnd32(unsigned char* buf, uint32_t x)
 
 int toBigEnd16(unsigned char* buf, uint16_t x)
 {
-    POINTER_SANITY_CHECK(buf, QCLOUD_ERR_NULL);
+    POINTER_SANITY_CHECK(buf, QCLOUD_ERR_INVAL);
 
     *buf = ((x) & 0xFF00) >> 8 ;
     *(buf+1) = (x) & 0xFF ;
@@ -57,8 +57,8 @@ int toBigEnd16(unsigned char* buf, uint16_t x)
 
 int ntohBig32(uint32_t* x, unsigned char* buf)
 {
-    POINTER_SANITY_CHECK(x, QCLOUD_ERR_NULL);
-    POINTER_SANITY_CHECK(buf, QCLOUD_ERR_NULL);
+    POINTER_SANITY_CHECK(x, QCLOUD_ERR_INVAL);
+    POINTER_SANITY_CHECK(buf, QCLOUD_ERR_INVAL);
 
     *x = (buf[0] << 24) + (buf[1] << 16) + (buf[2] << 8) + buf[3];
 
@@ -67,8 +67,8 @@ int ntohBig32(uint32_t* x, unsigned char* buf)
 
 int ntohBig16(uint16_t* x, unsigned char* buf)
 {
-    POINTER_SANITY_CHECK(x, QCLOUD_ERR_NULL);
-    POINTER_SANITY_CHECK(buf, QCLOUD_ERR_NULL);
+    POINTER_SANITY_CHECK(x, QCLOUD_ERR_INVAL);
+    POINTER_SANITY_CHECK(buf, QCLOUD_ERR_INVAL);
 
     *x = (buf[0] << 8) + buf[1];
 
@@ -97,10 +97,10 @@ void StrToHex(char *pbDest, char *pbSrc, int nLen)
 
 int calToken(char* token, int* tokenSize, const unsigned char* keyBase64, char* topic, uint32_t expiry, uint8_t qos, char* payload)
 {
-    POINTER_SANITY_CHECK(token, QCLOUD_ERR_NULL);
-    POINTER_SANITY_CHECK(keyBase64, QCLOUD_ERR_NULL);
-    POINTER_SANITY_CHECK(topic, QCLOUD_ERR_NULL);
-    POINTER_SANITY_CHECK(payload, QCLOUD_ERR_NULL);
+    POINTER_SANITY_CHECK(token, QCLOUD_ERR_INVAL);
+    POINTER_SANITY_CHECK(keyBase64, QCLOUD_ERR_INVAL);
+    POINTER_SANITY_CHECK(topic, QCLOUD_ERR_INVAL);
+    POINTER_SANITY_CHECK(payload, QCLOUD_ERR_INVAL);
 
     size_t len = 0;
 
@@ -148,8 +148,8 @@ int calToken(char* token, int* tokenSize, const unsigned char* keyBase64, char* 
 
 int addTLV(unsigned char* buf, uint8_t type, char* value)
 {
-    POINTER_SANITY_CHECK(buf, QCLOUD_ERR_NULL);
-    POINTER_SANITY_CHECK(value, QCLOUD_ERR_NULL);
+    POINTER_SANITY_CHECK(buf, QCLOUD_ERR_INVAL);
+    POINTER_SANITY_CHECK(value, QCLOUD_ERR_INVAL);
     unsigned char* ptr = buf;
     uint16_t length = strlen(value);
 
@@ -171,9 +171,9 @@ int addTLV(unsigned char* buf, uint8_t type, char* value)
 
 int IOT_NB_setMessage(unsigned char* msg, unsigned int* length, NBIoTSetMessage* nbiotMsg)
 {
-    POINTER_SANITY_CHECK(msg, QCLOUD_ERR_NULL);
-    POINTER_SANITY_CHECK(length, QCLOUD_ERR_NULL);
-    POINTER_SANITY_CHECK(nbiotMsg, QCLOUD_ERR_NULL);
+    POINTER_SANITY_CHECK(msg, QCLOUD_ERR_INVAL);
+    POINTER_SANITY_CHECK(length, QCLOUD_ERR_INVAL);
+    POINTER_SANITY_CHECK(nbiotMsg, QCLOUD_ERR_INVAL);
 
     uint16_t v1Size = strlen(nbiotMsg->topic);
     if( v1Size > MAX_SIZE_TOPIC )
@@ -267,8 +267,8 @@ int IOT_NB_setMessage(unsigned char* msg, unsigned int* length, NBIoTSetMessage*
 
 int IOT_NB_getMessage(NBIoTGetMessage* nbiotMsg, unsigned char* msg)
 {
-    POINTER_SANITY_CHECK(nbiotMsg, QCLOUD_ERR_NULL);
-    POINTER_SANITY_CHECK(msg, QCLOUD_ERR_NULL);
+    POINTER_SANITY_CHECK(nbiotMsg, QCLOUD_ERR_INVAL);
+    POINTER_SANITY_CHECK(msg, QCLOUD_ERR_INVAL);
 
     size_t len = 0;
     //uint16_t u16Temp = 0;

@@ -33,6 +33,10 @@ extern "C" {
 #define IOT_TRUE    (1)     /* indicate boolean value true */
 #define IOT_FALSE   (0)     /* indicate boolean value false */
 
+#define Max(a,b) ((a) > (b) ? (a) : (b))
+#define Min(a,b) ((a) < (b) ? (a) : (b))
+
+
 /**
  * @brief 创建互斥锁
  *

@@ -42,7 +42,6 @@ typedef enum {
     QCLOUD_ERR_SUCCESS                                       = 0,       // 表示成功返回
     QCLOUD_ERR_FAILURE                                       = -1001,   // 表示失败返回
     QCLOUD_ERR_INVAL                                         = -1002,   // 表示参数无效错误
-    QCLOUD_ERR_NULL                                          = -1003,   // 表示空指针
 
     QCLOUD_ERR_MQTT_PUSH_TO_LIST_FAILED                      = -102,    // 表示往等待 ACK 列表中添加元素失败
     QCLOUD_ERR_MQTT_NO_CONN                                  = -103,    // 表示未与MQTT服务器建立连接或已经断开连接

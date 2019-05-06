@@ -374,7 +374,7 @@ uint16_t get_next_packet_id(Qcloud_IoT_Client *pClient);
  * @param options
  * @return
  */
-void get_next_conn_id(MQTTConnectParams *options);
+void get_next_conn_id(char *conn_id);
 
 /**
  *

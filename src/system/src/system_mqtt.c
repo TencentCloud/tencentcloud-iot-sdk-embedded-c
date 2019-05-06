@@ -92,11 +92,11 @@ static void system_mqtt_event_handler(void *pclient, void *handle_context, MQTTE
 
 static int _iot_system_info_get_publish(void *pClient)
 {
-    POINTER_SANITY_CHECK(pClient, QCLOUD_ERR_NULL);
+    POINTER_SANITY_CHECK(pClient, QCLOUD_ERR_INVAL);
 
     Qcloud_IoT_Client   *mqtt_client = (Qcloud_IoT_Client *)pClient;
     DeviceInfo          *dev_info = iot_device_info_get();
-    POINTER_SANITY_CHECK(dev_info, QCLOUD_ERR_NULL);
+    POINTER_SANITY_CHECK(dev_info, QCLOUD_ERR_INVAL);
 
     char topic_name[128] = {0};
     char payload_content[128] = {0};
@@ -114,10 +114,10 @@ static int _iot_system_info_get_publish(void *pClient)
 
 static int _iot_system_info_result_subscribe(void *pClient, OnMessageHandler pCallback)
 {
-    POINTER_SANITY_CHECK(pClient, QCLOUD_ERR_NULL);
+    POINTER_SANITY_CHECK(pClient, QCLOUD_ERR_INVAL);
 
     DeviceInfo          *dev_info = iot_device_info_get();
-    POINTER_SANITY_CHECK(dev_info, QCLOUD_ERR_NULL);
+    POINTER_SANITY_CHECK(dev_info, QCLOUD_ERR_INVAL);
 
     char topic_name[128] = {0};
     int size = HAL_Snprintf(topic_name, sizeof(topic_name), "$sys/operation/result/%s/%s", dev_info->product_id, dev_info->device_name);
@@ -138,7 +138,7 @@ int IOT_SYSTEM_GET_TIME(void* pClient, long *time)
     int cntSub = 0;
     int cntRev = 0;
 
-    POINTER_SANITY_CHECK(pClient, QCLOUD_ERR_NULL);
+    POINTER_SANITY_CHECK(pClient, QCLOUD_ERR_INVAL);
     Qcloud_IoT_Client   *mqtt_client = (Qcloud_IoT_Client *)pClient;
 
     //如果第一次订阅$sys/operation/get/${productid}/${devicename}, 则执行订阅操作
@@ -169,6 +169,7 @@ int IOT_SYSTEM_GET_TIME(void* pClient, long *time)
         return QCLOUD_ERR_FAILURE;
     }
 
+    sg_sys_recv_ok = false;
     // 发布获取时间
 	ret = _iot_system_info_get_publish(mqtt_client);
 	if (ret < 0) {

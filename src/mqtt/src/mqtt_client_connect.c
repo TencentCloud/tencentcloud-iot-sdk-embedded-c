@@ -128,7 +128,7 @@ static int _serialize_connect_packet(unsigned char *buf, size_t buf_len, MQTTCon
 
     int username_len = strlen(options->client_id) + strlen(QCLOUD_IOT_DEVICE_SDK_APPID) + MAX_CONN_ID_LEN + cur_timesec_len + 4;
     options->username = (char*)HAL_Malloc(username_len);
-    get_next_conn_id(options);
+    get_next_conn_id(options->conn_id);
 	HAL_Snprintf(options->username, username_len, "%s;%s;%s;%ld", options->client_id, QCLOUD_IOT_DEVICE_SDK_APPID, options->conn_id, cur_timesec);
 
 #if defined(AUTH_WITH_NOTLS) && defined(AUTH_MODE_KEY)

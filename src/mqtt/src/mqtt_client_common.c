@@ -65,25 +65,25 @@ uint16_t get_next_packet_id(Qcloud_IoT_Client *pClient) {
     IOT_FUNC_EXIT_RC(pClient->next_packet_id);
 }
 
-void get_next_conn_id(MQTTConnectParams *options) {
+void get_next_conn_id(char *conn_id) {
 	int i;
 	srand((unsigned)time(0));
 	for (i = 0; i < MAX_CONN_ID_LEN - 1; i++) {
 		int flag = rand() % 3;
 		switch(flag) {
 			case 0:
-				options->conn_id[i] = (rand() % 26) + 'a';
+				conn_id[i] = (rand() % 26) + 'a';
 				break;
 			case 1:
-				options->conn_id[i] = (rand() % 26) + 'A';
+				conn_id[i] = (rand() % 26) + 'A';
 				break;
 			case 2:
-				options->conn_id[i] = (rand() % 10) + '0';
+				conn_id[i] = (rand() % 10) + '0';
 				break;
 		}
 	}
 
-	options->conn_id[MAX_CONN_ID_LEN - 1] = '\0';
+	conn_id[MAX_CONN_ID_LEN - 1] = '\0';
 }
 
 /**
@@ -1334,8 +1334,8 @@ int cycle_for_read(Qcloud_IoT_Client *pClient, Timer *timer, uint8_t *packet_typ
         }
     }
 
-    /* Receiving below msgs are all considered as PING OK */
     switch (*packet_type) {        
+        /* Recv below msgs are all considered as PING OK */
         case PUBACK:
         case SUBACK:
         case UNSUBACK:        
@@ -1343,6 +1343,7 @@ int cycle_for_read(Qcloud_IoT_Client *pClient, Timer *timer, uint8_t *packet_typ
             _handle_pingresp_packet(pClient);
             break;
         }
+        /* Recv downlink pub means link is OK but we still need to send PING request */
         case PUBLISH: {
             HAL_MutexLock(pClient->lock_generic);    
             pClient->is_ping_outstanding = 0;
