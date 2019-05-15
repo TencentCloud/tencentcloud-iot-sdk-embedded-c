@@ -22,23 +22,12 @@
 #include <signal.h>
 #include "qcloud_iot_export.h"
 
-/* 产品名称, 与云端同步设备状态时需要  */
-#define QCLOUD_IOT_MY_PRODUCT_ID            "YOUR_PRODUCT_ID"
-/* 设备名称, 与云端同步设备状态时需要 */
-#define QCLOUD_IOT_MY_DEVICE_NAME           "YOUR_DEVICE_NAME"
-
 #ifdef AUTH_MODE_CERT
-    /* 客户端证书文件名  非对称加密使用*/
-    #define QCLOUD_IOT_CERT_FILENAME          "YOUR_DEVICE_NAME_cert.crt"
-    /* 客户端私钥文件名 非对称加密使用*/
-    #define QCLOUD_IOT_KEY_FILENAME           "YOUR_DEVICE_NAME_private.key"
-
     static char sg_cert_file[PATH_MAX + 1];      //客户端证书全路径
     static char sg_key_file[PATH_MAX + 1];       //客户端密钥全路径
-
-#else
-    #define QCLOUD_IOT_DEVICE_SECRET                  "YOUR_IOT_PSK"
 #endif
+
+static DeviceInfo sg_devInfo;
 
 static char sg_shadow_update_buffer[200];
 size_t sg_shadow_update_buffersize = sizeof(sg_shadow_update_buffer) / sizeof(sg_shadow_update_buffer[0]);
@@ -62,18 +51,20 @@ void OnShadowUpdateCallback(void *pClient, Method method, RequestAck requestAck,
 	Log_i("recv shadow update response, response ack: %d", requestAck);
 }
 
-int demo_device_shadow()
+static int _setup_connect_init_params(ShadowInitParams* initParams)
 {
-	int rc = QCLOUD_ERR_FAILURE;
-
-	void* shadow_client = NULL;
-
-	ShadowInitParams init_params = DEFAULT_SHAWDOW_INIT_PARAMS;
-	init_params.product_id = QCLOUD_IOT_MY_PRODUCT_ID;
-	init_params.device_name = QCLOUD_IOT_MY_DEVICE_NAME;
+	int ret;
+	
+	ret = HAL_GetDevInfo((void *)&sg_devInfo);	
+	if(QCLOUD_ERR_SUCCESS != ret){
+		return ret;
+	}
+	
+	initParams->device_name = sg_devInfo.device_name;
+	initParams->product_id = sg_devInfo.product_id;
 
 #ifdef AUTH_MODE_CERT
-	// 获取CA证书、客户端证书以及私钥文件的路径
+	/* 使用非对称加密*/
 	char certs_dir[PATH_MAX + 1] = "certs";
 	char current_path[PATH_MAX + 1];
 	char *cwd = getcwd(current_path, sizeof(current_path));
@@ -82,17 +73,36 @@ int demo_device_shadow()
 		Log_e("getcwd return NULL");
 		return QCLOUD_ERR_FAILURE;
 	}
-	sprintf(sg_cert_file, "%s/%s/%s", current_path, certs_dir, QCLOUD_IOT_CERT_FILENAME);
-	sprintf(sg_key_file, "%s/%s/%s", current_path, certs_dir, QCLOUD_IOT_KEY_FILENAME);
+	sprintf(sg_cert_file, "%s/%s/%s", current_path, certs_dir, sg_devInfo.devCertFileName);
+	sprintf(sg_key_file, "%s/%s/%s", current_path, certs_dir, sg_devInfo.devPrivateKeyFileName);
 
-	init_params.cert_file = sg_cert_file;
-	init_params.key_file = sg_key_file;
+	initParams->cert_file = sg_cert_file;
+	initParams->key_file = sg_key_file;
 #else
-	init_params.device_secret = QCLOUD_IOT_DEVICE_SECRET;
+	initParams->device_secret = sg_devInfo.devSerc;
 #endif
 
-	init_params.command_timeout = QCLOUD_IOT_MQTT_COMMAND_TIMEOUT;
-	init_params.auto_connect_enable = 1;
+	initParams->command_timeout = QCLOUD_IOT_MQTT_COMMAND_TIMEOUT;
+	initParams->keep_alive_interval_ms = QCLOUD_IOT_MQTT_KEEP_ALIVE_INTERNAL;
+	initParams->auto_connect_enable = 1;
+
+    return QCLOUD_ERR_SUCCESS;
+}
+
+
+int demo_device_shadow()
+{
+	int rc = QCLOUD_ERR_FAILURE;
+
+	void* shadow_client = NULL;
+
+	//init connection
+	ShadowInitParams init_params = DEFAULT_SHAWDOW_INIT_PARAMS;		
+    rc = _setup_connect_init_params(&init_params);
+	if (rc != QCLOUD_ERR_SUCCESS) {
+		Log_e("init params err,rc=%d", rc);
+		return rc;
+	}
 
 	shadow_client = IOT_Shadow_Construct(&init_params);
 	if (shadow_client == NULL) {

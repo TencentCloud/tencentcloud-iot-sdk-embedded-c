@@ -21,12 +21,10 @@ extern "C" {
 
 #endif
 /* 设备动态注册domain*/
-//#define DYN_REG_SERVER_URL     "http://100.125.68.114/register/dev"
-//#define  DYN_REG_SERVER_URL     	"100.125.68.114"   //for Test
-#define  DYN_REG_SERVER_URL     	"gateway.tencentdevices.com"   //for Test
+#define  DYN_REG_SERVER_URL     	"gateway.tencentdevices.com"   
 
-#define  DYN_REG_SERVER_PORT   		2080
-#define  DYN_REG_SERVER_PORT_TLS    2443
+#define  DYN_REG_SERVER_PORT   		80
+#define  DYN_REG_SERVER_PORT_TLS    443
 #define  REG_URL_MAX_LEN			(128)
 #define  DYN_REG_SIGN_LEN 		 	(64)
 #define  DYN_BUFF_DATA_MORE			(10)

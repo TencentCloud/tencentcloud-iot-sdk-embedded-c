@@ -236,6 +236,16 @@ int HAL_SetDevSec(const char *pDevSec);
 #endif
 
 /**
+ * @brief 获取设备信息
+ *
+ * @param devInfo  待获取的设备信息指针
+ * @return         返回QCLOUD_ERR_SUCCESS, 表示获取成功，否则获取失败
+ */
+
+int HAL_GetDevInfo(void *devInfo);
+
+
+/**
  * 定义特定平台下的一个定时器结构体,
  */
 struct Timer {

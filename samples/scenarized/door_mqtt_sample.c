@@ -23,25 +23,16 @@
 #include "qcloud_iot_export.h"
 #include "qcloud_iot_import.h"
 
-/* 产品名称, 与云端同步设备状态时需要  */
-#define QCLOUD_IOT_MY_PRODUCT_ID            "YOUR_PRODUCT_ID"
-/* 设备名称, 与云端同步设备状态时需要 */
-#define QCLOUD_IOT_MY_DEVICE_NAME           "YOUR_DEVICE_NAME"
-
-#ifdef AUTH_MODE_CERT
-    /* 客户端证书文件名  非对称加密使用*/
-    #define QCLOUD_IOT_CERT_FILENAME          "YOUR_DEVICE_NAME_cert.crt"
-    /* 客户端私钥文件名 非对称加密使用*/
-    #define QCLOUD_IOT_KEY_FILENAME           "YOUR_DEVICE_NAME_private.key"
-
-    static char sg_cert_file[PATH_MAX + 1];      //客户端证书全路径
-    static char sg_key_file[PATH_MAX + 1];       //客户端密钥全路径
-
-#else
-    #define QCLOUD_IOT_DEVICE_SECRET                  "YOUR_IOT_PSK"
-#endif
 
 #define MAX_SIZE_OF_TOPIC_CONTENT 100
+
+#ifdef AUTH_MODE_CERT
+    static char sg_cert_file[PATH_MAX + 1];      //客户端证书全路径
+    static char sg_key_file[PATH_MAX + 1];       //客户端密钥全路径
+#endif
+
+static DeviceInfo sg_devInfo;
+
 
 static bool sg_has_rev_ack = false;
 
@@ -114,26 +105,35 @@ static void event_handler(void *pclient, void *handle_context, MQTTEventMsg *msg
  */
 static int _setup_connect_init_params(MQTTInitParams* initParams)
 {
-	initParams->device_name = QCLOUD_IOT_MY_DEVICE_NAME;
-	initParams->product_id = QCLOUD_IOT_MY_PRODUCT_ID;
+	int ret;
+	
+	ret = HAL_GetDevInfo((void *)&sg_devInfo);	
+	if(QCLOUD_ERR_SUCCESS != ret){
+		return ret;
+	}
+	
+	initParams->device_name = sg_devInfo.device_name;
+	initParams->product_id = sg_devInfo.product_id;
 
 #ifdef AUTH_MODE_CERT
-    char certs_dir[PATH_MAX + 1] = "certs";
-    char current_path[PATH_MAX + 1];
-    char *cwd = getcwd(current_path, sizeof(current_path));
-    if (cwd == NULL)
-    {
-        Log_e("getcwd return NULL");
-        return QCLOUD_ERR_FAILURE;
-    }
-    sprintf(sg_cert_file, "%s/%s/%s", current_path, certs_dir, QCLOUD_IOT_CERT_FILENAME);
-    sprintf(sg_key_file, "%s/%s/%s", current_path, certs_dir, QCLOUD_IOT_KEY_FILENAME);
+	/* 使用非对称加密*/
+	char certs_dir[PATH_MAX + 1] = "certs";
+	char current_path[PATH_MAX + 1];
+	char *cwd = getcwd(current_path, sizeof(current_path));
+	if (cwd == NULL)
+	{
+		Log_e("getcwd return NULL");
+		return QCLOUD_ERR_FAILURE;
+	}
+	sprintf(sg_cert_file, "%s/%s/%s", current_path, certs_dir, sg_devInfo.devCertFileName);
+	sprintf(sg_key_file, "%s/%s/%s", current_path, certs_dir, sg_devInfo.devPrivateKeyFileName);
 
-    initParams->cert_file = sg_cert_file;
-    initParams->key_file = sg_key_file;
+	initParams->cert_file = sg_cert_file;
+	initParams->key_file = sg_key_file;
 #else
-    initParams->device_secret = QCLOUD_IOT_DEVICE_SECRET;
+	initParams->device_secret = sg_devInfo.devSerc;
 #endif
+
     
 	initParams->command_timeout = QCLOUD_IOT_MQTT_COMMAND_TIMEOUT;
 	initParams->keep_alive_interval_ms = QCLOUD_IOT_MQTT_KEEP_ALIVE_INTERNAL;
@@ -154,7 +154,7 @@ static int _publish_msg(void *client, char* action, char* targetDeviceName)
         return -1;
 
     char topic_name[128] = {0};
-    sprintf(topic_name,"%s/%s/%s", QCLOUD_IOT_MY_PRODUCT_ID, QCLOUD_IOT_MY_DEVICE_NAME, "event");
+    sprintf(topic_name,"%s/%s/%s", sg_devInfo.product_id, sg_devInfo.device_name, "event");
 
     PublishParams pub_params = DEFAULT_PUB_PARAMS;
     pub_params.qos = QOS1;
@@ -203,6 +203,7 @@ int main(int argc, char **argv)
     MQTTInitParams init_params = DEFAULT_MQTTINIT_PARAMS;
     rc = _setup_connect_init_params(&init_params);
 	if (rc != QCLOUD_ERR_SUCCESS) {
+		Log_e("init params err,rc=%d", rc);
 		return rc;
 	}
 

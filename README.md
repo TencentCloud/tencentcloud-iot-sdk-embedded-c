@@ -74,34 +74,43 @@
 `git clone https://github.com/tencentyun/qcloud-iot-sdk-embedded-c.git`
 
 #### 2. 填入设备信息
-编辑 samples/mqtt/mqtt_sample.c 文件和 samples/coap/coap_sample.c 文件中如下代码段, 填入之前创建产品和设备步骤中得到的 **产品ID**，**设备名称**：
+src/platform/os/linux/HAL_OS_linux.c 提供了设备信息读写HAL层接口，量产产品需实现设备信息在非易失存储介质的读写接口，即HAL层接口适配。为方便调试，使能该文件调试宏 **DEBUG_DEV_INFO_USED**，则设备信息读写的HAL层接口会读取调试的设备信息，编辑 src/platform/os/linux/HAL_OS_linux.c 文件中如下代码段, 填入之前创建产品和设备步骤中得到的 **产品ID**，**设备名称**，若使能了动态注册功能，需要赋值**产品密钥**：
 
-1. 若使用**证书认证**加密方式，填写 **QCLOUD_IOT_CERT_FILENAME** 和 **QCLOUD_IOT_CERT_FILENAME** 并将文件放置在根目录下 certs 目录中。将根目录下 make.settings 文件中的配置项 FEATURE_AUTH_MODE 设置为 CERT，FEATURE_AUTH_WITH_NOTLS 设置为 n。
+```
+/* 产品名称, 与云端同步设备状态时需要  */
+static char sg_product_id[MAX_SIZE_OF_PRODUCT_ID + 1]	 = "YOUR_PRODUCT_ID";
+/* 产品密钥, 与云端同步设备状态时需要  */
+static char sg_product_key[MAX_SIZE_OF_PRODUCT_KEY + 1]  = "YOUR_PRODUCT_KEY";
+/* 设备名称, 与云端同步设备状态时需要 */
+static char sg_device_name[MAX_SIZE_OF_DEVICE_NAME + 1]  = "YOUR_DEVICE_NAME";
+```
+
+1. 若使用**证书认证**加密方式，赋值客户端证书文件名和私钥文件名 **sg_device_cert_file_name** 和 **sg_device_privatekey_file_name** 并将文件放置在根目录下 certs 目录中。将根目录下 make.settings 文件中的配置项 FEATURE_AUTH_MODE 设置为 CERT，FEATURE_AUTH_WITH_NOTLS 设置为 n。
 
 ```
 FEATURE_AUTH_MODE        = CERT   # MQTT/CoAP接入认证方式，使用证书认证：CERT；使用密钥认证：KEY
 FEATURE_AUTH_WITH_NOTLS  = n      # 接入认证是否不使用TLS，证书方式必须选择使用TLS，密钥认证可选择不使用TLS
 ```
 
-2. 若使用**秘钥认证**加密方式，填写 **QCLOUD_IOT_DEVICE_SECRET**。将根目录下 make.settings 文件中的配置项 FEATURE_AUTH_MODE 设置为 KEY，FEATURE_AUTH_WITH_NOTLS 设置为 n 时通过 TLS 密钥认证方式连接，设置为 y 时，则通过 HMAC-SHA1 加密算法连接。
+2. 若使用**秘钥认证**加密方式，赋值 **sg_device_secret**。将根目录下 make.settings 文件中的配置项 FEATURE_AUTH_MODE 设置为 KEY，FEATURE_AUTH_WITH_NOTLS 设置为 n 时通过 TLS 密钥认证方式连接，设置为 y 时，则通过 HMAC-SHA1 加密算法连接。
 
 ```
 /* 产品名称, 与云端同步设备状态时需要  */
-#define QCLOUD_IOT_MY_PRODUCT_ID            "YOUR_PRODUCT_ID"
+static char sg_product_id[MAX_SIZE_OF_PRODUCT_ID + 1]	 = "YOUR_PRODUCT_ID";
+/* 产品密钥, 与云端同步设备状态时需要  */
+static char sg_product_key[MAX_SIZE_OF_PRODUCT_KEY + 1]  = "YOUR_PRODUCT_KEY";
 /* 设备名称, 与云端同步设备状态时需要 */
-#define QCLOUD_IOT_MY_DEVICE_NAME           "YOUR_DEVICE_NAME"
+static char sg_device_name[MAX_SIZE_OF_DEVICE_NAME + 1]  = "YOUR_DEVICE_NAME";
 
 #ifdef AUTH_MODE_CERT
-    /* 客户端证书文件名  非对称加密使用*/
-    #define QCLOUD_IOT_CERT_FILENAME          "YOUR_DEVICE_NAME_cert.crt"
-    /* 客户端私钥文件名 非对称加密使用*/
-    #define QCLOUD_IOT_KEY_FILENAME           "YOUR_DEVICE_NAME_private.key"
 
-    static char sg_cert_file[PATH_MAX + 1];      //客户端证书全路径
-    static char sg_key_file[PATH_MAX + 1];       //客户端密钥全路径
-
+/* 客户端证书文件名  非对称加密使用, TLS 证书认证方式*/
+static char sg_device_cert_file_name[MAX_SIZE_OF_DEVICE_CERT_FILE_NAME + 1]      = "YOUR_DEVICE_NAME_cert.crt";
+/* 客户端私钥文件名 非对称加密使用, TLS 证书认证方式*/
+static char sg_device_privatekey_file_name[MAX_SIZE_OF_DEVICE_KEY_FILE_NAME + 1] = "YOUR_DEVICE_NAME_private.key";
 #else
-    #define QCLOUD_IOT_DEVICE_SECRET                  "YOUR_IOT_PSK"
+/* 设备密钥, TLS PSK认证方式*/
+static char sg_device_secret[MAX_SIZE_OF_DEVICE_SERC + 1] = "YOUR_IOT_PSK";
 #endif
 ```
 
@@ -111,7 +120,7 @@ FEATURE_AUTH_WITH_NOTLS  = n      # 接入认证是否不使用TLS，证书方�
 FEATURE_GATEWAY_ENABLED  = y      # 是否打开网关功能
 ```
 
-并编辑samples/gateway/gateway_sample.c 文件中如下代码段, 填入之前创建网关产品和子产品及设备步骤中得到的**网关产品ID**，**网关设备名称**，**子产品ID**，**子设备名称**：
+网关产品的设备信息涉及子设备，设备信息管理相对特殊，示例直接编辑samples/gateway/gateway_sample.c 文件中如下代码段, 填入之前创建网关产品和子产品及设备步骤中得到的**网关产品ID**，**网关设备名称**，**子产品ID**，**子设备名称**：
 
 ```
 /* 网关产品名称, 与云端同步设备状态时需要  */
@@ -278,6 +287,48 @@ SDK对于MQTT接口在多线程环境下的使用有如下注意事项，详细�
 ![](https://main.qcloudimg.com/raw/826b648993a267b1cc2f082148d8d073.png)
 
 代码具体用例可以参考mqtt_sample以及qcloud_iot_export_log.h注释说明，用户除了打开编译宏开关，还需要调用IOT_Log_Init_Uploader函数进行初始化。SDK在IOT_MQTT_Yield函数中会定时进行上报，此外，用户可根据自身需要，在程序出错退出的时候调用IOT_Log_Upload(true)强制上报。同时SDK提供在HTTP通讯出错无法上报日志时的缓存和恢复正常后重新上报机制，但需要用户根据设备具体情况提供相关回调函数，如不提供回调或回调函数提供不全则该缓存机制不生效，HTTP通讯失败时日志会被丢掉。
+
+#### 10. 设备动态注册
+从版本v2.3.5开始，SDK支持设备动态注册功能，同一个产品的设备出厂的时候烧录的是统一的固件，该固件只包含统一的产品ID和产品密钥，即一型一密。设备出厂后判断设备信息为空（判断设备信息为空的逻辑由业务逻辑实现，可参考示例），则触发设备动态注册，从平台申请设备的证书（创建的产品为证书认证产品）或者设备的密钥（创建的产品为密钥认证方式）。动态注册时，设备名称的生成有两种方式，一种是在控制台使能了动态注册产品的自动创建设备功能，则设备可以自行生成设备名称，但需保证同一产品下没有重复，一般取CPUID或者其他的设备唯一信息。另一种是没有使能动态注册产品的自动创建设备，则需要在控制台预先录入各设备的名称，且设备动态注册时设备要与录入的设备名称一致，此种方式更加安全，便利性有所下降。控制台使能设置如下图示：
+![](https://main.qcloudimg.com/raw/a1fcdeabf1b87dc5f9547c2c52c1008d.jpg)
+执行设备动态注册例程dynamic_reg_dev_sample，证书设备注册和密钥设备注册的日志分别如下：
+```
+./output/release/bin/dynamic_reg_dev_sample 
+DBG|2019-05-15 17:56:48|dynamic_reg_dev_sample.c|main(66): dev Cert not exist!
+DBG|2019-05-15 17:56:48|dynreg.c|qcloud_iot_dyn_reg_dev(452): sign:NjVjODViYzBjNDcxMWY5MWJlMjc3NGYzNmIzM2ZmNWJhMDA5ZDhhMA==
+DBG|2019-05-15 17:56:48|dynreg.c|qcloud_iot_dyn_reg_dev(468): request:{"deviceName":"dev1","nonce":1893351768,"productId":"608HDJXQI9","timestamp":1557914208,"signature":"NjVjODViYzBjNDcxMWY5MWJlMjc3NGYzNmIzM2ZmNWJhMDA5ZDhhMA=="}
+DBG|2019-05-15 17:56:48|dynreg.c|qcloud_iot_dyn_reg_dev(470): resbuff len:5120
+DBG|2019-05-15 17:56:48|HAL_TLS_mbedtls.c|_mbedtls_client_init(123): cert_file/key_file is empty!|cert_file=(null)|key_file=(null)
+DBG|2019-05-15 17:56:48|HAL_TLS_mbedtls.c|HAL_TLS_Connect(204): Connecting to /gateway.tencentdevices.com/443...
+DBG|2019-05-15 17:56:48|HAL_TLS_mbedtls.c|HAL_TLS_Connect(209): Setting up the SSL/TLS structure...
+DBG|2019-05-15 17:56:48|HAL_TLS_mbedtls.c|HAL_TLS_Connect(251): Performing the SSL/TLS handshake...
+INF|2019-05-15 17:56:48|HAL_TLS_mbedtls.c|HAL_TLS_Connect(269): connected with /gateway.tencentdevices.com/2443...
+DBG|2019-05-15 17:56:48|utils_httpc.c|qcloud_http_client_connect(782): http client connect success
+DBG|2019-05-15 17:56:49|dynreg.c|_parse_devinfo(222): recv：{"code":0,"message":"","len":3011,"payload":"PBCH9pgVJ4RdDHr9sqQ2oZVJHaG4yroxAJ9XHH1OMmA1BnxxXR0JsOVE9+aMBsfE2tmY6E/S2aCr7Imic1XNPLi70cubPTb/O9lPrS+CjlGPC+akRXkjjWbbdazpw2KATAVPL+MM38wvENlJ2Q
+DBG|2019-05-15 17:56:49|dynreg.c|_parse_devinfo(236): payload:PBCH9pgVJ4RdDHr9sqQ2oZVJHaG4yroxAJ9XHH1OMmA1BnxxXR0JsOVE9+aMBsfE2tmY6E/S2aCr7Imic1XNPLi70cubPTb/O9lPrS+CjlGPC+akRXkjjWbbdazpw2KATAVPL+MM38wvENlJ2Qi9j9/qxJsp4REhUeUeRjb04qRaWDG6aMnkVrBDLtIkXK
+DBG|2019-05-15 17:56:49|dynreg.c|_cert_file_save(191): save dev1_cert.crt file succes
+DBG|2019-05-15 17:56:49|dynreg.c|_cert_file_save(191): save dev1_private.key file succes
+DBG|2019-05-15 17:56:49|dynreg.c|qcloud_iot_dyn_reg_dev(474): request dev info success
+DBG|2019-05-15 17:56:49|dynamic_reg_dev_sample.c|main(102): dynamic register success, productID: 608HDJXQI9, devName: dev1, CertFile: dev1_cert.crt, KeyFile: dev1_private.key
+```
+
+```
+./output/release/bin/dynamic_reg_dev_sample 
+DBG|2019-05-15 18:50:27|dynamic_reg_dev_sample.c|main(79): dev psk not exist!
+DBG|2019-05-15 18:50:27|dynreg.c|qcloud_iot_dyn_reg_dev(452): sign:OGEzMmY5OTIxYjM4NzQzODZjNmMzMzM3NDAyYjE3MDhkNmU2MWNkYg==
+DBG|2019-05-15 18:50:27|dynreg.c|qcloud_iot_dyn_reg_dev(468): request:{"deviceName":"dev1","nonce":472874279,"productId":"8OYFSYYNC2","timestamp":1557917427,"signature":"OGEzMmY5OTIxYjM4NzQzODZjNmMzMzM3NDAyYjE3MDhkNmU2MWNkYg=="}
+DBG|2019-05-15 18:50:27|dynreg.c|qcloud_iot_dyn_reg_dev(470): resbuff len:256
+DBG|2019-05-15 18:50:27|HAL_TLS_mbedtls.c|_mbedtls_client_init(131): psk/pskid is empty!|psk=(null)|psd_id=(null)
+DBG|2019-05-15 18:50:27|HAL_TLS_mbedtls.c|HAL_TLS_Connect(204): Connecting to /gateway.tencentdevices.com/2443...
+DBG|2019-05-15 18:50:27|HAL_TLS_mbedtls.c|HAL_TLS_Connect(209): Setting up the SSL/TLS structure...
+DBG|2019-05-15 18:50:27|HAL_TLS_mbedtls.c|HAL_TLS_Connect(251): Performing the SSL/TLS handshake...
+INF|2019-05-15 18:50:27|HAL_TLS_mbedtls.c|HAL_TLS_Connect(269): connected with /gateway.tencentdevices.com/2443...
+DBG|2019-05-15 18:50:27|utils_httpc.c|qcloud_http_client_connect(782): http client connect success
+DBG|2019-05-15 18:50:29|dynreg.c|_parse_devinfo(222): recv：{"code":0,"message":"","len":53,"payload":"dhPZ7qgO44ZayjJTIVcnZtEqEw/75lTAP0HmQYjF102p540FmvvrtG5YSIqEDZX8Fz+XEZPFAdjoxrG43FO3Yg=="}
+DBG|2019-05-15 18:50:29|dynreg.c|_parse_devinfo(236): payload:dhPZ7qgO44ZayjJTIVcnZtEqEw/75lTAP0HmQYjF102p540FmvvrtG5YSIqEDZX8Fz+XEZPFAdjoxrG43FO3Yg==
+DBG|2019-05-15 18:50:29|dynreg.c|qcloud_iot_dyn_reg_dev(474): request dev info success
+DBG|2019-05-15 18:50:29|dynamic_reg_dev_sample.c|main(105): dynamic register success,productID: 8OYFSYYNC2, devName: dev1, devSerc: XMB0CX...wmiUan6Q==
+```
 
 ## 四. 可变接入参数配置
 

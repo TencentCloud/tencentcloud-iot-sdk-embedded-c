@@ -51,8 +51,6 @@
 #define MAX_SIZE_OF_DATA (128)
 
 
-#if 1
-
 //static int sg_count = 0;
 static int sg_sub_packet_id = -1;
 
@@ -136,7 +134,6 @@ static void _message_handler(void *client, MQTTMessage *message, void *user_data
 	Log_i("Receive Message With topicName:%.*s, payload:%.*s",
 		  (int) message->topic_len, message->ptopic, (int) message->payload_len, (char *) message->payload);
 }
-#endif
 
 int demo_gateway()
 {

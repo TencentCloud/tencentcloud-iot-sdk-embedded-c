@@ -128,29 +128,6 @@ static void on_message_callback(void *pClient, MQTTMessage *message, void *userD
 		  (int) message->topic_len, message->ptopic, (int) message->payload_len, (char *) message->payload);
 }
 
-static int _get_dev_info(DeviceInfo *devInfo)
-{
-	int ret;
-	
-	memset((char *)devInfo, 0, sizeof(DeviceInfo));
-	ret = HAL_GetProductID(devInfo->product_id, MAX_SIZE_OF_PRODUCT_ID);
-	ret |= HAL_GetDevName(devInfo->device_name, MAX_SIZE_OF_DEVICE_NAME); 
-	
-#ifdef 	AUTH_MODE_CERT
-	ret |= HAL_GetDevCertName(devInfo->devCertFileName, MAX_SIZE_OF_DEVICE_CERT_FILE_NAME);
-	ret |= HAL_GetDevPrivateKeyName(devInfo->devPrivateKeyFileName, MAX_SIZE_OF_DEVICE_KEY_FILE_NAME);
-#else
-	ret |= HAL_GetDevSec(devInfo->devSerc, MAX_SIZE_OF_PRODUCT_KEY);
-#endif 
-
-	if(QCLOUD_ERR_SUCCESS != ret){
-		Log_e("Get device info err");
-		ret = QCLOUD_ERR_DEV_INFO;
-	}
-
-	return ret;
-}
-
 /**
  * 设置MQTT connet初始化参数
  *
@@ -162,13 +139,11 @@ static int _setup_connect_init_params(MQTTInitParams* initParams)
 {
 	int ret;
 	
-	ret = _get_dev_info(&sg_devInfo);	
+	ret = HAL_GetDevInfo((void *)&sg_devInfo);	
 	if(QCLOUD_ERR_SUCCESS != ret){
 		return ret;
 	}
 	
-	//initParams->device_name = QCLOUD_IOT_MY_DEVICE_NAME;
-	//initParams->product_id = QCLOUD_IOT_MY_PRODUCT_ID;
 	initParams->device_name = sg_devInfo.device_name;
 	initParams->product_id = sg_devInfo.product_id;
 
@@ -208,7 +183,6 @@ static int _setup_connect_init_params(MQTTInitParams* initParams)
 static int _publish_msg(void *client)
 {
     char topicName[128] = {0};
-    //sprintf(topicName,"%s/%s/%s", QCLOUD_IOT_MY_PRODUCT_ID, QCLOUD_IOT_MY_DEVICE_NAME, "data");
 	sprintf(topicName,"%s/%s/%s", sg_devInfo.product_id, sg_devInfo.device_name, "data");
 	
 
@@ -236,8 +210,7 @@ static int _publish_msg(void *client)
  */
 static int _register_subscribe_topics(void *client)
 {
-    static char topic_name[128] = {0};
-    //int size = HAL_Snprintf(topic_name, sizeof(topic_name), "%s/%s/%s", QCLOUD_IOT_MY_PRODUCT_ID, QCLOUD_IOT_MY_DEVICE_NAME, "data");
+    static char topic_name[128] = {0};    
     int size = HAL_Snprintf(topic_name, sizeof(topic_name), "%s/%s/%s", sg_devInfo.product_id, sg_devInfo.device_name, "data");
 	
 	if (size < 0 || size > sizeof(topic_name) - 1)
@@ -343,6 +316,7 @@ int main(int argc, char **argv) {
     MQTTInitParams init_params = DEFAULT_MQTTINIT_PARAMS;
     rc = _setup_connect_init_params(&init_params);
 	if (rc != QCLOUD_ERR_SUCCESS) {
+		Log_e("init params err,rc=%d", rc);
 		return rc;
 	}
 	

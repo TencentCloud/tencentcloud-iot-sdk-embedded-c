@@ -31,20 +31,23 @@
 
 #ifdef DEBUG_DEV_INFO_USED
 
-#ifdef AUTH_MODE_CERT
-static char sg_product_id[MAX_SIZE_OF_PRODUCT_ID + 1]	 = "608HDJXQI9";
-static char sg_product_key[MAX_SIZE_OF_PRODUCT_KEY + 1]  = "5iAkeLbb9DDj3ZZ8ZvPCBIq8";
-static char sg_device_name[MAX_SIZE_OF_DEVICE_NAME + 1]  = "dev1";
+/* 产品名称, 与云端同步设备状态时需要  */
+static char sg_product_id[MAX_SIZE_OF_PRODUCT_ID + 1]	 = "PRODUCT_ID";
+/* 产品密钥, 与云端同步设备状态时需要  */
+static char sg_product_key[MAX_SIZE_OF_PRODUCT_KEY + 1]  = "YOUR_PRODUCT_KEY";
+/* 设备名称, 与云端同步设备状态时需要 */
+static char sg_device_name[MAX_SIZE_OF_DEVICE_NAME + 1]  = "YOUR_DEVICE_NAME";
 
+#ifdef AUTH_MODE_CERT
+/* 客户端证书文件名  非对称加密使用, TLS 证书认证方式*/
 static char sg_device_cert_file_name[MAX_SIZE_OF_DEVICE_CERT_FILE_NAME + 1]      = "YOUR_DEVICE_NAME_cert.crt";
+/* 客户端私钥文件名 非对称加密使用, TLS 证书认证方式*/
 static char sg_device_privatekey_file_name[MAX_SIZE_OF_DEVICE_KEY_FILE_NAME + 1] = "YOUR_DEVICE_NAME_private.key";
 #else
-static char sg_product_id[MAX_SIZE_OF_PRODUCT_ID + 1]	 = "8OYFSYYNC2";
-static char sg_product_key[MAX_SIZE_OF_PRODUCT_KEY + 1]  = "9MqimZezeFWHw1hh8XwbeW8o";
-static char sg_device_name[MAX_SIZE_OF_DEVICE_NAME + 1]  = "dev1";
-
+/* 设备密钥, TLS PSK认证方式*/
 static char sg_device_secret[MAX_SIZE_OF_DEVICE_SERC + 1] = "YOUR_IOT_PSK";
 #endif
+
 #endif
 
 void *HAL_MutexCreate(void)
@@ -365,4 +368,29 @@ int HAL_SetDevSec(const char *pDevSec)
 #endif
 }
 #endif
+
+int HAL_GetDevInfo(void *pdevInfo)
+{
+	int ret;
+	DeviceInfo *devInfo = (DeviceInfo *)pdevInfo;
+		
+	memset((char *)devInfo, 0, sizeof(DeviceInfo));
+	ret = HAL_GetProductID(devInfo->product_id, MAX_SIZE_OF_PRODUCT_ID);
+	ret |= HAL_GetDevName(devInfo->device_name, MAX_SIZE_OF_DEVICE_NAME); 
+	
+#ifdef 	AUTH_MODE_CERT
+	ret |= HAL_GetDevCertName(devInfo->devCertFileName, MAX_SIZE_OF_DEVICE_CERT_FILE_NAME);
+	ret |= HAL_GetDevPrivateKeyName(devInfo->devPrivateKeyFileName, MAX_SIZE_OF_DEVICE_KEY_FILE_NAME);
+#else
+	ret |= HAL_GetDevSec(devInfo->devSerc, MAX_SIZE_OF_PRODUCT_KEY);
+#endif 
+
+	if(QCLOUD_ERR_SUCCESS != ret){
+		Log_e("Get device info err");
+		ret = QCLOUD_ERR_DEV_INFO;
+	}
+
+	return ret;
+}
+
 

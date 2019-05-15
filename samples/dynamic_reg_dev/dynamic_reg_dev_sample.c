@@ -65,6 +65,8 @@ int main(int argc, char **argv) {
 		||!strcmp(sDevInfo.devPrivateKeyFileName, QCLOUD_IOT_NULL_KEY_FILENAME)){
 		Log_d("dev Cert not exist!");
 		infoNullFlag = true;
+	}else{
+		Log_d("dev Cert exist");
 	}
 #else
 	ret |= HAL_GetDevSec(sDevInfo.devSerc, MAX_SIZE_OF_PRODUCT_KEY);
@@ -76,13 +78,15 @@ int main(int argc, char **argv) {
 	if(!strcmp(sDevInfo.devSerc, QCLOUD_IOT_NULL_DEVICE_SECRET)){
 		Log_d("dev psk not exist!");
 		infoNullFlag = true;
+	}else{
+		Log_d("dev psk exist");
 	}
 #endif 
 
 	/*设备信息为空，发起设备注册 注意：成功注册并完成一次连接后则无法再次发起注册，请做好设备信息的保存*/
 	if(infoNullFlag){
 		if(QCLOUD_ERR_SUCCESS == qcloud_iot_dyn_reg_dev(&sDevInfo)){
-			Log_d("%s dynamic register success", sDevInfo.device_name);
+			
 			ret = HAL_SetDevName(sDevInfo.device_name);
 #ifdef 	AUTH_MODE_CERT
 			ret |= HAL_SetDevCertName(sDevInfo.devCertFileName);
@@ -92,6 +96,14 @@ int main(int argc, char **argv) {
 #endif
 			if(QCLOUD_ERR_SUCCESS != ret){
 				Log_e("devices info save fail");
+			}else{
+#ifdef 	AUTH_MODE_CERT
+				Log_d("dynamic register success, productID: %s, devName: %s, CertFile: %s, KeyFile: %s", \
+						sDevInfo.product_id, sDevInfo.device_name, sDevInfo.devCertFileName, sDevInfo.devPrivateKeyFileName);
+#else
+				Log_d("dynamic register success,productID: %s, devName: %s, devSerc: %s", \
+					    sDevInfo.product_id, sDevInfo.device_name, sDevInfo.devSerc);
+#endif
 			}
 		}else{
 			Log_e("%s dynamic register fail", sDevInfo.device_name);

@@ -49,7 +49,7 @@ static void _coap_client_auth_callback(void *message, void *userContext)
 			client->auth_token = HAL_Malloc(client->auth_token_len);
 			strncpy(client->auth_token, msg->pay_load,client->auth_token_len);
 			client->is_authed = COAP_TRUE;
-			Log_d("auth_token_len = %d, auth_token = %s", client->auth_token_len, client->auth_token);
+			Log_d("auth_token_len = %d, auth_token = %.*s", client->auth_token_len, client->auth_token_len, client->auth_token);
     	}
     }
     else {

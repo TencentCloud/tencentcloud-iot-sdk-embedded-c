@@ -188,7 +188,7 @@ static int _cert_file_save(const char *fileName, char *data,	uint32_t dataLen)
     fclose(fp);
 
 	if(len == dataLen){
-		 Log_d("save %s file succes, %d of %d", fileName,len, dataLen);
+		 Log_d("save %s file succes", fileName);
 		 Ret = QCLOUD_ERR_SUCCESS;
 	}
 	
@@ -322,7 +322,7 @@ static int _parse_devinfo(char *jdoc, DeviceInfo *pDevInfo)
 		}
 		HAL_Free(psk);
 		//Just for test,release should be deleted
-		Log_d("Get psk %s", pDevInfo->devSerc);	
+		//Log_d("Get psk %s", pDevInfo->devSerc);	
 	}else{
 		Log_e("Get psk data fail");
 	}
@@ -436,6 +436,11 @@ int qcloud_iot_dyn_reg_dev(DeviceInfo *pDevInfo)
 	int len;
 	char sign[DYN_REG_SIGN_LEN] = {0};
 	char *pRequest = NULL;
+
+	if(strlen(pDevInfo->product_key) < UTILS_AES_BLOCK_LEN){
+		Log_e("product key inllegal");
+		return QCLOUD_ERR_FAILURE;		
+	}
 
 	srand_d(HAL_UptimeMs());
 	nonce = rand_d();
