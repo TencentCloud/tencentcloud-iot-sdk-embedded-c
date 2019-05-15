@@ -133,6 +133,109 @@ uint32_t HAL_UptimeMs(void);
 void HAL_SleepMs(_IN_ uint32_t ms);
 
 /**
+ * @brief 获取产品ID.
+ *
+ * @param pProductId 读取产品ID的存放buff
+ * @param maxlen 	 buff长度
+ * @return          返回QCLOUD_ERR_SUCCESS, 表示读取成功，否则读取失败
+ */
+int HAL_GetProductID(char *pProductId, uint8_t maxlen);	
+
+/**
+ * @brief 获取产品密钥，动态设备注册需要.
+ *
+ * @param pProductKey 读取产品Key的存放buff
+ * @param maxlen 	 buff长度
+ * @return          返回QCLOUD_ERR_SUCCESS, 表示读取成功，否则读取失败
+ */
+int HAL_GetProductKey(char *pProductKey, uint8_t maxlen);
+
+/**
+ * @brief 获取设备名，若动态设备注册使能，且未注册，需要实现设备名的生成方法.
+ *
+ * @param pDevName  读取设备名的存放buff
+ * @param maxlen 	buff长度
+ * @return          返回QCLOUD_ERR_SUCCESS, 表示读取成功，否则读取失败
+ */
+int HAL_GetDevName(char *pDevName, uint8_t maxlen);
+
+/**
+ * @brief 设置产品ID
+ *
+ * @param pProductId  待设置的产品ID
+ * @return            返回QCLOUD_ERR_SUCCESS, 表示设置成功，否则设置失败
+ */
+int HAL_SetProductID(const char *pProductId);
+
+/**
+ * @brief 设置产品Key
+ *
+ * @param pProductKey  待设置的产品Key
+ * @return             返回QCLOUD_ERR_SUCCESS, 表示设置成功，否则设置失败
+ */
+int HAL_SetProductKey(const char *pProductKey);
+
+/**
+ * @brief 设置设备名
+ *
+ * @param pDevName  待设置的设备名
+ * @return          返回QCLOUD_ERR_SUCCESS, 表示设置成功，否则设置失败
+ */
+int HAL_SetDevName(const char *pDevName);
+#ifdef AUTH_MODE_CERT
+/**
+ * @brief 获取设备端证书文件名
+ *
+ * @param pDevCert  证书文件名的存放buff
+ * @param maxlen 	buff长度
+ * @return          返回QCLOUD_ERR_SUCCESS, 表示读取成功，否则读取失败
+ */
+int HAL_GetDevCertName(char *pDevCert, uint8_t maxlen);
+
+/**
+ * @brief 获取设备端证书文件名
+ *
+ * @param pDevPrivateKey  证书文件名的存放buff
+ * @param maxlen 		buff长度
+ * @return          返回QCLOUD_ERR_SUCCESS, 表示读取成功，否则读取失败
+ */
+
+int HAL_GetDevPrivateKeyName(char *pDevPrivateKey, uint8_t maxlen);
+
+/**
+ * @brief 设置设备端证书文件名
+ *
+ * @param pDevCert  待设置的设备端证书文件名
+ * @return          返回QCLOUD_ERR_SUCCESS, 表示设置成功，否则设置失败
+ */
+int HAL_SetDevCertName(char *pDevCert);
+
+/**
+ * @brief 设置设备私钥文件名
+ *
+ * @param pDevPrivateKey  待设置的设备私钥文件名
+ * @return          返回QCLOUD_ERR_SUCCESS, 表示设置成功，否则设置失败
+ */
+int HAL_SetDevPrivateKeyName(char *pDevPrivateKey);
+#else
+/**
+ * @brief 获取设备psk，TLS PSK认证方式
+ *
+ * @param pDevSec  待设置的设备psk
+ * @return         返回QCLOUD_ERR_SUCCESS, 表示设置成功，否则设置失败
+ */
+int HAL_GetDevSec(char *pDevSec, uint8_t maxlen);
+
+/**
+ * @brief 设置设备psk
+ *
+ * @param pDevSec  待设置的设备psk
+ * @return         返回QCLOUD_ERR_SUCCESS, 表示设置成功，否则设置失败
+ */
+int HAL_SetDevSec(const char *pDevSec);
+#endif
+
+/**
  * 定义特定平台下的一个定时器结构体,
  */
 struct Timer {

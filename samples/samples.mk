@@ -33,6 +33,18 @@ multi_thread_mqtt_sample:
 	mv $@ $(FINAL_DIR)/bin
 endif
 
+ifneq (,$(filter -DDEV_DYN_REG_ENABLED,$(CFLAGS)))
+dynamic_reg_dev_sample:
+	$(eval CFLAGS := $(filter-out $(IOTSDK_INCLUDE_FILES),$(CFLAGS)) \
+		-I$(TOP_DIR)/src/sdk-impl -I$(TOP_DIR)/src/sdk-impl/exports)
+
+	$(TOP_Q) \
+	$(PLATFORM_CC) $(CFLAGS) $(SAMPLE_DIR)/dynamic_reg_dev/$@.c $(LDFLAGS) -o $@
+
+	$(TOP_Q) \
+	mv $@ $(FINAL_DIR)/bin
+endif
+
 ifneq (,$(filter -DOTA_COMM_ENABLED,$(CFLAGS)))
 ifneq (,$(filter -DOTA_MQTT_CHANNEL,$(CFLAGS)))
 ota_mqtt_sample:

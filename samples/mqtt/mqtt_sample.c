@@ -25,26 +25,15 @@
 #include "qcloud_iot_import.h"
 
 
-/* 产品名称, 与云端同步设备状态时需要  */
-#define QCLOUD_IOT_MY_PRODUCT_ID            "YOUR_PRODUCT_ID"
-/* 设备名称, 与云端同步设备状态时需要 */
-#define QCLOUD_IOT_MY_DEVICE_NAME           "YOUR_DEVICE_NAME"
-
-#ifdef AUTH_MODE_CERT
-    /* 客户端证书文件名  非对称加密使用*/
-    #define QCLOUD_IOT_CERT_FILENAME          "YOUR_DEVICE_NAME_cert.crt"
-    /* 客户端私钥文件名 非对称加密使用*/
-    #define QCLOUD_IOT_KEY_FILENAME           "YOUR_DEVICE_NAME_private.key"
-
-    static char sg_cert_file[PATH_MAX + 1];      //客户端证书全路径
-    static char sg_key_file[PATH_MAX + 1];       //客户端密钥全路径
-
-#else
-    #define QCLOUD_IOT_DEVICE_SECRET                  "YOUR_IOT_PSK"
-#endif
 
 #define MAX_SIZE_OF_TOPIC_CONTENT 100
 
+#ifdef AUTH_MODE_CERT
+    static char sg_cert_file[PATH_MAX + 1];      //客户端证书全路径
+    static char sg_key_file[PATH_MAX + 1];       //客户端密钥全路径
+#endif
+
+static DeviceInfo sg_devInfo;
 static int sg_count = 0;
 static int sg_sub_packet_id = -1;
 
@@ -139,6 +128,29 @@ static void on_message_callback(void *pClient, MQTTMessage *message, void *userD
 		  (int) message->topic_len, message->ptopic, (int) message->payload_len, (char *) message->payload);
 }
 
+static int _get_dev_info(DeviceInfo *devInfo)
+{
+	int ret;
+	
+	memset((char *)devInfo, 0, sizeof(DeviceInfo));
+	ret = HAL_GetProductID(devInfo->product_id, MAX_SIZE_OF_PRODUCT_ID);
+	ret |= HAL_GetDevName(devInfo->device_name, MAX_SIZE_OF_DEVICE_NAME); 
+	
+#ifdef 	AUTH_MODE_CERT
+	ret |= HAL_GetDevCertName(devInfo->devCertFileName, MAX_SIZE_OF_DEVICE_CERT_FILE_NAME);
+	ret |= HAL_GetDevPrivateKeyName(devInfo->devPrivateKeyFileName, MAX_SIZE_OF_DEVICE_KEY_FILE_NAME);
+#else
+	ret |= HAL_GetDevSec(devInfo->devSerc, MAX_SIZE_OF_PRODUCT_KEY);
+#endif 
+
+	if(QCLOUD_ERR_SUCCESS != ret){
+		Log_e("Get device info err");
+		ret = QCLOUD_ERR_DEV_INFO;
+	}
+
+	return ret;
+}
+
 /**
  * 设置MQTT connet初始化参数
  *
@@ -148,8 +160,17 @@ static void on_message_callback(void *pClient, MQTTMessage *message, void *userD
  */
 static int _setup_connect_init_params(MQTTInitParams* initParams)
 {
-	initParams->device_name = QCLOUD_IOT_MY_DEVICE_NAME;
-	initParams->product_id = QCLOUD_IOT_MY_PRODUCT_ID;
+	int ret;
+	
+	ret = _get_dev_info(&sg_devInfo);	
+	if(QCLOUD_ERR_SUCCESS != ret){
+		return ret;
+	}
+	
+	//initParams->device_name = QCLOUD_IOT_MY_DEVICE_NAME;
+	//initParams->product_id = QCLOUD_IOT_MY_PRODUCT_ID;
+	initParams->device_name = sg_devInfo.device_name;
+	initParams->product_id = sg_devInfo.product_id;
 
 #ifdef AUTH_MODE_CERT
 	/* 使用非对称加密*/
@@ -161,13 +182,13 @@ static int _setup_connect_init_params(MQTTInitParams* initParams)
 		Log_e("getcwd return NULL");
 		return QCLOUD_ERR_FAILURE;
 	}
-	sprintf(sg_cert_file, "%s/%s/%s", current_path, certs_dir, QCLOUD_IOT_CERT_FILENAME);
-	sprintf(sg_key_file, "%s/%s/%s", current_path, certs_dir, QCLOUD_IOT_KEY_FILENAME);
+	sprintf(sg_cert_file, "%s/%s/%s", current_path, certs_dir, sg_devInfo.devCertFileName);
+	sprintf(sg_key_file, "%s/%s/%s", current_path, certs_dir, sg_devInfo.devPrivateKeyFileName);
 
 	initParams->cert_file = sg_cert_file;
 	initParams->key_file = sg_key_file;
 #else
-	initParams->device_secret = QCLOUD_IOT_DEVICE_SECRET;
+	initParams->device_secret = sg_devInfo.devSerc;
 #endif
 
 	initParams->command_timeout = QCLOUD_IOT_MQTT_COMMAND_TIMEOUT;
@@ -187,7 +208,9 @@ static int _setup_connect_init_params(MQTTInitParams* initParams)
 static int _publish_msg(void *client)
 {
     char topicName[128] = {0};
-    sprintf(topicName,"%s/%s/%s", QCLOUD_IOT_MY_PRODUCT_ID, QCLOUD_IOT_MY_DEVICE_NAME, "data");
+    //sprintf(topicName,"%s/%s/%s", QCLOUD_IOT_MY_PRODUCT_ID, QCLOUD_IOT_MY_DEVICE_NAME, "data");
+	sprintf(topicName,"%s/%s/%s", sg_devInfo.product_id, sg_devInfo.device_name, "data");
+	
 
     PublishParams pub_params = DEFAULT_PUB_PARAMS;
     pub_params.qos = QOS1;
@@ -213,9 +236,11 @@ static int _publish_msg(void *client)
  */
 static int _register_subscribe_topics(void *client)
 {
-    char topic_name[128] = {0};
-    int size = HAL_Snprintf(topic_name, sizeof(topic_name), "%s/%s/%s", QCLOUD_IOT_MY_PRODUCT_ID, QCLOUD_IOT_MY_DEVICE_NAME, "data");
-    if (size < 0 || size > sizeof(topic_name) - 1)
+    static char topic_name[128] = {0};
+    //int size = HAL_Snprintf(topic_name, sizeof(topic_name), "%s/%s/%s", QCLOUD_IOT_MY_PRODUCT_ID, QCLOUD_IOT_MY_DEVICE_NAME, "data");
+    int size = HAL_Snprintf(topic_name, sizeof(topic_name), "%s/%s/%s", sg_devInfo.product_id, sg_devInfo.device_name, "data");
+	
+	if (size < 0 || size > sizeof(topic_name) - 1)
     {
         Log_e("topic content length not enough! content size:%d  buf size:%d", size, (int)sizeof(topic_name));
         return QCLOUD_ERR_FAILURE;
@@ -320,17 +345,18 @@ int main(int argc, char **argv) {
 	if (rc != QCLOUD_ERR_SUCCESS) {
 		return rc;
 	}
+	
 
 #ifdef LOG_UPLOAD
     // IOT_Log_Init_Uploader should be done after _setup_connect_init_params
-    LogUploadInitParams log_init_params = {.product_id = QCLOUD_IOT_MY_PRODUCT_ID, 
-                        .device_name = QCLOUD_IOT_MY_DEVICE_NAME, .sign_key = NULL,
+    LogUploadInitParams log_init_params = {.product_id = sg_devInfo.product_id, 
+                        .device_name = sg_devInfo.device_name, .sign_key = NULL,
                         .read_func = _log_read_callback, .save_func = _log_save_callback,
                         .del_func = _log_del_callback, .get_size_func = _log_get_size_callback};
 #ifdef AUTH_MODE_CERT    
     log_init_params.sign_key = sg_cert_file;
 #else
-    log_init_params.sign_key = QCLOUD_IOT_DEVICE_SECRET;
+    log_init_params.sign_key = sg_devInfo.devSerc;
 #endif
     IOT_Log_Init_Uploader(&log_init_params);
 #endif

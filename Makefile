@@ -39,6 +39,9 @@ $(call CompLib_Map, GATEWAY_ENABLED, \
 	src/gateway/src \
 )
 
+$(call CompLib_Map, DEV_DYN_REG_ENABLED, \
+	src/dynreg/src \
+)
 
 
 IOTSDK_SRC_FILES := \
@@ -116,6 +119,9 @@ $(call CompInc_Map, GATEWAY_ENABLED, \
 	src/gateway/include \
 )
 
+$(call CompInc_Map, DEV_DYN_REG_ENABLED, \
+	src/dynreg/include \
+)
     
 IOTSDK_INCLUDE_FILES := \
 

@@ -1130,7 +1130,7 @@ static int _get_packet_id_in_repeat_buf(uint16_t packet_id)
 static void _add_packet_id_to_repeat_buf(uint16_t packet_id)
 {
     static unsigned int current_packet_id_cnt = 0;
-    if (_get_packet_id_in_repeat_buf(packet_id) < 0)
+    if (_get_packet_id_in_repeat_buf(packet_id) > 0)
         return;
 
     sg_repeat_packet_id_buf[current_packet_id_cnt++] = packet_id;

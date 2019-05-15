@@ -24,7 +24,7 @@ extern "C" {
 #define QCLOUD_IOT_DEVICE_SDK_APPID                                	"21010406"
 
 /* IoT C-SDK version info */
-#define QCLOUD_IOT_DEVICE_SDK_VERSION                               "2.3.3"
+#define QCLOUD_IOT_DEVICE_SDK_VERSION                               "2.3.5"
 
 /* MQTT心跳消息发送周期, 单位:ms */
 #define QCLOUD_IOT_MQTT_KEEP_ALIVE_INTERNAL                         (240 * 1000)
@@ -45,8 +45,24 @@ extern "C" {
 /* 产品名称的最大长度 */
 #define MAX_SIZE_OF_PRODUCT_ID                                    	(10)
 
+/* 产品密钥的最大长度 ，动态设备注册需要*/
+#define MAX_SIZE_OF_PRODUCT_KEY                                    	(32)
+
 /* 设备ID的最大长度 */
 #define MAX_SIZE_OF_DEVICE_NAME                                     (48)
+
+
+/* 设备密钥的最大长度 */
+#define MAX_SIZE_OF_DEVICE_SERC                                     (32)
+
+/* 设备证书文件名的最大长度 */
+#define MAX_SIZE_OF_DEVICE_CERT_FILE_NAME                           (128)
+
+/* 设备私钥文件名的最大长度 */
+#define MAX_SIZE_OF_DEVICE_KEY_FILE_NAME                            (128)
+
+
+
 
 /* MQTT消息发送buffer大小, 支持最大256*1024 */
 #define QCLOUD_IOT_MQTT_TX_BUF_LEN                                  (2048)
@@ -76,6 +92,17 @@ typedef struct {
 	char	product_id[MAX_SIZE_OF_PRODUCT_ID + 1];
 	char 	device_name[MAX_SIZE_OF_DEVICE_NAME + 1];
 	char	client_id[MAX_SIZE_OF_CLIENT_ID + 1];
+	
+#ifdef AUTH_MODE_CERT
+	char  	devCertFileName[MAX_SIZE_OF_DEVICE_CERT_FILE_NAME + 1];
+	char 	devPrivateKeyFileName[MAX_SIZE_OF_DEVICE_KEY_FILE_NAME + 1];
+#else
+	char	devSerc[MAX_SIZE_OF_DEVICE_SERC + 1];
+#endif
+
+#ifdef DEV_DYN_REG_ENABLED
+	char	product_key[MAX_SIZE_OF_PRODUCT_KEY + 1];
+#endif  	
 } DeviceInfo;
 
 #include "qcloud_iot_export_coap.h"
@@ -87,6 +114,7 @@ typedef struct {
 #include "qcloud_iot_export_system.h"
 #include "qcloud_iot_export_nbiot.h"
 #include "qcloud_iot_export_gateway.h"
+#include "qcloud_iot_export_dynreg.h"
 
 
 #ifdef __cplusplus
