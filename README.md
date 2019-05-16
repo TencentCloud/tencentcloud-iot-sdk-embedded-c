@@ -1,5 +1,6 @@
 # 腾讯物联网通信 SDK
-腾讯物联网通信 SDK 依靠安全且性能强大的数据通道，为物联网领域开发人员提供终端(如传感器, 执行器, 嵌入式设备或智能家电等等)和云端的双向通信能力。
+腾讯物联网通信 SDK 依靠安全且性能强大的数据通道，为物联网领域开发人员提供终端(如传感器, 执行器, 嵌入式设备或智能家电等等)和云端的双向通信能力。C-SDK V3.0.0版本以后同时支持腾讯的现有的两个物联网平台，[物联网通信](https://console.cloud.tencent.com/iotcloud/products)和[物联网开发平台](https://console.cloud.tencent.com/iotexplorer)，使用物联网开发平台请参考[物联网开发平台SDK说明文档](https://github.com/tencentyun/qcloud-iot-sdk-embedded-c/blob/master/docs/物联网开发平台.md)。
+
 
 # 快速开始
 本节将讲述如何在腾讯物联网通信控制台申请设备, 并结合本 SDK 快速体验设备通过 MQTT+TLS/SSL 协议连接到腾讯云, 发送和接收消息；通过 CoAP+DTLS 协议连接到腾讯云，上报数据。
