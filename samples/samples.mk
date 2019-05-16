@@ -63,21 +63,42 @@ endif
 ifneq (,$(filter -DMQTT_DEVICE_SHADOW,$(CFLAGS)))
 shadow_sample:
 	$(eval CFLAGS := $(filter-out $(IOTSDK_INCLUDE_FILES),$(CFLAGS)) \
-		-I$(TOP_DIR)/src/sdk-impl -I$(TOP_DIR)/src/sdk-impl/exports -I$(TOP_DIR)/src/utils/lite)
+		-I$(TOP_DIR)/src/sdk-impl -I$(TOP_DIR)/src/sdk-impl/exports -I$(TOP_DIR)/src/utils/lite -I$(TOP_DIR)/src/utils/farra)
 
 	$(TOP_Q) \
 	$(PLATFORM_CC) $(CFLAGS) $(SAMPLE_DIR)/shadow/$@.c $(LDFLAGS) -o $@
+	
+	$(TOP_Q) \
+	$(PLATFORM_CC) $(CFLAGS) $(SAMPLE_DIR)/data_template/data_template_sample.c $(LDFLAGS) -o data_template_sample
+	
+	$(TOP_Q) \
+	$(PLATFORM_CC) $(CFLAGS) $(SAMPLE_DIR)/scenarized/light_data_template_sample.c $(LDFLAGS) -o light_data_template_sample
 	
 	$(TOP_Q) \
 	$(PLATFORM_CC) $(CFLAGS) $(SAMPLE_DIR)/scenarized/aircond_$@.c $(LDFLAGS) -o aircond_$@
 
 	$(TOP_Q) \
 	$(PLATFORM_CC) $(CFLAGS) $(SAMPLE_DIR)/scenarized/aircond_$@_v2.c $(LDFLAGS) -o aircond_$@_v2
-
+	
 	$(TOP_Q) \
 	mv $@ $(FINAL_DIR)/bin && \
+	mv data_template_sample $(FINAL_DIR)/bin && \
+	mv light_data_template_sample $(FINAL_DIR)/bin && \
 	mv aircond_$@ $(FINAL_DIR)/bin && \
 	mv aircond_$@_v2 $(FINAL_DIR)/bin
+endif
+
+ifneq (,$(filter -DEVENT_POST_ENABLED,$(CFLAGS)))
+event_sample:
+	$(eval CFLAGS := $(filter-out $(IOTSDK_INCLUDE_FILES),$(CFLAGS)) \
+		-I$(TOP_DIR)/src/sdk-impl -I$(TOP_DIR)/src/sdk-impl/exports)
+		
+	$(TOP_Q) \
+	$(PLATFORM_CC) $(CFLAGS) $(SAMPLE_DIR)/event/$@.c $(LDFLAGS) -o $@	
+
+	
+	$(TOP_Q) \
+	mv $@ $(FINAL_DIR)/bin
 endif
 
 ifneq (,$(filter -DCOAP_COMM_ENABLED,$(CFLAGS)))

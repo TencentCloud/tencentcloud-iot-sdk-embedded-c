@@ -22,6 +22,12 @@ extern "C" {
 
 #include "qcloud_iot_export_mqtt.h"
 
+typedef enum _eShadowType_{
+	eSHADOW = 0,
+	eTEMPLATE = 1,
+}eShadowType;
+
+
 typedef struct {
     /**
      * 设备基础信息
@@ -50,7 +56,7 @@ typedef struct {
     uint8_t                     auto_connect_enable;     // 是否开启自动重连 1:启用自动重连 0：不启用自动重连  建议为1
 
     MQTTEventHandler            event_handle;            // 事件回调
-
+	eShadowType					shadow_type;			//影子类型，eSHADOW：通用影子操作结果TOPIC eTEMPLATE：数据模板操作结果TOPIC
 } ShadowInitParams;
 
 #ifdef AUTH_MODE_CERT
@@ -102,6 +108,47 @@ typedef struct _JSONNode {
     void         *data;   // 该JSON节点的Value
     JsonDataType type;    // 该JSON节点的数据类型
 } DeviceProperty;
+
+
+/**
+ * @brief 定义数据模板的数据点类型
+ */
+ 
+#define TYPE_TEMPLATE_INT    	JINT32
+#define TYPE_TEMPLATEENUM    	JINT32
+#define TYPE_TEMPLATE_FLOAT  	JFLOAT
+#define TYPE_TEMPLATE_BOOL   	JINT8
+#define TYPE_TEMPLATE_STRING 	JSTRING
+#define TYPE_TEMPLATE_TIME 		JUINT32
+#define TYPE_TEMPLATE_JOBJECT 	JOBJECT
+
+
+
+typedef int32_t   TYPE_DEF_TEMPLATE_INT;
+typedef int32_t   TYPE_DEF_TEMPLATE_ENUM;
+typedef float     TYPE_DEF_TEMPLATE_FLOAT;
+typedef char      TYPE_DEF_TEMPLATE_BOOL;
+typedef char      TYPE_DEF_TEMPLATE_STRING;
+typedef uint32_t  TYPE_DEF_TEMPLATE_TIME;
+typedef void *    TYPE_DEF_TEMPLATE_OBJECT;
+
+
+/**
+ * @brief 定义数据模板的属性状态
+ */
+typedef enum _eDataState_{
+    eNOCHANGE = 0,
+	eCHANGED = 1,	
+} eDataState;
+
+/**
+ * @brief 定义数据模板的属性结构
+ */
+typedef struct {
+    DeviceProperty data_property;
+    eDataState state;
+} sDataPoint;
+
 
 /**
  * @brief 每次文档请求响应的回调函数
@@ -266,6 +313,22 @@ int IOT_Shadow_UnRegister_Property(void *handle, DeviceProperty *pProperty);
  * @return              返回QCLOUD_ERR_SUCCESS, 表示成功
  */
 int IOT_Shadow_JSON_ConstructReport(void *handle, char *jsonBuffer, size_t sizeOfBuffer, uint8_t count, ...);
+
+
+
+/**
+ * @brief 在JSON文档中添加reported字段，不覆盖更新
+ *
+ *
+ * @param jsonBuffer    为存储JSON文档准备的字符串缓冲区
+ * @param sizeOfBuffer  缓冲区大小
+ * @param count         需上报的设备属性的个数
+ * @param pDeviceProperties         需上报的设备属性的个数
+ * @return              返回QCLOUD_ERR_SUCCESS, 表示成功
+ */
+
+int IOT_Shadow_JSON_ConstructReportArray(void *handle, char *jsonBuffer, size_t sizeOfBuffer, uint8_t count, DeviceProperty *pDeviceProperties[]);
+
 
 /**
  * @brief 在JSON文档中添加reported字段，覆盖更新

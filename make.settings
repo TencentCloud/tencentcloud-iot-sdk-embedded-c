@@ -27,5 +27,6 @@ FEATURE_AUTH_WITH_NOTLS					= n		# 接入认证是否不使用TLS，证书方式
 
 FEATURE_DEV_DYN_REG_ENABLED             = y     # 是否使能设备动态注册
 FEATURE_LOG_UPLOAD_ENABLED              = y     # 是否打开日志上报云端功能
+FEATURE_EVENT_POST_ENABLED              = y     # 是否打开事件上报功能
 FEATURE_SYSTEM_COMM_ENABLED             = y     # 是否打开获取iot后台时间功能
 FEATURE_MULTITHREAD_TEST_ENABLED        = n     # 是否编译Linux多线程测试例程

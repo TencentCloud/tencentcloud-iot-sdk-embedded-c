@@ -53,6 +53,12 @@ typedef bool (*LogMessageHandler)(const char* message);
 /*单条日志最大长度*/
 #define MAX_LOG_MSG_LEN 			(255)
 
+#if defined(__linux__)
+	#undef  MAX_LOG_MSG_LEN
+	#define MAX_LOG_MSG_LEN         (1023)
+#endif
+
+
 /* 
  * 日志上报功能相关参数， 影响内存和存储空间使用量及上报频率
  * 以下为默认推荐值

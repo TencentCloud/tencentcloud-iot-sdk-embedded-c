@@ -26,12 +26,12 @@
 
 
 #ifdef AUTH_MODE_CERT
-    /* 客户端证书文件名  非对称加密使用*/
+    /* 设备证书文件不存在*/
     #define QCLOUD_IOT_NULL_CERT_FILENAME          "YOUR_DEVICE_NAME_cert.crt"
-    /* 客户端私钥文件名 非对称加密使用*/
+    /* 设备私钥文件不存在*/
     #define QCLOUD_IOT_NULL_KEY_FILENAME           "YOUR_DEVICE_NAME_private.key"
 #else
-
+	 /* 设备密钥不存在*/
     #define QCLOUD_IOT_NULL_DEVICE_SECRET          "YOUR_IOT_PSK"
 #endif
 

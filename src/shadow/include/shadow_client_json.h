@@ -41,6 +41,10 @@ extern "C" {
 #define PAYLOAD_VERSION				"payload.version"
 #define PAYLOAD_STATE_DELTA			"payload.state.delta"
 
+#define REPLY_CODE					"code"
+#define REPLY_STATUS				"status"
+
+
 /**
  * 将一个JSON节点写入到JSON串中
  *
@@ -52,6 +56,19 @@ extern "C" {
  * @return              返回QCLOUD_ERR_SUCCESS, 表示成功
  */
 int put_json_node(char *jsonBuffer, size_t sizeOfBuffer, const char *pKey, void *pData, JsonDataType type);
+
+/**
+ * 将一个JSON节点写入到JSON串中,物模型对bool类型的处理有区分。
+ *
+ * @param jsonBuffer   	JSON串
+ * @param sizeOfBuffer  可写入大小
+ * @param pKey          JSON节点的key
+ * @param pData         JSON节点的value
+ * @param type          JSON节点value的数据类型
+ * @return              返回QCLOUD_ERR_SUCCESS, 表示成功
+ */
+int event_put_json_node(char *jsonBuffer, size_t sizeOfBuffer, const char *pKey, void *pData, JsonDataType type);
+
 
 /**
  * @brief 返回一个ClientToken
@@ -79,6 +96,24 @@ void build_empty_json(uint32_t *tokenNumber, char *pJsonBuffer);
  * @return               返回true, 表示解析成功
  */
 bool parse_client_token(char *pJsonDoc, char **pClientToken);
+
+/**
+ * @brief 从JSON文档中解析出status字段,事件回复
+ *
+ * @param pJsonDoc       待解析的JSON文档
+ * @param pStatus   	 status字段
+ * @return               返回true, 表示解析成功
+ */
+bool parse_status_return(char *pJsonDoc, char **pStatus);
+
+/**
+ * @brief 从JSON文档中解析出code字段,事件回复
+ *
+ * @param pJsonDoc       待解析的JSON文档
+ * @param pCode   		 Code字段
+ * @return               返回true, 表示解析成功
+ */
+bool parse_code_return(char *pJsonDoc, int32_t *pCode);
 
 /**
  * @brief 从JSON文档中解析出version字段

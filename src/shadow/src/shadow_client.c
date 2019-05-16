@@ -144,11 +144,12 @@ void* IOT_Shadow_Construct(ShadowInitParams *pParams)
 	}
 
 	shadow_client->mqtt = mqtt_client;
+	shadow_client->shadow_type = pParams->shadow_type;
 	shadow_client->event_handle = pParams->event_handle;
 	shadow_client->inner_data.result_topic = NULL;
 	shadow_client->inner_data.version = 0;
 	shadow_client->inner_data.token_num = 0;
-
+	
 	int rc;
 
 	rc = qcloud_iot_shadow_init(shadow_client);	//初始化delta
@@ -565,6 +566,72 @@ int IOT_Shadow_JSON_ConstructReport(void *handle, char *jsonBuffer, size_t sizeO
 
 	return rc;
 }
+
+
+int IOT_Shadow_JSON_ConstructReportArray(void *handle, char *jsonBuffer, size_t sizeOfBuffer, uint8_t count, DeviceProperty *pDeviceProperties[]) 
+{
+	Qcloud_IoT_Shadow* pshadow = (Qcloud_IoT_Shadow*)handle;
+	POINTER_SANITY_CHECK(pshadow, QCLOUD_ERR_INVAL);
+	POINTER_SANITY_CHECK(pDeviceProperties, QCLOUD_ERR_INVAL);
+	
+	int rc = IOT_Shadow_JSON_Init(pshadow, jsonBuffer, sizeOfBuffer, false);
+
+	if (rc != QCLOUD_ERR_SUCCESS) {
+		Log_e("shadow json init failed: %d", rc);
+		return rc;
+	}
+
+    size_t remain_size = 0;
+    int32_t rc_of_snprintf = 0;
+    int8_t i;
+
+    if (jsonBuffer == NULL) {
+        return QCLOUD_ERR_INVAL;
+    }
+
+    if ((remain_size = sizeOfBuffer - strlen(jsonBuffer)) <= 1) {
+        return QCLOUD_ERR_JSON_BUFFER_TOO_SMALL;
+    }
+
+    rc_of_snprintf = HAL_Snprintf(jsonBuffer + strlen(jsonBuffer), remain_size, "\"reported\":{");
+    rc = _check_snprintf_return(rc_of_snprintf, remain_size);
+
+    if (rc != QCLOUD_ERR_SUCCESS) {
+        return rc;
+    }
+
+    for (i = 0; i < count; i++) {
+		DeviceProperty *pJsonNode = pDeviceProperties[i];
+        if (pJsonNode != NULL && pJsonNode->key != NULL) {
+            rc = put_json_node(jsonBuffer, remain_size, pJsonNode->key, pJsonNode->data, pJsonNode->type);
+
+            if (rc != QCLOUD_ERR_SUCCESS) {
+                return rc;
+            }
+        } else {
+            return QCLOUD_ERR_INVAL;
+        }
+    }
+
+    if ((remain_size = sizeOfBuffer - strlen(jsonBuffer)) <= 1) {
+        return QCLOUD_ERR_JSON_BUFFER_TOO_SMALL;
+    }
+    rc_of_snprintf = HAL_Snprintf(jsonBuffer + strlen(jsonBuffer) - 1, remain_size, "},");
+    rc = _check_snprintf_return(rc_of_snprintf, remain_size);
+
+	if (rc != QCLOUD_ERR_SUCCESS) {
+		Log_e("shadow json add report failed: %d", rc);
+		return rc;
+	}
+
+	rc = IOT_Shadow_JSON_Finalize(pshadow, jsonBuffer, sizeOfBuffer);
+	if (rc != QCLOUD_ERR_SUCCESS) {
+		Log_e("shadow json finalize failed: %d", rc);
+	}
+
+	return rc;
+}
+
 
 int IOT_Shadow_JSON_Construct_OverwriteReport(void *handle, char *jsonBuffer, size_t sizeOfBuffer, uint8_t count, ...)
 {

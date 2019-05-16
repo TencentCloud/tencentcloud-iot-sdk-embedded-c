@@ -27,6 +27,7 @@
 #include "qcloud_iot_import.h"
 #include "qcloud_iot_export.h"
 
+
 #define DEBUG_DEV_INFO_USED
 
 #ifdef DEBUG_DEV_INFO_USED

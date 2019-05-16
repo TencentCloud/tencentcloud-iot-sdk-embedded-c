@@ -104,6 +104,7 @@ typedef struct _ShadowInnerData {
 typedef struct _Shadow {
     void *mqtt;
     void *mutex;
+	eShadowType shadow_type;
     MQTTEventHandler event_handle;
     ShadowInnerData inner_data;
 } Qcloud_IoT_Shadow;

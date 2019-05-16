@@ -43,6 +43,9 @@ $(call CompLib_Map, DEV_DYN_REG_ENABLED, \
 	src/dynreg/src \
 )
 
+$(call CompLib_Map, EVENT_POST_ENABLED, \
+	src/event/src \
+)
 
 IOTSDK_SRC_FILES := \
 
@@ -121,6 +124,10 @@ $(call CompInc_Map, GATEWAY_ENABLED, \
 
 $(call CompInc_Map, DEV_DYN_REG_ENABLED, \
 	src/dynreg/include \
+)
+
+$(call CompInc_Map, EVENT_POST_ENABLED, \
+	src/event/include \
 )
     
 IOTSDK_INCLUDE_FILES := \

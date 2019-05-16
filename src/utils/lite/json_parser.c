@@ -97,8 +97,12 @@ char *json_get_next_object(int type, char *str, char **key, int *key_len,
         } else if (*p_cPos == 't' || *p_cPos == 'T' || *p_cPos == 'f' || *p_cPos == 'F') {
             iValueType = JSBOOLEAN;
             p_cValue = p_cPos;
+            break;					
+        }else if (*p_cPos == 'n' || *p_cPos == 'N') {
+            iValueType = JSNULL;
+            p_cValue = p_cPos;
             break;
-        }
+        }		
         p_cPos++;
     }
     while (p_cPos && *p_cPos && iValueType > JSNONE) {
@@ -118,8 +122,20 @@ char *json_get_next_object(int type, char *str, char **key, int *key_len,
                 p_cPos = p_cValue + iValueLen;
                 break;
             }
-        } else if (iValueType == JSNUMBER) {
-            if (*p_cPos < '0' || *p_cPos > '9') {
+        } else if (iValueType == JSNULL) { //support null/NULL
+        	int     nlen = strlen(p_cValue);
+			
+		    if ((*p_cValue == 'n' || *p_cValue == 'N') && nlen >= 4
+                && (!strncmp(p_cValue, "null", 4)
+                    || !strncmp(p_cValue, "NULL", 4))) {
+                iValueLen = 4;
+                p_cPos = p_cValue + iValueLen;
+                break;
+            }            
+        }
+	    else if (iValueType == JSNUMBER) {
+            //if (*p_cPos < '0' || *p_cPos > '9') {
+            if ((*p_cPos < '0' || *p_cPos > '9')&&(*p_cPos != '.')) { //support float
                 iValueLen = p_cPos - p_cValue;
                 break;
             }
@@ -230,6 +246,9 @@ char *json_get_value_by_name(char *p_cJsonStr, int iStrLen, char *p_cName, int *
         }
         if (p_iValueType) {
             *p_iValueType = stNV.vType;
+			if(JSNULL == stNV.vType){
+				stNV.pV = NULL;
+			}
         }
     }
     return stNV.pV;

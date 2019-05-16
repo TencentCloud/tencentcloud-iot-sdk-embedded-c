@@ -51,7 +51,13 @@ static int _direct_update_value(char *value, DeviceProperty *pProperty) {
     	rc = LITE_get_float(pProperty->data, value);
     } else if (pProperty->type == JDOUBLE) {
     	rc = LITE_get_double(pProperty->data, value);
-    }
+    }else if(pProperty->type == JSTRING){
+		Log_d("string type wait to be deal,%s",value);
+	}else if(pProperty->type == JOBJECT){
+		Log_d("Json type wait to be deal,%s",value);
+	}else{
+		Log_e("pProperty type unknow,%d",pProperty->type);
+	}
 
     return rc;
 }
@@ -139,9 +145,9 @@ int put_json_node(char *jsonBuffer, size_t sizeOfBuffer, const char *pKey, void 
             rc_of_snprintf = HAL_Snprintf(jsonBuffer + strlen(jsonBuffer), remain_size, "%f,", *(double *) (pData));
         } else if (type == JFLOAT) {
             rc_of_snprintf = HAL_Snprintf(jsonBuffer + strlen(jsonBuffer), remain_size, "%f,", *(float *) (pData));
-        } else if (type == JBOOL) {
+		} else if (type == JBOOL) {
             rc_of_snprintf = HAL_Snprintf(jsonBuffer + strlen(jsonBuffer), remain_size, "%s,",
-                                      *(bool *) (pData) ? "true" : "false");
+                                      *(bool *) (pData) ? "true" : "false");			
         } else if (type == JSTRING) {
             rc_of_snprintf = HAL_Snprintf(jsonBuffer + strlen(jsonBuffer), remain_size, "\"%s\",", (char *) (pData));
         } else if (type == JOBJECT) {
@@ -153,6 +159,73 @@ int put_json_node(char *jsonBuffer, size_t sizeOfBuffer, const char *pKey, void 
 
     return rc;
 }
+
+int event_put_json_node(char *jsonBuffer, size_t sizeOfBuffer, const char *pKey, void *pData, JsonDataType type) {
+
+    int rc;
+    int32_t rc_of_snprintf = 0;
+    size_t remain_size = 0;
+
+    if ((remain_size = sizeOfBuffer - strlen(jsonBuffer)) <= 1) {
+        return QCLOUD_ERR_JSON_BUFFER_TOO_SMALL;
+    }
+
+    rc_of_snprintf = HAL_Snprintf(jsonBuffer + strlen(jsonBuffer), remain_size, "\"%s\":", pKey);
+    rc = _check_snprintf_return(rc_of_snprintf, remain_size);
+    if (rc != QCLOUD_ERR_SUCCESS) {
+        return rc;
+    }
+
+    if ((remain_size = sizeOfBuffer - strlen(jsonBuffer)) <= 1) {
+        return QCLOUD_ERR_JSON_BUFFER_TOO_SMALL;
+    }
+
+    if (pData == NULL) {
+        rc_of_snprintf = HAL_Snprintf(jsonBuffer + strlen(jsonBuffer), remain_size, "null,");
+    } else {
+        if (type == JINT32) {
+            rc_of_snprintf = HAL_Snprintf(jsonBuffer + strlen(jsonBuffer), remain_size, "%"
+                                      PRIi32
+                                      ",", *(int32_t *) (pData));
+        } else if (type == JINT16) {
+            rc_of_snprintf = HAL_Snprintf(jsonBuffer + strlen(jsonBuffer), remain_size, "%"
+                                      PRIi16
+                                      ",", *(int16_t *) (pData));
+        } else if (type == JINT8) {
+            rc_of_snprintf = HAL_Snprintf(jsonBuffer + strlen(jsonBuffer), remain_size, "%"
+                                      PRIi8
+                                      ",", *(int8_t *) (pData));
+        } else if (type == JUINT32) {
+            rc_of_snprintf = HAL_Snprintf(jsonBuffer + strlen(jsonBuffer), remain_size, "%"
+                                      PRIu32
+                                      ",", *(uint32_t *) (pData));
+        } else if (type == JUINT16) {
+            rc_of_snprintf = HAL_Snprintf(jsonBuffer + strlen(jsonBuffer), remain_size, "%"
+                                      PRIu16
+                                      ",", *(uint16_t *) (pData));
+        } else if (type == JUINT8) {
+            rc_of_snprintf = HAL_Snprintf(jsonBuffer + strlen(jsonBuffer), remain_size, "%"
+                                      PRIu8
+                                      ",", *(uint8_t *) (pData));
+        } else if (type == JDOUBLE) {
+            rc_of_snprintf = HAL_Snprintf(jsonBuffer + strlen(jsonBuffer), remain_size, "%f,", *(double *) (pData));
+        } else if (type == JFLOAT) {
+            rc_of_snprintf = HAL_Snprintf(jsonBuffer + strlen(jsonBuffer), remain_size, "%f,", *(float *) (pData));
+		} else if (type == JBOOL) {
+            rc_of_snprintf = HAL_Snprintf(jsonBuffer + strlen(jsonBuffer), remain_size, "%u,",
+                                      *(bool *) (pData) ? 1 : 0);		
+        } else if (type == JSTRING) {
+            rc_of_snprintf = HAL_Snprintf(jsonBuffer + strlen(jsonBuffer), remain_size, "\"%s\",", (char *) (pData));
+        } else if (type == JOBJECT) {
+            rc_of_snprintf = HAL_Snprintf(jsonBuffer + strlen(jsonBuffer), remain_size, "%s,", (char *) (pData));
+        }
+    }
+
+    rc = _check_snprintf_return(rc_of_snprintf, remain_size);
+
+    return rc;
+}
+
 
 int generate_client_token(char *pStrBuffer, size_t sizeOfBuffer, uint32_t *tokenNumber) {
     return _add_client_token(pStrBuffer, sizeOfBuffer, tokenNumber);
@@ -191,6 +264,31 @@ bool parse_shadow_state(char *pJsonDoc, char **pState)
 	*pState = LITE_json_value_of(PAYLOAD_VERSION, pJsonDoc);
 	return *pState == NULL ? false : true;
 }
+
+bool parse_code_return(char *pJsonDoc, int32_t *pCode) {
+
+	bool ret = false;
+
+	char *code = LITE_json_value_of(REPLY_CODE, pJsonDoc);
+	if (code == NULL) return false;
+
+	if (sscanf(code, "%" SCNi32, pCode) != 1) {
+		Log_e("parse code failed, errCode: %d", QCLOUD_ERR_JSON_PARSE);
+	}
+	else {
+		ret = true;
+	}
+
+	HAL_Free(code);
+
+	return ret;
+}
+
+bool parse_status_return(char *pJsonDoc, char **pStatus) {
+	*pStatus = LITE_json_value_of(REPLY_STATUS, pJsonDoc);
+	return *pStatus == NULL ? false : true;
+}
+
 
 bool parse_shadow_operation_type(char *pJsonDoc, char **pType)
 {
@@ -235,9 +333,10 @@ bool update_value_if_key_match(char *pJsonDoc, DeviceProperty *pProperty) {
 	bool ret = false;
 
 	char* property_data = LITE_json_value_of(pProperty->key, pJsonDoc);
-	if (property_data == NULL) {
+	if ((property_data == NULL) || !(strncmp(property_data, "null", 4))
+		 ||!(strncmp(property_data, "NULL", 4))) {
 	}
-	else {
+	else {		
 		_direct_update_value(property_data, pProperty);
 		ret = true;
 		HAL_Free(property_data);
