@@ -320,9 +320,7 @@ static int _parse_devinfo(char *jdoc, DeviceInfo *pDevInfo)
 			strncpy(pDevInfo->devSerc, psk, MAX_SIZE_OF_DEVICE_SERC);
 			pDevInfo->devSerc[MAX_SIZE_OF_DEVICE_SERC] = '\0';
 		}
-		HAL_Free(psk);
-		//Just for test,release should be deleted
-		//Log_d("Get psk %s", pDevInfo->devSerc);	
+		HAL_Free(psk);	
 	}else{
 		Log_e("Get psk data fail");
 	}
