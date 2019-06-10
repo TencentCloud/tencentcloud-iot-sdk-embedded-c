@@ -26,12 +26,19 @@ extern "C" {
 #include "device.h"
 
 
-static bool sg_sys_recv_ok   = false;
-static bool sg_sys_sub_ok   = false;
-static char sg_time[11]      = {0};
-static MQTTEventHandleFun sg_sys_EventHandle = NULL;
+typedef struct _sys_mqtt_state {
+    bool topic_sub_ok;
+    bool result_recv_ok;
+    long  time;    
+}SysMQTTState;
 
-static void on_system_mqtt_message_callback(void *pClient, MQTTMessage *message, void *userData)
+static SysMQTTState sg_state = {
+            .topic_sub_ok = false, 
+            .result_recv_ok = false,
+            .time = 0};
+
+
+static void _system_mqtt_message_callback(void *pClient, MQTTMessage *message, void *pUserData)
 {
 #define MAX_RECV_LEN (512)
 
@@ -41,53 +48,53 @@ static void on_system_mqtt_message_callback(void *pClient, MQTTMessage *message,
 	size_t len = (message->payload_len > MAX_RECV_LEN)?MAX_RECV_LEN:(message->payload_len);
 
 	if(message->payload_len > MAX_RECV_LEN){
-		Log_e("paload len exceed buffer size");
+		Log_e("payload len oversize");
 	}
     memcpy(rcv_buf, message->payload, len);
-    rcv_buf[len] = '\0';    // jsmn_parse relies on a string    
+    rcv_buf[len] = '\0';    // jsmn_parse relies on a string
+    SysMQTTState *state = (SysMQTTState *)pUserData;
 
     Log_d("Recv Msg Topic:%s, payload:%s", message->ptopic, rcv_buf);
 
     char* value = LITE_json_value_of("time", rcv_buf);
-    if (value != NULL) {
-        memcpy(sg_time, value, sizeof(sg_time)/sizeof(char));        
-    }
-    sg_sys_recv_ok = true;
+    if (value != NULL)
+        state->time = atol(value);
+
+    state->result_recv_ok = true;
     HAL_Free(value);
     return;
 }
 
-static void system_mqtt_event_handler(void *pclient, void *handle_context, MQTTEventMsg *msg) {
-	uintptr_t packet_id = (uintptr_t)msg->msg;
+static void _system_mqtt_sub_event_handler(void *pclient, MQTTEventType event_type, void *pUserData)
+{
+    SysMQTTState *state = (SysMQTTState *)pUserData;
 
-	switch(msg->event_type) {
-		case MQTT_EVENT_SUBCRIBE_SUCCESS:
-			Log_d("subscribe success, packet-id=%u", (unsigned int)packet_id);
-            sg_sys_sub_ok = true;			
-			break;
+    switch(event_type) {
+        case MQTT_EVENT_SUBCRIBE_SUCCESS:
+            Log_d("mqtt sys topic subscribe success");
+            state->topic_sub_ok = true;         
+            break;
 
-		case MQTT_EVENT_SUBCRIBE_TIMEOUT:
-			Log_i("subscribe wait ack timeout, packet-id=%u", (unsigned int)packet_id);
-            sg_sys_sub_ok = false;			
-			break;
+        case MQTT_EVENT_SUBCRIBE_TIMEOUT:
+            Log_i("mqtt sys topic subscribe timeout");
+            state->topic_sub_ok = false;            
+            break;
 
-		case MQTT_EVENT_SUBCRIBE_NACK:
-			Log_i("subscribe nack, packet-id=%u", (unsigned int)packet_id);
-            sg_sys_sub_ok = false;			
-			break;
-		case MQTT_EVENT_UNDEF:
-		case MQTT_EVENT_DISCONNECT:
-		case MQTT_EVENT_RECONNECT:
-		case MQTT_EVENT_PUBLISH_RECVEIVED:
-		case MQTT_EVENT_UNSUBCRIBE_SUCCESS:
-		case MQTT_EVENT_UNSUBCRIBE_TIMEOUT:
-		case MQTT_EVENT_UNSUBCRIBE_NACK:
-		case MQTT_EVENT_PUBLISH_SUCCESS:
-		case MQTT_EVENT_PUBLISH_TIMEOUT:
-		case MQTT_EVENT_PUBLISH_NACK:
-		default:
+        case MQTT_EVENT_SUBCRIBE_NACK:
+            Log_i("mqtt sys topic subscribe NACK");
+            state->topic_sub_ok = false;            
+            break;
+        case MQTT_EVENT_UNSUBSCRIBE:
+            Log_i("mqtt sys topic has been unsubscribed");
+            state->topic_sub_ok = false;;           
+            break;
+        case MQTT_EVENT_CLIENT_DESTROY:
+            Log_i("mqtt client has been destroyed");
+            state->topic_sub_ok = false;;           
+            break;
+        default:
             return;
-	}
+    }
 }
 
 static int _iot_system_info_get_publish(void *pClient)
@@ -112,7 +119,7 @@ static int _iot_system_info_get_publish(void *pClient)
 	return IOT_MQTT_Publish(mqtt_client, topic_name, &pub_params);
 }
 
-static int _iot_system_info_result_subscribe(void *pClient, OnMessageHandler pCallback)
+static int _iot_system_info_result_subscribe(void *pClient)
 {
     POINTER_SANITY_CHECK(pClient, QCLOUD_ERR_INVAL);
 
@@ -127,7 +134,10 @@ static int _iot_system_info_result_subscribe(void *pClient, OnMessageHandler pCa
         return QCLOUD_ERR_FAILURE;
     }
     SubscribeParams sub_params = DEFAULT_SUB_PARAMS;
-    sub_params.on_message_handler = pCallback;
+    sub_params.on_message_handler = _system_mqtt_message_callback;
+    sub_params.on_sub_event_handler = _system_mqtt_sub_event_handler;
+    sub_params.user_data = (void *)&sg_state;
+    sub_params.qos = QOS0;
 
     return IOT_MQTT_Subscribe(pClient, topic_name, &sub_params);
 }
@@ -143,33 +153,29 @@ int IOT_SYSTEM_GET_TIME(void* pClient, long *time)
 
     //如果第一次订阅$sys/operation/get/${productid}/${devicename}, 则执行订阅操作
     //否则，防止多次获取时间的情况下，多次重复订阅
-    if(!sg_sys_sub_ok){
-        sg_sys_EventHandle = mqtt_client->event_handle.h_fp;
-        mqtt_client->event_handle.h_fp = system_mqtt_event_handler;
-
+    if(!sg_state.topic_sub_ok){
         for(cntSub = 0; cntSub < 3; cntSub++){
-            ret = _iot_system_info_result_subscribe(mqtt_client, on_system_mqtt_message_callback);
+            ret = _iot_system_info_result_subscribe(mqtt_client);
             if (ret < 0) {
-                Log_w("_iot_system_info_result_subscribe failed: %d cnt: %d", ret, cntSub);
+                Log_w("_iot_system_info_result_subscribe failed: %d, cnt: %d", ret, cntSub);
                 continue;
             }
 
+            /* wait for sub ack */
             ret = qcloud_iot_mqtt_yield((Qcloud_IoT_Client *)pClient, 100);
-
-            if(sg_sys_sub_ok) {
+            if(sg_state.topic_sub_ok) {                
                 break;
             }
         }
-        mqtt_client->event_handle.h_fp = sg_sys_EventHandle;
     }
 
     // 如果订阅3次均失败，则直接返回失败
-    if(!sg_sys_sub_ok){
+    if(!sg_state.topic_sub_ok){
         Log_e("Subscribe sys topic failed!");
         return QCLOUD_ERR_FAILURE;
     }
 
-    sg_sys_recv_ok = false;
+    sg_state.result_recv_ok = false;
     // 发布获取时间
 	ret = _iot_system_info_get_publish(mqtt_client);
 	if (ret < 0) {
@@ -177,21 +183,21 @@ int IOT_SYSTEM_GET_TIME(void* pClient, long *time)
         return ret;
 	}
 
-    do{
+    do {
         ret = qcloud_iot_mqtt_yield((Qcloud_IoT_Client *)pClient, 100);
         cntRev++;
-    }while(!sg_sys_recv_ok && cntRev < 20);
-   
-    if (sg_sys_recv_ok) {
-        *time = atol(sg_time);
-        Log_d("Get system time success(yield cnt %d). Time is %ld", cntRev, *time);        
-        ret = QCLOUD_ERR_SUCCESS;
+    } while(!sg_state.result_recv_ok && cntRev < 20);
+
+    
+    if (sg_state.result_recv_ok) {        
+        *time = sg_state.time;
+        ret = QCLOUD_ERR_SUCCESS;        
     } else {
         *time = 0;
         ret = QCLOUD_ERR_FAILURE;
     }  
 
-    return QCLOUD_ERR_SUCCESS;
+    return ret;
 }
 
 #ifdef __cplusplus

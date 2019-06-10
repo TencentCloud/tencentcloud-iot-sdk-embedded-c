@@ -23,13 +23,21 @@
 #include "log_upload.h"
 
 
-static bool sg_log_recv_ok   = false;
-static bool sg_log_sub_ok   = false;
-static MQTTEventHandleFun sg_log_EventHandle = NULL;
-static int sg_log_level = ERROR;
-static unsigned int sg_client_token = 1;
 
-static bool _get_json_log_level(char *json, int32_t* res) {
+typedef struct _log_mqtt_state {
+    bool topic_sub_ok;
+    bool result_recv_ok;
+    int  log_level;    
+}LogMQTTState;
+
+static LogMQTTState sg_state = {
+            .topic_sub_ok = false, 
+            .result_recv_ok = false,
+            .log_level = ERROR};
+            
+
+static bool _get_json_log_level(char *json, int32_t* res)
+{
 	char *v = LITE_json_value_of("log_level", json);
 	if (v == NULL) {
         Log_e("Invalid log level from JSON: %s", json);
@@ -44,7 +52,7 @@ static bool _get_json_log_level(char *json, int32_t* res) {
 	return true;
 }
 
-static void _log_level_sub_cb(void *pClient, MQTTMessage *message, void *userData)
+static void _log_level_sub_cb(void *pClient, MQTTMessage *message, void *pUserData)
 {
 #define LOG_JSON_LENGTH 128        
     char json_buf[LOG_JSON_LENGTH] = {0};
@@ -52,20 +60,21 @@ static void _log_level_sub_cb(void *pClient, MQTTMessage *message, void *userDat
 	if (message == NULL) {
 		return;
 	}
+	LogMQTTState *state = (LogMQTTState *)pUserData;
 
     json_buf_len = Min(LOG_JSON_LENGTH - 1, message->payload_len);
 	memcpy(json_buf, message->payload, json_buf_len);
 	json_buf[json_buf_len] = '\0';    // json_parse relies on a string
 
 	Log_d("Recv Msg Topic:%s, payload:%s", message->ptopic, json_buf);
-	
-    if (!_get_json_log_level(json_buf, &sg_log_level)) {        
+	int log_level;
+    if (!_get_json_log_level(json_buf, &log_level)) {        
         return ;
     }
 
-    switch(sg_log_level) {
+    switch(log_level) {
         case DISABLE:
-            Log_w("Upload log level change to: %d", sg_log_level);
+            Log_w("Upload log level change to: %d", log_level);
             clear_upload_buffer();
             set_log_upload_in_comm_err(true);
             IOT_Log_Set_Upload_Level(ERROR);
@@ -74,49 +83,49 @@ static void _log_level_sub_cb(void *pClient, MQTTMessage *message, void *userDat
         case WARN:
         case INFO:
         case DEBUG:            
-            if (sg_log_level < IOT_Log_Get_Upload_Level())
+            if (log_level < IOT_Log_Get_Upload_Level())
                 clear_upload_buffer();
-            IOT_Log_Set_Upload_Level((LOG_LEVEL)sg_log_level);
-            Log_w("Upload log level change to: %d", sg_log_level);
+            IOT_Log_Set_Upload_Level((LOG_LEVEL)log_level);
+            Log_w("Upload log level change to: %d", log_level);
             set_log_upload_in_comm_err(false);                            
             break;
         default:
-            Log_e("Invalid log level: %d", sg_log_level);
+            Log_e("Invalid log level: %d", log_level);
             break;
     }
 
-    sg_log_recv_ok   = true;
+    state->log_level = log_level;
+    state->result_recv_ok = true;
     
 }
 
-static void _log_mqtt_event_handler(void *pclient, void *handle_context, MQTTEventMsg *msg) {
-	uintptr_t packet_id = (uintptr_t)msg->msg;
+static void _log_mqtt_sub_event_handler(void *pclient, MQTTEventType event_type, void *pUserData)
+{
+	LogMQTTState *state = (LogMQTTState *)pUserData;
 
-	switch(msg->event_type) {
+	switch(event_type) {
 		case MQTT_EVENT_SUBCRIBE_SUCCESS:
-			Log_d("subscribe success, packet-id=%u", (unsigned int)packet_id);
-            sg_log_sub_ok = true;			
+			Log_d("mqtt log topic subscribe success");
+            state->topic_sub_ok = true;			
 			break;
 
 		case MQTT_EVENT_SUBCRIBE_TIMEOUT:
-			Log_i("subscribe wait ack timeout, packet-id=%u", (unsigned int)packet_id);
-            sg_log_sub_ok = false;			
+			Log_i("mqtt log topic subscribe timeout");
+            state->topic_sub_ok = false;			
 			break;
 
 		case MQTT_EVENT_SUBCRIBE_NACK:
-			Log_i("subscribe nack, packet-id=%u", (unsigned int)packet_id);
-            sg_log_sub_ok = false;			
+			Log_i("mqtt log topic subscribe NACK");
+            state->topic_sub_ok = false;			
 			break;
-		case MQTT_EVENT_UNDEF:
-		case MQTT_EVENT_DISCONNECT:
-		case MQTT_EVENT_RECONNECT:
-		case MQTT_EVENT_PUBLISH_RECVEIVED:
-		case MQTT_EVENT_UNSUBCRIBE_SUCCESS:
-		case MQTT_EVENT_UNSUBCRIBE_TIMEOUT:
-		case MQTT_EVENT_UNSUBCRIBE_NACK:
-		case MQTT_EVENT_PUBLISH_SUCCESS:
-		case MQTT_EVENT_PUBLISH_TIMEOUT:
-		case MQTT_EVENT_PUBLISH_NACK:
+		case MQTT_EVENT_UNSUBSCRIBE:
+			Log_i("mqtt log topic has been unsubscribed");
+            state->topic_sub_ok = false;;			
+			break;
+		case MQTT_EVENT_CLIENT_DESTROY:
+			Log_i("mqtt client has been destroyed");
+            state->topic_sub_ok = false;;			
+			break;
 		default:
             return;
 	}
@@ -125,6 +134,7 @@ static void _log_mqtt_event_handler(void *pclient, void *handle_context, MQTTEve
 static int _iot_log_level_get_publish(void *pClient)
 {
     POINTER_SANITY_CHECK(pClient, QCLOUD_ERR_INVAL);
+    static unsigned int sg_client_token = 1;
 
     Qcloud_IoT_Client   *mqtt_client = (Qcloud_IoT_Client *)pClient;
     DeviceInfo          *dev_info = iot_device_info_get();
@@ -159,6 +169,8 @@ int qcloud_log_topic_subscribe(void *client)
 
     SubscribeParams sub_params = DEFAULT_SUB_PARAMS;
     sub_params.on_message_handler = _log_level_sub_cb;
+    sub_params.on_sub_event_handler = _log_mqtt_sub_event_handler;
+    sub_params.user_data = (void *)&sg_state;
     sub_params.qos = QOS0;    
 
     return IOT_MQTT_Subscribe(client, topic_name, &sub_params);
@@ -177,10 +189,7 @@ int qcloud_get_log_level(void* pClient, int *log_level)
 
     //如果第一次订阅$log/operation/get/${productid}/${devicename}, 则执行订阅操作
     //否则，防止多次获取日志等级的情况下，多次重复订阅
-    if(!sg_log_sub_ok){
-        sg_log_EventHandle = mqtt_client->event_handle.h_fp;
-        mqtt_client->event_handle.h_fp = _log_mqtt_event_handler;
-
+    if(!sg_state.topic_sub_ok){
         for(cntSub = 0; cntSub < 3; cntSub++){
             ret = qcloud_log_topic_subscribe(mqtt_client);
             if (ret < 0) {
@@ -190,20 +199,19 @@ int qcloud_get_log_level(void* pClient, int *log_level)
 
             /* wait for sub ack */
             ret = qcloud_iot_mqtt_yield((Qcloud_IoT_Client *)pClient, 100);
-            if(sg_log_sub_ok) {                
+            if(sg_state.topic_sub_ok) {                
                 break;
             }
         }
-        mqtt_client->event_handle.h_fp = sg_log_EventHandle;
     }
 
     // 如果订阅3次均失败，则直接返回失败
-    if(!sg_log_sub_ok){
+    if(!sg_state.topic_sub_ok){
         Log_e("Subscribe log topic failed!");
         return QCLOUD_ERR_FAILURE;
     }
 
-    sg_log_recv_ok = false;
+    sg_state.result_recv_ok = false;
     // 发布获取时间
 	ret = _iot_log_level_get_publish(mqtt_client);
 	if (ret < 0) {
@@ -211,13 +219,13 @@ int qcloud_get_log_level(void* pClient, int *log_level)
         return ret;
 	}
 
-    do{
+    do {
         ret = qcloud_iot_mqtt_yield((Qcloud_IoT_Client *)pClient, 100);
         cntRev++;
-    }while(!sg_log_recv_ok && cntRev < 20);
+    } while(!sg_state.result_recv_ok && cntRev < 20);
 
-    *log_level = sg_log_level;
-    if (sg_log_recv_ok)
+    *log_level = sg_state.log_level;
+    if (sg_state.result_recv_ok)
         ret = QCLOUD_ERR_SUCCESS;
     else
         ret = QCLOUD_ERR_FAILURE;

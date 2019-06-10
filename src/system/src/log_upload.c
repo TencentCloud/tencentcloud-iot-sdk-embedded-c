@@ -39,14 +39,16 @@
 #define LOG_BUF_FIXED_HEADER_SIZE   (SIGNATURE_SIZE + CTRL_BYTES_SIZE + MAX_SIZE_OF_PRODUCT_ID + MAX_SIZE_OF_DEVICE_NAME + TIMESTAMP_SIZE)
 
 /* do immediate log update if buffer is lower than this threshold (about two max log item) */
-#define LOG_LOW_BUFFER_THRESHOLD    (2*MAX_LOG_MSG_LEN)
+#define LOG_LOW_BUFFER_THRESHOLD    (LOG_UPLOAD_BUFFER_SIZE/4)
 
-/* static allocate log upload buffer */
-static char sg_log_buffer[LOG_UPLOAD_BUFFER_SIZE] = {0};
+/* log upload buffer */
+static char *sg_log_buffer = NULL;
 static uint32_t sg_write_index = LOG_BUF_FIXED_HEADER_SIZE;
 
 #define SIGN_KEY_SIZE 24
 static char sg_sign_key[SIGN_KEY_SIZE+1] = {0};
+
+#define LOG_DELIMITER "\n\f"
 
 /* Log upload feature switch */
 /* To check log http server return msg or not */
@@ -293,8 +295,7 @@ static int _save_log(char *log_buf, size_t log_size)
 }
 
 static int _handle_saved_log(void)
-{
-#define LOG_DELIMITER "\n\f"    
+{    
     int rc = QCLOUD_ERR_SUCCESS;
     size_t whole_log_size = sg_uploader->get_size_func();
     if (whole_log_size > 0) {
@@ -436,7 +437,7 @@ int append_to_upload_buffer(const char *log_content, size_t log_size)
 }
 
 
-void clear_upload_buffer()
+void clear_upload_buffer(void)
 {
     if (!sg_log_uploader_init_done)
         return ;
@@ -448,29 +449,37 @@ void clear_upload_buffer()
 }
 
 
-void init_log_uploader(LogUploadInitParams *init_params)
+int init_log_uploader(LogUploadInitParams *init_params)
 {
-    int i;
+    if (sg_log_uploader_init_done)
+        return QCLOUD_ERR_SUCCESS;
 
     if (init_params == NULL || init_params->product_id == NULL || 
             init_params->device_name == NULL || init_params->sign_key == NULL) {
         UPLOAD_ERR("invalid init parameters");
-        return ;
+        return QCLOUD_ERR_INVAL;
     }
 
     int key_len = strlen(init_params->sign_key);
     if (key_len == 0) {
         UPLOAD_ERR("invalid key length");        
-        return ;
+        return QCLOUD_ERR_INVAL;
     }
-    
+
+    sg_log_buffer = HAL_Malloc(LOG_UPLOAD_BUFFER_SIZE);
+    if (sg_log_buffer == NULL) {
+        UPLOAD_ERR("malloc log buffer failed");        
+        return QCLOUD_ERR_FAILURE;
+    }
+
+    int i;
     for(i = 0; i<LOG_BUF_FIXED_HEADER_SIZE; i++)
         sg_log_buffer[i] = '#';
     
 #ifdef AUTH_MODE_CERT     
     if (_gen_key_from_file(init_params->sign_key) != 0) {
         UPLOAD_ERR("gen_key_from_file failed");        
-        return ;
+        return QCLOUD_ERR_FAILURE;
     }
     sg_log_buffer[SIGNATURE_SIZE] = 'C';
 #else    
@@ -483,7 +492,7 @@ void init_log_uploader(LogUploadInitParams *init_params)
 
     if (NULL == (sg_uploader = HAL_Malloc(sizeof(LogUploaderStruct)))) {        
         UPLOAD_ERR("allocate for LogUploaderStruct failed");
-        return ;
+        return QCLOUD_ERR_FAILURE;
     }
     memset(sg_uploader, 0, sizeof(LogUploaderStruct));
 
@@ -509,14 +518,14 @@ void init_log_uploader(LogUploadInitParams *init_params)
 
     if ((sg_uploader->lock_buf = HAL_MutexCreate()) == NULL) {
         UPLOAD_ERR("mutex create failed");
-        return ;
+        return QCLOUD_ERR_FAILURE;
     }
     
     if (NULL == (sg_http_c = HAL_Malloc(sizeof(LogHTTPStruct)))) {
         HAL_MutexDestroy(sg_uploader->lock_buf);
         HAL_Free(sg_uploader);
         UPLOAD_ERR("allocate for LogHTTPStruct failed");
-        return ;
+        return QCLOUD_ERR_FAILURE;
     }
     memset(sg_http_c, 0, sizeof(LogHTTPStruct));
 
@@ -528,7 +537,31 @@ void init_log_uploader(LogUploadInitParams *init_params)
 
     _reset_log_buffer();
     sg_log_uploader_init_done = true;
+
+    return QCLOUD_ERR_SUCCESS;
     
+}
+
+void fini_log_uploader(void)
+{
+    if (!sg_log_uploader_init_done)
+        return ;
+        
+    HAL_MutexLock(sg_uploader->lock_buf);
+    sg_log_uploader_init_done = false; 
+    if (sg_log_buffer) {
+        _reset_log_buffer();
+        HAL_Free(sg_log_buffer);
+        sg_log_buffer = NULL;
+    }
+    HAL_MutexUnlock(sg_uploader->lock_buf);
+
+    HAL_MutexDestroy(sg_uploader->lock_buf);
+    sg_uploader->lock_buf = NULL;
+    HAL_Free(sg_uploader);
+    sg_uploader = NULL;
+    HAL_Free(sg_http_c);
+    sg_http_c = NULL;
 }
 
 static bool _check_force_upload(bool force_upload)

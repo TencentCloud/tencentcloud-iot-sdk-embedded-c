@@ -113,10 +113,16 @@ int qcloud_iot_mqtt_unsubscribe(Qcloud_IoT_Client *pClient, char *topicFilter) {
     HAL_MutexLock(pClient->lock_generic);
     for (i = 0; i < MAX_MESSAGE_HANDLERS; ++i) {        
         if ((pClient->sub_handles[i].topic_filter != NULL && !strcmp(pClient->sub_handles[i].topic_filter, topicFilter))
-            || strstr(topicFilter,"/#") != NULL || strstr(topicFilter,"/+") != NULL) {
+            || strstr(topicFilter,"/#") != NULL || strstr(topicFilter,"/+") != NULL) {            
+            /* notify this event to topic subscriber */
+            if (NULL != pClient->sub_handles[i].sub_event_handler)
+                pClient->sub_handles[i].sub_event_handler(
+                    pClient, MQTT_EVENT_UNSUBSCRIBE, pClient->sub_handles[i].handler_user_data);
+
             /* Free the topic filter malloced in qcloud_iot_mqtt_subscribe */
             HAL_Free((void *)pClient->sub_handles[i].topic_filter);
             pClient->sub_handles[i].topic_filter = NULL;
+
             /* We don't want to break here, if the same topic is registered
              * with 2 callbacks. Unlikely scenario */
             suber_exists = true;
@@ -157,8 +163,9 @@ int qcloud_iot_mqtt_unsubscribe(Qcloud_IoT_Client *pClient, char *topicFilter) {
 
     SubTopicHandle sub_handle;
     sub_handle.topic_filter = topic_filter_stored;
+    sub_handle.sub_event_handler = NULL;
     sub_handle.message_handler = NULL;
-    sub_handle.message_handler_data = NULL;
+    sub_handle.handler_user_data = NULL;
 
     rc = push_sub_info_to(pClient, len, (unsigned int)packet_id, UNSUBSCRIBE, &sub_handle, &node);
     if (QCLOUD_ERR_SUCCESS != rc) {

@@ -27,8 +27,16 @@ extern "C" {
  * @brief init the log upload functions
  *
  * @param init_params
+ * @return QCLOUD_ERR_SUCCESS when success 
  */
-void init_log_uploader(LogUploadInitParams *init_params);
+int init_log_uploader(LogUploadInitParams *init_params);
+
+/** 
+ * @brief free log buffer and finish the log upload functions
+ *
+ */
+void fini_log_uploader(void);
+
 
 /**
  * @brief append one log item to upload buffer

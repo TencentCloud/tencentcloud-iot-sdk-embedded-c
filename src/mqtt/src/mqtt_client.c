@@ -137,6 +137,20 @@ int IOT_MQTT_Destroy(void **pClient) {
 
 	int rc = qcloud_iot_mqtt_disconnect(mqtt_client);
 
+	int i = 0;
+    for (i = 0; i < MAX_MESSAGE_HANDLERS; ++i) {
+        /* notify this event to topic subscriber */
+        if (NULL != mqtt_client->sub_handles[i].sub_event_handler)
+            mqtt_client->sub_handles[i].sub_event_handler(mqtt_client, 
+                MQTT_EVENT_CLIENT_DESTROY, mqtt_client->sub_handles[i].handler_user_data);
+
+        if (NULL != mqtt_client->sub_handles[i].topic_filter) {
+            HAL_Free((void *)mqtt_client->sub_handles[i].topic_filter);
+            mqtt_client->sub_handles[i].topic_filter = NULL;
+        }
+
+    }
+
 #ifdef MQTT_RMDUP_MSG_ENABLED
     reset_repeat_packet_id_buffer();
 #endif
@@ -224,8 +238,9 @@ int qcloud_iot_mqtt_init(Qcloud_IoT_Client *pClient, MQTTInitParams *pParams) {
     for (i = 0; i < MAX_MESSAGE_HANDLERS; ++i) {
         pClient->sub_handles[i].topic_filter = NULL;
         pClient->sub_handles[i].message_handler = NULL;
+        pClient->sub_handles[i].sub_event_handler = NULL;
         pClient->sub_handles[i].qos = QOS0;
-        pClient->sub_handles[i].message_handler_data = NULL;
+        pClient->sub_handles[i].handler_user_data = NULL;
     }
 
     if (pParams->command_timeout < MIN_COMMAND_TIMEOUT)

@@ -430,6 +430,12 @@ int qcloud_iot_mqtt_sub_info_proc(Qcloud_IoT_Client *pClient)
                     /* subscribe timeout */
                     msg.event_type = MQTT_EVENT_SUBCRIBE_TIMEOUT;
                     msg.msg = (void *)(uintptr_t)packet_id;
+
+                    /* notify this event to topic subscriber */
+                    if (NULL != sub_info->handler.sub_event_handler)
+                        sub_info->handler.sub_event_handler(pClient, 
+                            MQTT_EVENT_SUBCRIBE_TIMEOUT, sub_info->handler.handler_user_data);
+        
                 } else { 
                     /* unsubscribe timeout */
                     msg.event_type = MQTT_EVENT_UNSUBCRIBE_TIMEOUT;

@@ -74,10 +74,19 @@ LOG_LEVEL IOT_Log_Get_Upload_Level() {
     return g_log_upload_level;
 }
 
-void IOT_Log_Init_Uploader(LogUploadInitParams *init_params)
+int IOT_Log_Init_Uploader(LogUploadInitParams *init_params)
 {
 #ifdef LOG_UPLOAD
     return init_log_uploader(init_params);
+#else
+    return 0;
+#endif
+}
+
+void IOT_Log_Fini_Uploader(void)
+{
+#ifdef LOG_UPLOAD
+    return fini_log_uploader();
 #else
     return ;
 #endif

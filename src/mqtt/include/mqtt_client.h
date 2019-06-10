@@ -158,7 +158,8 @@ typedef struct {
 typedef struct SubTopicHandle {
     const char              *topic_filter;               // 订阅主题名, 可包含通配符
     OnMessageHandler        message_handler;             // 订阅主题消息回调函数指针
-    void                    *message_handler_data;       // 用户数据, 通过回调函数返回
+    OnSubEventHandler       sub_event_handler;           // 接收该订阅消息事件的回调函数
+    void                    *handler_user_data;          // 用户数据, 通过回调函数返回
     QoS                     qos;                         // 服务质量等级
 } SubTopicHandle;
 

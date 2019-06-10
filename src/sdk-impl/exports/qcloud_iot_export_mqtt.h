@@ -55,26 +55,6 @@ typedef MQTTMessage PublishParams;
 
 #define DEFAULT_PUB_PARAMS {QOS0, 0, 0, 0, NULL, 0, NULL, 0}
 
-
-/**
- * @brief MQTT PUBLISH 消息回调处理函数指针定义
- */
-typedef void (*OnMessageHandler)(void *pClient, MQTTMessage *message, void *pApplicationHandlerData);
-
-/**
- * @brief 订阅主题的结构体定义
- */
-typedef struct {
-    QoS                     qos;                    // 服务质量等级, 目前支持QOS0和QOS1
-    OnMessageHandler        on_message_handler;     // 接收已订阅消息的回调函数
-    void                    *user_data;             // 用户数据, 通过callback返回
-} SubscribeParams;
-
-/**
- * MQTT 订阅报文默认参数
- */
-#define DEFAULT_SUB_PARAMS {QOS0, NULL, NULL}
-
 typedef enum {
 
     /* 未定义事件 */
@@ -116,8 +96,38 @@ typedef enum {
     /* SDK订阅的topic收到后台push消息 */
     MQTT_EVENT_PUBLISH_RECVEIVED = 12,
 
+    /* MQTT client destroy */
+    MQTT_EVENT_CLIENT_DESTROY = 13,
+
+    /* 取消订阅 */
+    MQTT_EVENT_UNSUBSCRIBE = 14,
 
 } MQTTEventType;
+
+/**
+ * @brief MQTT SUBSCRIBE 消息回调处理函数指针定义
+ */
+typedef void (*OnMessageHandler)(void *pClient, MQTTMessage *message, void *pUserData);
+
+/**
+ * @brief MQTT SUBSCRIBE 事件回调处理函数指针定义
+ */
+typedef void (*OnSubEventHandler)(void *pClient, MQTTEventType event_type, void *pUserData);
+
+/**
+ * @brief 订阅主题的结构体定义
+ */
+typedef struct {
+    QoS                     qos;                    // 服务质量等级, 目前支持QOS0和QOS1
+    OnMessageHandler        on_message_handler;     // 接收已订阅消息的回调函数
+    OnSubEventHandler       on_sub_event_handler;       // 接收该订阅消息事件的回调函数
+    void                    *user_data;             // 用户数据, 通过callback返回
+} SubscribeParams;
+
+/**
+ * MQTT 订阅报文默认参数
+ */
+#define DEFAULT_SUB_PARAMS {QOS0, NULL, NULL, NULL}
 
 
 typedef struct {

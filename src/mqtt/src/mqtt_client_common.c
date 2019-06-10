@@ -50,6 +50,10 @@ static int _check_handle_is_identical(SubTopicHandle *sub_handle1, SubTopicHandl
         return 1;
     }
 
+    if (sub_handle1->sub_event_handler != sub_handle2->sub_event_handler) {
+        return 1;
+    }
+
     return 0;
 }
 
@@ -795,7 +799,7 @@ static int _deliver_message(Qcloud_IoT_Client *pClient, char *topicName, uint16_
         {
             HAL_MutexUnlock(pClient->lock_generic);
             if (pClient->sub_handles[i].message_handler != NULL) {
-                pClient->sub_handles[i].message_handler(pClient, message, pClient->sub_handles[i].message_handler_data);
+                pClient->sub_handles[i].message_handler(pClient, message, pClient->sub_handles[i].handler_user_data);
                 flag_matched = 1;
                 IOT_FUNC_EXIT_RC(QCLOUD_ERR_SUCCESS);
             }
@@ -998,10 +1002,14 @@ static int _handle_suback_packet(Qcloud_IoT_Client *pClient, Timer *timer, QoS q
     }
 
     if (sub_nack) {
-        Log_e("MQTT SUBSCRIBE failed, packet_id: %u topic: %s", packet_id, sub_handle.topic_filter);
-        HAL_Free((void *)sub_handle.topic_filter);
-        sub_handle.topic_filter = NULL;
         HAL_MutexUnlock(pClient->lock_generic);
+        Log_e("MQTT SUBSCRIBE failed, packet_id: %u topic: %s", packet_id, sub_handle.topic_filter);
+        /* notify this event to topic subscriber */
+        if (NULL != sub_handle.sub_event_handler)
+            sub_handle.sub_event_handler(pClient, MQTT_EVENT_SUBCRIBE_NACK, sub_handle.handler_user_data);
+        
+        HAL_Free((void *)sub_handle.topic_filter);
+        sub_handle.topic_filter = NULL;        
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_MQTT_SUB);
     }
 
@@ -1031,8 +1039,9 @@ static int _handle_suback_packet(Qcloud_IoT_Client *pClient, Timer *timer, QoS q
         } else {
             pClient->sub_handles[i_free].topic_filter = sub_handle.topic_filter;
             pClient->sub_handles[i_free].message_handler = sub_handle.message_handler;
+            pClient->sub_handles[i_free].sub_event_handler = sub_handle.sub_event_handler;
             pClient->sub_handles[i_free].qos = sub_handle.qos;
-            pClient->sub_handles[i_free].message_handler_data = sub_handle.message_handler_data;
+            pClient->sub_handles[i_free].handler_user_data = sub_handle.handler_user_data;
         }
     }
     
@@ -1046,6 +1055,10 @@ static int _handle_suback_packet(Qcloud_IoT_Client *pClient, Timer *timer, QoS q
         if (pClient->event_handle.h_fp != NULL)
             pClient->event_handle.h_fp(pClient, pClient->event_handle.context, &msg);
     }
+
+    /* notify this event to topic subscriber */
+    if (NULL != sub_handle.sub_event_handler)
+        sub_handle.sub_event_handler(pClient, MQTT_EVENT_SUBCRIBE_SUCCESS, sub_handle.handler_user_data);
 
     IOT_FUNC_EXIT_RC(QCLOUD_ERR_SUCCESS);
 }

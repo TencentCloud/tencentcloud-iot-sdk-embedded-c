@@ -63,9 +63,9 @@ typedef bool (*LogMessageHandler)(const char* message);
  * 日志上报功能相关参数， 影响内存和存储空间使用量及上报频率
  * 以下为默认推荐值
  */
-// 日志上报缓冲区大小，用户可以根据需要调整，但应小于或等于MAX_HTTP_LOG_POST_SIZE
+// 日志上报缓冲区大小，用户可以根据需要调整
 #define LOG_UPLOAD_BUFFER_SIZE      3000    
-// 一次日志上报的最大post payload长度，不可修改
+// 一次日志上报的最大post长度，用户可以根据需要调整，但最大不可超过5000
 #define MAX_HTTP_LOG_POST_SIZE      5000
 //日志上报失败后通过缓存到非易失性存储区的最大长度，可根据需要调整
 #define MAX_LOG_SAVE_SIZE           (3*LOG_UPLOAD_BUFFER_SIZE)
@@ -144,15 +144,20 @@ void IOT_Log_Set_MessageHandler(LogMessageHandler handler);
 
 
 /**
- * @brief 设置日志上报功能相关信息
+ * @brief 初始化日志上报功能及内存
  *
- * @param product_id 产品ID
- * @param device_name 设备名称
- * @param sign_key 用于签名的key
+ * @param init_params 初始化参数列表
+ * @return 返回QCLOUD_ERR_SUCCESS, 表示成功
  *
  */
-void IOT_Log_Init_Uploader(LogUploadInitParams *init_params);
+int IOT_Log_Init_Uploader(LogUploadInitParams *init_params);
 
+/**
+ * @brief 停止日志上报功能并释放内存
+ *
+ * @return 
+ */
+void IOT_Log_Fini_Uploader(void);
 
 /**
  * @brief 触发一次日志上报
@@ -210,11 +215,11 @@ void Log_writter(const char *file, const char *func, const int line, const int l
 
 //#define LOG_UPLOAD_DEBUG 
 #ifdef LOG_UPLOAD_DEBUG
-#define UPLOAD_DBG(fmt, ...)   HAL_Printf(">>LOG-DBG>>%s: " fmt "\n", __FUNCTION__, ##__VA_ARGS__)
+#define UPLOAD_DBG(fmt, ...)   HAL_Printf(">>LOG-DBG>>%s(%d): " fmt "\n", __FUNCTION__, __LINE__, ##__VA_ARGS__)
 #else
 #define UPLOAD_DBG(...)
 #endif
-#define UPLOAD_ERR(fmt, ...)   HAL_Printf(">>LOG-ERR>>%s: " fmt "\n", __FUNCTION__, ##__VA_ARGS__)
+#define UPLOAD_ERR(fmt, ...)   HAL_Printf(">>LOG-ERR>>%s(%d): " fmt "\n", __FUNCTION__, __LINE__, ##__VA_ARGS__)
 
 
 #ifdef __cplusplus

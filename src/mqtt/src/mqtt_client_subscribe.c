@@ -150,8 +150,9 @@ int qcloud_iot_mqtt_subscribe(Qcloud_IoT_Client *pClient, char *topicFilter, Sub
     SubTopicHandle sub_handle;
     sub_handle.topic_filter = topic_filter_stored;
     sub_handle.message_handler = pParams->on_message_handler;
+    sub_handle.sub_event_handler = pParams->on_sub_event_handler;
     sub_handle.qos = pParams->qos;
-    sub_handle.message_handler_data = pParams->user_data;
+    sub_handle.handler_user_data = pParams->user_data;
 
     rc = push_sub_info_to(pClient, len, (unsigned int)packet_id, SUBSCRIBE, &sub_handle, &node);
     if (QCLOUD_ERR_SUCCESS != rc) {
@@ -202,8 +203,9 @@ int qcloud_iot_mqtt_resubscribe(Qcloud_IoT_Client *pClient) {
             continue;
         }
         temp_param.on_message_handler = pClient->sub_handles[itr].message_handler;
+        temp_param.on_sub_event_handler = pClient->sub_handles[itr].sub_event_handler;
         temp_param.qos = pClient->sub_handles[itr].qos;
-        temp_param.user_data = pClient->sub_handles[itr].message_handler_data;
+        temp_param.user_data = pClient->sub_handles[itr].handler_user_data;
 
         rc = qcloud_iot_mqtt_subscribe(pClient, topic, &temp_param);
         if (rc < 0) {
