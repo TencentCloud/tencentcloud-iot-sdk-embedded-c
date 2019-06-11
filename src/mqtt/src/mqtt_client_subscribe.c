@@ -136,7 +136,7 @@ int qcloud_iot_mqtt_subscribe(Qcloud_IoT_Client *pClient, char *topicFilter, Sub
     HAL_MutexLock(pClient->lock_write_buf);
     // 序列化SUBSCRIBE报文
     packet_id = get_next_packet_id(pClient);
-    Log_d("topicName=%s|packet_id=%d|pUserdata=%s", topic_filter_stored, packet_id, (char *)pParams->user_data);
+    Log_d("topicName=%s|packet_id=%d", topic_filter_stored, packet_id);
 
     rc = _serialize_subscribe_packet(pClient->write_buf, pClient->write_buf_size, 0, packet_id, 1, &topic_filter_stored,
                                      &pParams->qos, &len);

@@ -1016,10 +1016,9 @@ static int _handle_suback_packet(Qcloud_IoT_Client *pClient, Timer *timer, QoS q
     int i;
     for (i = 0; i < MAX_MESSAGE_HANDLERS; ++i) {
         if ((NULL != pClient->sub_handles[i].topic_filter)) {
-            if (0 == _check_handle_is_identical(&pClient->sub_handles[i], &sub_handle)) {
-                
+            if (0 == _check_handle_is_identical(&pClient->sub_handles[i], &sub_handle)) {                
                 flag_dup = 1;
-                Log_w("There is a identical topic and related handle in list!");
+                Log_w("Identical topic found: %s", sub_handle.topic_filter);
                 HAL_Free((void *)sub_handle.topic_filter);
                 sub_handle.topic_filter = NULL;
                 break;

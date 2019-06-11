@@ -187,11 +187,13 @@ static int _serialize_connect_packet(unsigned char *buf, size_t buf_len, MQTTCon
     if ((flags & MQTT_CONNECT_FLAG_USERNAME) && options->username != NULL) {
         mqtt_write_utf8_string(&ptr, options->username);
         HAL_Free(options->username);
+        options->username = NULL;
     }
 
     if ((flags & MQTT_CONNECT_FLAG_PASSWORD) && options->password != NULL) {
     	mqtt_write_utf8_string(&ptr, options->password);
     	HAL_Free(options->password);
+    	options->password = NULL;
     }
 
     *serialized_len = (uint32_t) (ptr - buf);

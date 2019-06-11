@@ -320,7 +320,7 @@ int gateway_publish_sync(Gateway *gateway, char *topic, PublishParams *params, i
 	POINTER_SANITY_CHECK(gateway, QCLOUD_ERR_INVAL);
 
 	rc = IOT_Gateway_Publish(gateway, topic, params);
-	if(rc != QCLOUD_ERR_SUCCESS) {
+	if(rc < 0) {
 		Log_e("publish fail.");
 		IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
 	}

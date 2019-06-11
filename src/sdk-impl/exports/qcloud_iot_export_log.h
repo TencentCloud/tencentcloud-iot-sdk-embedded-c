@@ -63,10 +63,10 @@ typedef bool (*LogMessageHandler)(const char* message);
  * 日志上报功能相关参数， 影响内存和存储空间使用量及上报频率
  * 以下为默认推荐值
  */
-// 日志上报缓冲区大小，用户可以根据需要调整
-#define LOG_UPLOAD_BUFFER_SIZE      3000    
+// 日志上报缓冲区大小，用户可以根据需要及系统资源调整
+#define LOG_UPLOAD_BUFFER_SIZE      5000    
 // 一次日志上报的最大post长度，用户可以根据需要调整，但最大不可超过5000
-#define MAX_HTTP_LOG_POST_SIZE      5000
+#define MAX_HTTP_LOG_POST_SIZE      3000
 //日志上报失败后通过缓存到非易失性存储区的最大长度，可根据需要调整
 #define MAX_LOG_SAVE_SIZE           (3*LOG_UPLOAD_BUFFER_SIZE)
 //日志上报的频率，若上报缓冲区比较小，则需要提高上报频率，否则容易丢失日志

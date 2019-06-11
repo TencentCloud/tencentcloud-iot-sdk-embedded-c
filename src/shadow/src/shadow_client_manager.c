@@ -166,7 +166,7 @@ int do_shadow_request(Qcloud_IoT_Shadow *pShadow, RequestParams *pParams, char *
         rc = _publish_operation_to_cloud(pShadow, pParams->method, pJsonDoc);
     }
 
-    if (rc == QCLOUD_ERR_SUCCESS) {
+    if (rc >= 0) {
         rc = _add_request_to_list(pShadow, client_token, pParams);
     }
 
@@ -453,7 +453,7 @@ static int _unsubscribe_operation_result_to_cloud(void* pClient)
     }
 
     IOT_MQTT_Unsubscribe(pClient, operation_result_topic);
-    if (rc != QCLOUD_ERR_SUCCESS) {
+    if (rc < 0) {
         Log_e("unsubscribe topic: %s failed: %d.", operation_result_topic, rc);
     }
 

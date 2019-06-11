@@ -391,7 +391,7 @@ int qcloud_iot_post_event(void *pClient, char *pJsonDoc, size_t sizeOfBuffer, ui
 	//Log_d("JsonDoc:%s", pJsonDoc);
 		
 	rc = _publish_event_to_cloud(pClient, pJsonDoc);	
-	if (rc != QCLOUD_ERR_SUCCESS) {
+	if (rc < 0) {
 		Log_e("publish event to cloud fail, %d",rc);
 	}
 
@@ -430,7 +430,7 @@ int qcloud_iot_post_event_raw(void *pClient, char *pJsonDoc, size_t sizeOfBuffer
 	Log_d("JsonDoc:%s", pJsonDoc);
 	
 	rc = _publish_event_to_cloud(pClient, pJsonDoc);	
-	if (rc != QCLOUD_ERR_SUCCESS) {
+	if (rc < 0) {
 		Log_e("publish event raw to cloud fail, %d",rc);
 	}
 

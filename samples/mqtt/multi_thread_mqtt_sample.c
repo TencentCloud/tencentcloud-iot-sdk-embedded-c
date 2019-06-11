@@ -49,7 +49,7 @@ static DeviceInfo sg_devInfo;
 #define MAX_SIZE_OF_TOPIC_CONTENT 100
 #define MAX_PUB_THREAD_COUNT 5
 #define PUBLISH_COUNT 10
-#define THREAD_SLEEP_INTERVAL_USEC 500000
+#define THREAD_SLEEP_INTERVAL_USEC 1000000
 #define CONNECT_MAX_ATTEMPT_COUNT 3
 #define RX_RECEIVE_PERCENTAGE 99.0f
 
@@ -341,7 +341,7 @@ static void *_mqtt_publish_thread_runner(void *ptr) {
 				usleep(sleep_us);
 			} while(QCLOUD_ERR_MQTT_NO_CONN == rc);
 			sg_rePublishCount++;
-			if(QCLOUD_ERR_SUCCESS != rc) {
+			if(rc < 0) {
 				Log_e("Failed attempt 2 Publishing Thread : %d, Msg : %d, cs : %d Second Attempt ", threadId, itr, rc);
 			}
 		}
