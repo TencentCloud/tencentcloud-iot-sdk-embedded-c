@@ -94,7 +94,6 @@ typedef struct {
 
 typedef struct _ShadowInnerData {
     uint32_t token_num;
-    uint32_t version;
     int32_t sync_status;
     List *request_list;
     List *property_handle_list;

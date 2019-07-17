@@ -131,6 +131,19 @@ void LITE_json_keys_release(list_head_t *keylist)
     }
 }
 
+void LITE_strip_transfer(char *src) {
+	char *end = src + strlen(src);
+	
+ 	while(*src != '\0')
+ 	{
+		if(*src == '\\')
+		{
+			memmove(src, src+1, end - src);
+		}
+		src++;
+	}
+}
+
 int LITE_get_int32(int32_t *value, char *src) {
 	return (sscanf(src, "%" SCNi32, value) == 1) ? QCLOUD_ERR_SUCCESS : QCLOUD_ERR_FAILURE;
 }

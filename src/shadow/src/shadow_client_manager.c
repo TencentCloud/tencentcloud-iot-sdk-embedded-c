@@ -85,8 +85,6 @@ int qcloud_iot_shadow_init(Qcloud_IoT_Shadow *pShadow) {
 
     POINTER_SANITY_CHECK(pShadow, QCLOUD_ERR_INVAL);
 
-    pShadow->inner_data.version = 0;
-
     pShadow->mutex = HAL_MutexCreate();
     if (pShadow->mutex == NULL)
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
@@ -290,20 +288,12 @@ static void _on_operation_result_handler(void *pClient, MQTTMessage *message, vo
         Log_e("Fail to parse type!");
         goto End;
     }
+	Log_d("type:%s", type_str);
     //非delta消息的push，一定由设备端触发，找到设备段对应的client_token
     if (strcmp(type_str, OPERATION_DELTA) && !parse_client_token(cloud_rcv_buf, &client_token)) {
 		Log_e("Fail to parse client token! Json=%s", cloud_rcv_buf);
 		goto End;
     }
-
-    //获取shadow push消息version，如果比本地的version则修改本地version，比本地可能是由于服务器回滚或出错
-	uint32_t version_num = 0;
-	if (parse_version_num(cloud_rcv_buf, &version_num)) {
-		if (version_num > shadow_client->inner_data.version) {
-			shadow_client->inner_data.version = version_num;
-		}
-	}
-
 
     if (!strcmp(type_str, OPERATION_DELTA)) {
         HAL_MutexLock(shadow_client->mutex);

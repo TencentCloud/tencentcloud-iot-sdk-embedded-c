@@ -32,12 +32,16 @@
 
 #ifdef DEBUG_DEV_INFO_USED
 
-/* 产品名称, 与云端同步设备状态时需要  */
+/* 产品ID, 与云端同步设备状态时需要  */
 static char sg_product_id[MAX_SIZE_OF_PRODUCT_ID + 1]	 = "PRODUCT_ID";
-/* 产品密钥, 若使能动态注册功能，控制台生成，必填。若不使能，则不用赋值  */
-static char sg_product_secret[MAX_SIZE_OF_PRODUCT_KEY + 1]  = "YOUR_PRODUCT_SECRET";
+
 /* 设备名称, 与云端同步设备状态时需要 */
 static char sg_device_name[MAX_SIZE_OF_DEVICE_NAME + 1]  = "YOUR_DEVICE_NAME";
+
+#ifdef DEV_DYN_REG_ENABLED
+/* 产品密钥, 若使能动态注册功能，控制台生成，必填。若不使能，则不用赋值  */
+static char sg_product_secret[MAX_SIZE_OF_PRODUCT_KEY + 1]  = "YOUR_PRODUCT_SECRET";
+#endif
 
 #ifdef AUTH_MODE_CERT
 /* 客户端证书文件名  非对称加密使用, TLS 证书认证方式*/

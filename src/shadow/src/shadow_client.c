@@ -147,7 +147,6 @@ void* IOT_Shadow_Construct(ShadowInitParams *pParams)
 	shadow_client->shadow_type = pParams->shadow_type;
 	shadow_client->event_handle = pParams->event_handle;
 	shadow_client->inner_data.result_topic = NULL;
-	shadow_client->inner_data.version = 0;
 	shadow_client->inner_data.token_num = 0;
 	
 	int rc;
@@ -440,10 +439,10 @@ static int IOT_Shadow_JSON_Init(Qcloud_IoT_Shadow *pShadow, char *jsonBuffer, si
 	
     int32_t rc_of_snprintf = 0;
     if (overwrite) {
-    	rc_of_snprintf = HAL_Snprintf(jsonBuffer, sizeOfBuffer, "{\"version\":%d, \"overwriteUpdate\":true, \"state\":{", pShadow->inner_data.version);
+    	rc_of_snprintf = HAL_Snprintf(jsonBuffer, sizeOfBuffer, "{\"overwriteUpdate\":true, \"state\":{");
     }
-    else {
-    	rc_of_snprintf = HAL_Snprintf(jsonBuffer, sizeOfBuffer, "{\"version\":%d, \"state\":{", pShadow->inner_data.version);
+    else {    	
+    	rc_of_snprintf = HAL_Snprintf(jsonBuffer, sizeOfBuffer, "{\"state\":{");
     }
 
     return _check_snprintf_return(rc_of_snprintf, sizeOfBuffer);

@@ -94,7 +94,7 @@ static void _init_data_template(void)
 	sg_ProductData.m_brightness = 0;
     sg_DataTemplate[2].data_property.key  = "brightness";
     sg_DataTemplate[2].data_property.data = &sg_ProductData.m_brightness;
-    sg_DataTemplate[2].data_property.type = TYPE_TEMPLATE_FLOAT;
+    sg_DataTemplate[2].data_property.type = TYPE_TEMPLATE_INT;
 
 	strncpy(sg_ProductData.m_name, sg_devInfo.device_name, MAX_STR_NAME_LEN);
 	sg_ProductData.m_name[strlen(sg_devInfo.device_name)] = '\0';
@@ -293,7 +293,7 @@ static int update_self_define_value(const char *pJsonDoc, DeviceProperty *pPrope
 	}
 	
 	/*convert const char* to char * */
-	char *pTemJsonDoc =HAL_Malloc(strlen(pJsonDoc));
+	char *pTemJsonDoc =HAL_Malloc(strlen(pJsonDoc) + 1);
 	strcpy(pTemJsonDoc, pJsonDoc);
 
 	char* property_data = LITE_json_value_of(pProperty->key, pTemJsonDoc);	
@@ -303,7 +303,8 @@ static int update_self_define_value(const char *pJsonDoc, DeviceProperty *pPrope
 			/*如果多个字符串属性,根据pProperty->key值匹配，处理字符串*/					
 			if(0 == strcmp("name", pProperty->key)){
 				memset(sg_ProductData.m_name, 0, MAX_STR_NAME_LEN);
-				strncpy(sg_ProductData.m_name, pProperty->data, MAX_STR_NAME_LEN);
+				LITE_strip_transfer(property_data);
+				strncpy(sg_ProductData.m_name, property_data, MAX_STR_NAME_LEN);
 				sg_ProductData.m_name[MAX_STR_NAME_LEN-1] = '\0';
 			}
 		}else if(pProperty->type == TYPE_TEMPLATE_JOBJECT){
@@ -350,7 +351,6 @@ static void OnDeltaTemplateCallback(void *pClient, const char *pJsonValueBuffer,
 static void OnShadowUpdateCallback(void *pClient, Method method, RequestAck requestAck, const char *pJsonDocument, void *pUserdata) {
 	Log_i("recv shadow update response, response ack: %d", requestAck);	
 }
-
 
 /**
  * 注册数据模板属性
@@ -595,7 +595,7 @@ int main(int argc, char **argv) {
 			//Log_d("No device data need to be reported...");
 		}
 
-		
+	
 		if(QCLOUD_ERR_SUCCESS == cycle_report(pReportDataList, &reportTimer)){				
 			rc = IOT_Shadow_JSON_ConstructReportArray(client, sg_shadow_update_buffer, sg_shadow_update_buffersize, TOTAL_PROPERTY_COUNT, pReportDataList);
 	        if (rc == QCLOUD_ERR_SUCCESS) {
@@ -613,6 +613,7 @@ int main(int argc, char **argv) {
 	        }
 
 		}
+		
 		
 #ifdef EVENT_POST_ENABLED	
 		uint32_t eflag;
@@ -636,9 +637,10 @@ int main(int argc, char **argv) {
 				Log_e("event post failed: %d", rc);
 			}
 		}	
+
 #endif
 
-        sleep(1);
+        HAL_SleepMs(1000);
     }
 
     rc = IOT_Shadow_Destroy(client);

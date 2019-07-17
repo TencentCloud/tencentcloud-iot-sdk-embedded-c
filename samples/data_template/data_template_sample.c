@@ -173,9 +173,9 @@ static int update_self_define_value(const char *pJsonDoc, DeviceProperty *pPrope
 	if((NULL == pJsonDoc)||(NULL == pProperty)){
 		return QCLOUD_ERR_INVAL;
 	}
-	
+
 	/*convert const char* to char * */
-	char *pTemJsonDoc =HAL_Malloc(strlen(pJsonDoc));
+	char *pTemJsonDoc =HAL_Malloc(strlen(pJsonDoc) + 1);
 	strcpy(pTemJsonDoc, pJsonDoc);
 
 	char* property_data = LITE_json_value_of(pProperty->key, pTemJsonDoc);	
@@ -183,6 +183,7 @@ static int update_self_define_value(const char *pJsonDoc, DeviceProperty *pPrope
     if(property_data != NULL){
 		if(pProperty->type == TYPE_TEMPLATE_STRING){
 			/*如果多个字符串属性,根据pProperty->key值匹配，处理字符串*/			
+			LITE_strip_transfer(property_data);
 			Log_d("string type wait to be deal,%s", property_data);
 		}else if(pProperty->type == TYPE_TEMPLATE_JOBJECT){
 			Log_d("Json type wait to be deal,%s",property_data);	

@@ -170,8 +170,7 @@ TEST_F(ShadowTest, UpdateTheJSONDocument)
     ASSERT_EQ(QCLOUD_ERR_SUCCESS, ret_val);
 
     snprintf(expectedUpdateRequestJson, SIZE_OF_UPDATE_DOCUMENT,
-             "{\"version\":%d, \"state\":{\"reported\":{\"doubleData\":4.090800,\"floatData\":3.445000}}, \"clientToken\":\"%s-1\"}",
-             sg_pshadow->inner_data.version, QCLOUD_IOT_MY_PRODUCT_ID);
+             "{\"state\":{\"reported\":{\"doubleData\":4.090800,\"floatData\":3.445000}}, \"clientToken\":\"%s-1\"}", QCLOUD_IOT_MY_PRODUCT_ID);
     ASSERT_STREQ(expectedUpdateRequestJson, updateRequestJson);
 
     ret_val = IOT_Shadow_Update(sg_pshadow, updateRequestJson, SIZE_OF_UPDATE_DOCUMENT, on_request_callback, NULL, QCLOUD_IOT_MQTT_COMMAND_TIMEOUT);

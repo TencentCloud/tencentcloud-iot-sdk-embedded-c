@@ -52,9 +52,9 @@ static int _direct_update_value(char *value, DeviceProperty *pProperty) {
     } else if (pProperty->type == JDOUBLE) {
     	rc = LITE_get_double(pProperty->data, value);
     }else if(pProperty->type == JSTRING){
-		Log_d("string type wait to be deal,%s",value);
+		//Log_d("string type wait to be deal,%s",value);
 	}else if(pProperty->type == JOBJECT){
-		Log_d("Json type wait to be deal,%s",value);
+		//Log_d("Json type wait to be deal,%s",value);
 	}else{
 		Log_e("pProperty type unknow,%d",pProperty->type);
 	}

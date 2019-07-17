@@ -60,6 +60,7 @@ char *json_get_next_object(int type, char *str, char **key, int *key_len,
     char    JsonMark[JSTYPEMAX][2] = { { '\"', '\"' }, { '{', '}' }, { '[', ']' }, { '0', ' ' } };
     int     iMarkDepth = 0, iValueType = JSNONE, iNameLen = 0, iValueLen = 0;
     char   *p_cName = 0, *p_cValue = 0, *p_cPos = str;
+	char 	lastchr;
 
     if (type == JSOBJECT) {
         /* Get Key */
@@ -80,6 +81,7 @@ char *json_get_next_object(int type, char *str, char **key, int *key_len,
     while (p_cPos && *p_cPos) {
         if (*p_cPos == '"') {
             iValueType = JSSTRING;
+			lastchr = *p_cPos;
             p_cValue = ++p_cPos;
             break;
         } else if (*p_cPos == '{') {
@@ -139,17 +141,23 @@ char *json_get_next_object(int type, char *str, char **key, int *key_len,
                 iValueLen = p_cPos - p_cValue;
                 break;
             }
-        } else if (*p_cPos == JsonMark[iValueType][1]) {
+        }    
+		else if (*p_cPos == JsonMark[iValueType][1]) {			
             if (iMarkDepth == 0) {
-                iValueLen = p_cPos - p_cValue + (iValueType == JSSTRING ? 0 : 1);
-                p_cPos++;
-                break;
+                iValueLen = p_cPos - p_cValue + (iValueType == JSSTRING ? 0 : 1);								
+                p_cPos++;			
+				if((iValueType == JSSTRING) && (lastchr == '\\')){	
+					iValueLen += 1;									
+				}else{
+					break;
+				}                
             } else {
                 iMarkDepth--;
             }
         } else if (*p_cPos == JsonMark[iValueType][0]) {
             iMarkDepth++;
         }
+		lastchr = *p_cPos;
         p_cPos++;
     }
 
@@ -223,7 +231,8 @@ int json_get_value_by_name_cb(char *p_cName, int iNameLen, char *p_cValue, int i
     }
 #endif
 
-    if (!strncmp(p_cName, p_stNameValue->pN, p_stNameValue->nLen)) {
+    if ((iNameLen == p_stNameValue->nLen) && !strncmp(p_cName, p_stNameValue->pN, p_stNameValue->nLen)) {
+		
         p_stNameValue->pV = p_cValue;
         p_stNameValue->vLen = iValueLen;
         p_stNameValue->vType = iValueType;
