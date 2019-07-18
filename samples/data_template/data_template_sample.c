@@ -38,11 +38,11 @@ static DeviceInfo sg_devInfo;
 
 static MQTTEventType sg_subscribe_event_result = MQTT_EVENT_UNDEF;
 static bool sg_delta_arrived = false;
-static bool sg_dev_report_new_data = false;
+//static bool sg_dev_report_new_data = false;
 
 
-static char sg_shadow_update_buffer[2048];
-size_t sg_shadow_update_buffersize = sizeof(sg_shadow_update_buffer) / sizeof(sg_shadow_update_buffer[0]);
+static char sg_data_report_buffer[2048];
+size_t sg_data_report_buffersize = sizeof(sg_data_report_buffer) / sizeof(sg_data_report_buffer[0]);
 
 #ifdef EVENT_POST_ENABLED
 
@@ -68,6 +68,36 @@ static void event_post_cb(void *pClient, MQTTMessage *msg)
 {
 	Log_d("Reply:%.*s", msg->payload_len, msg->payload);
 	clearEventFlag(FLAG_EVENT0|FLAG_EVENT1|FLAG_EVENT2);
+}
+
+static void eventPostCheck(void *client)
+{
+	int i;
+	int rc;
+	uint32_t eflag;
+	sEvent *pEventList[EVENT_COUNTS];
+	uint8_t eventCont;
+		
+	//事件上报
+	setEventFlag(FLAG_EVENT0|FLAG_EVENT1|FLAG_EVENT2);
+	eflag = getEventFlag();
+	if((EVENT_COUNTS > 0 )&& (eflag > 0)){	
+		eventCont = 0;
+		for(i = 0; i < EVENT_COUNTS; i++){
+			if((eflag&(1<<i))&ALL_EVENTS_MASK){
+				 pEventList[eventCont++] = &(g_events[i]);
+				 update_events_timestamp(&g_events[i], 1);
+				clearEventFlag(1<<i);
+			}
+		}	
+	
+		rc = qcloud_iot_post_event(client, sg_data_report_buffer, sg_data_report_buffersize, \
+											eventCont, pEventList, event_post_cb);
+		if(rc < 0){
+			Log_e("events post failed: %d", rc);
+		}
+	}
+
 }
 
 #endif
@@ -178,12 +208,11 @@ static int update_self_define_value(const char *pJsonDoc, DeviceProperty *pPrope
 	char *pTemJsonDoc =HAL_Malloc(strlen(pJsonDoc) + 1);
 	strcpy(pTemJsonDoc, pJsonDoc);
 
-	char* property_data = LITE_json_value_of(pProperty->key, pTemJsonDoc);	
+	char* property_data = LITE_json_string_value_strip_transfer(pProperty->key, pTemJsonDoc);	
 	
     if(property_data != NULL){
 		if(pProperty->type == TYPE_TEMPLATE_STRING){
 			/*如果多个字符串属性,根据pProperty->key值匹配，处理字符串*/			
-			LITE_strip_transfer(property_data);
 			Log_d("string type wait to be deal,%s", property_data);
 		}else if(pProperty->type == TYPE_TEMPLATE_JOBJECT){
 			Log_d("Json type wait to be deal,%s",property_data);	
@@ -276,6 +305,8 @@ int deal_up_stream_user_logic(DeviceProperty *pReportDataList[], int *pCount)
 
 int main(int argc, char **argv) {
     int rc;
+	DeviceProperty *pReportDataList[TOTAL_PROPERTY_COUNT];
+	int ReportCont;
 
 
     //init log level
@@ -318,7 +349,7 @@ int main(int argc, char **argv) {
         return rc;
     }
 
-	//进行Shdaow Update操作的之前，最后进行一次同步操作，否则可能本机上shadow version和云上不一致导致Shadow Update操作失败
+	//同步离线数据
 	rc = IOT_Shadow_Get_Sync(client, QCLOUD_IOT_MQTT_COMMAND_TIMEOUT);
 	if (rc != QCLOUD_ERR_SUCCESS) {
 		Log_e("get device shadow failed, err: %d", rc);
@@ -332,7 +363,7 @@ int main(int argc, char **argv) {
         rc = IOT_Shadow_Yield(client, 200);
 
         if (rc == QCLOUD_ERR_MQTT_ATTEMPTING_RECONNECT) {
-            sleep(1);
+            HAL_SleepMs(1000);
             continue;
         }
 		else if (rc != QCLOUD_ERR_SUCCESS) {
@@ -346,9 +377,9 @@ int main(int argc, char **argv) {
 			deal_down_stream_user_logic(&sg_ProductData);
 			
 			/*业务逻辑处理完后需要同步通知服务端:设备数据已更新，删除dseire数据*/	
-            int rc = IOT_Shadow_JSON_ConstructDesireAllNull(client, sg_shadow_update_buffer, sg_shadow_update_buffersize);
+            int rc = IOT_Shadow_JSON_ConstructDesireAllNull(client, sg_data_report_buffer, sg_data_report_buffersize);
             if (rc == QCLOUD_ERR_SUCCESS) {
-                rc = IOT_Shadow_Update_Sync(client, sg_shadow_update_buffer, sg_shadow_update_buffersize, QCLOUD_IOT_MQTT_COMMAND_TIMEOUT);
+                rc = IOT_Shadow_Update_Sync(client, sg_data_report_buffer, sg_data_report_buffersize, QCLOUD_IOT_MQTT_COMMAND_TIMEOUT);
                 sg_delta_arrived = false;
                 if (rc == QCLOUD_ERR_SUCCESS) {
                     Log_i("shadow update(desired) success");
@@ -359,70 +390,36 @@ int main(int argc, char **argv) {
             } else {
                 Log_e("construct desire failed, err: %d", rc);
             }
-
-			sg_dev_report_new_data = true; //用户需要根据业务情况修改上报flag的赋值位置,此处仅为示例
 		}	else{
 			Log_d("No delta msg received...");
 		}
 
 		/*设备上行消息,业务逻辑2入口*/
-		if(sg_dev_report_new_data){
+		/*delta消息是属性的desire和属性的report的差异集，收到deseire消息处理后，要report属性的状态*/
+		if(QCLOUD_ERR_SUCCESS == deal_up_stream_user_logic(pReportDataList, &ReportCont)){
 			
-			DeviceProperty *pReportDataList[TOTAL_PROPERTY_COUNT];
-			int ReportCont;
-		
-			/*delta消息是属性的desire和属性的report的差异集，收到deseire消息处理后，要report属性的状态*/
-			if(QCLOUD_ERR_SUCCESS == deal_up_stream_user_logic(pReportDataList, &ReportCont)){
-				
-				rc = IOT_Shadow_JSON_ConstructReportArray(client, sg_shadow_update_buffer, sg_shadow_update_buffersize, ReportCont, pReportDataList);
-		        if (rc == QCLOUD_ERR_SUCCESS) {
-		            rc = IOT_Shadow_Update(client, sg_shadow_update_buffer, sg_shadow_update_buffersize, 
-		                    OnShadowUpdateCallback, NULL, QCLOUD_IOT_MQTT_COMMAND_TIMEOUT);
-		            if (rc == QCLOUD_ERR_SUCCESS) {
-						sg_dev_report_new_data = false;
-		                Log_i("shadow update(reported) success");
-		            } else {
-		                Log_e("shadow update(reported) failed, err: %d", rc);
-		            }
-		        } else {
-		            Log_e("construct reported failed, err: %d", rc);
-		        }
+			rc = IOT_Shadow_JSON_ConstructReportArray(client, sg_data_report_buffer, sg_data_report_buffersize, ReportCont, pReportDataList);
+	        if (rc == QCLOUD_ERR_SUCCESS) {
+	            rc = IOT_Shadow_Update(client, sg_data_report_buffer, sg_data_report_buffersize, 
+	                    OnShadowUpdateCallback, NULL, QCLOUD_IOT_MQTT_COMMAND_TIMEOUT);
+	            if (rc == QCLOUD_ERR_SUCCESS) {
+	                Log_i("shadow update(reported) success");
+	            } else {
+	                Log_e("shadow update(reported) failed, err: %d", rc);
+	            }
+	        } else {
+	            Log_e("construct reported failed, err: %d", rc);
+	        }
 
-			}else{
-				 Log_d("no data need to be reported or someting goes wrong");
-			}
 		}else{
-			Log_d("No device data need to be reported...");
+			 Log_d("no data need to be reported");
 		}
-		
-#ifdef EVENT_POST_ENABLED	
-		int i;
-		uint32_t eflag;
-		sEvent *pEventList[EVENT_COUNTS];
-		uint8_t event_count;
-		
-		//事件上报
-		setEventFlag(FLAG_EVENT0|FLAG_EVENT1|FLAG_EVENT2);
-		eflag = getEventFlag();
-		if((EVENT_COUNTS > 0 )&& (eflag > 0)){	
-			event_count = 0;
-			for(i = 0; i < EVENT_COUNTS; i++){
-				if((eflag&(1<<i))&ALL_EVENTS_MASK){
-					 pEventList[event_count++] = &(g_events[i]);
-					 update_events_timestamp(&g_events[i], 1);
-					clearEventFlag(1<<i);
-				}
-			}	
 
-			rc = qcloud_iot_post_event(client, sg_shadow_update_buffer, sg_shadow_update_buffersize, \
-					 							event_count, pEventList, event_post_cb);
-			if(rc < 0){
-				Log_e("events post failed: %d", rc);
-			}
-		}
+#ifdef EVENT_POST_ENABLED	
+		eventPostCheck(client);
 #endif
 
-        sleep(3);
+        HAL_SleepMs(3000);
     }
 
     rc = IOT_Shadow_Destroy(client);

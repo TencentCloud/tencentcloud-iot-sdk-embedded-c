@@ -131,18 +131,34 @@ void LITE_json_keys_release(list_head_t *keylist)
     }
 }
 
-void LITE_strip_transfer(char *src) {
-	char *end = src + strlen(src);
+
+static void _strip_transfer(char *src) 
+{
+	char *end = src + strlen(src)+ 1;
 	
  	while(*src != '\0')
  	{
 		if(*src == '\\')
 		{
 			memmove(src, src+1, end - src);
+			end--;
 		}
 		src++;
 	}
 }
+
+
+char *  LITE_json_string_value_strip_transfer(char *key, char *src)
+{
+	char * str = LITE_json_value_of(key, src);
+
+	if(NULL != str){
+		_strip_transfer(str);
+	}
+	return str;
+}
+
+
 
 int LITE_get_int32(int32_t *value, char *src) {
 	return (sscanf(src, "%" SCNi32, value) == 1) ? QCLOUD_ERR_SUCCESS : QCLOUD_ERR_FAILURE;

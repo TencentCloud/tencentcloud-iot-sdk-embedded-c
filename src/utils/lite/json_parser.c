@@ -147,7 +147,8 @@ char *json_get_next_object(int type, char *str, char **key, int *key_len,
                 iValueLen = p_cPos - p_cValue + (iValueType == JSSTRING ? 0 : 1);								
                 p_cPos++;			
 				if((iValueType == JSSTRING) && (lastchr == '\\')){	
-					iValueLen += 1;									
+					lastchr = *p_cPos;
+					continue;
 				}else{
 					break;
 				}                
