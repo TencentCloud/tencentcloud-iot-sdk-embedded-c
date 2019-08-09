@@ -133,6 +133,30 @@ int IOT_OTA_Destroy(void *handle);
 
 
 /**
+ * @brief 开始ota固件下载
+ *        根据获取到的http链接，本地固件信息偏移（是否断点续传），建立http连接
+ *
+ * @param handle: 指定OTA模块
+ * @param offset: 固件下载偏移
+ * @param size: 固件大小
+ *
+ * @retval   0 : 成功
+ * @retval < 0 : 失败，返回具体错误码
+ */
+int IOT_OTA_StartDownload(void *handle, uint32_t offset, uint32_t size);
+
+/**
+ * @brief 更新MD5
+ *        断点续传前，计算本地固件的MD5
+ *
+ * @param handle: 指定OTA模块
+ * @param buff: 待计算的数据
+ * @param size: 待计算的数据大小
+ *
+ */
+void IOT_OTA_UpdateClientMd5(void *handle, char * buff, uint32_t size);
+
+/**
  * @brief 向OTA服务器报告固件版本信息。
  *        NOTE: 进行OTA前请保证先上报一次本地固件的版本信息，以便服务器获取到设备目前的固件信息
  *

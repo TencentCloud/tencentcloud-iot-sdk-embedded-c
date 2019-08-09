@@ -49,7 +49,7 @@ ifneq (,$(filter -DOTA_COMM_ENABLED,$(CFLAGS)))
 ifneq (,$(filter -DOTA_MQTT_CHANNEL,$(CFLAGS)))
 ota_mqtt_sample:
 	$(eval CFLAGS := $(filter-out $(IOTSDK_INCLUDE_FILES),$(CFLAGS)) \
-		-I$(TOP_DIR)/src/sdk-impl -I$(TOP_DIR)/src/sdk-impl/exports)
+		-I$(TOP_DIR)/src/sdk-impl -I$(TOP_DIR)/src/sdk-impl/exports -I$(TOP_DIR)/src/utils/lite)
 
 	$(TOP_Q) \
 	$(PLATFORM_CC) $(CFLAGS) $(SAMPLE_DIR)/ota/$@.c $(LDFLAGS) -o $@

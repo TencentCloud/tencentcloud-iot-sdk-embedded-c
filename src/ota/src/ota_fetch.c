@@ -26,8 +26,11 @@ extern "C" {
 #include "qcloud_iot_import.h"
 
 #include "ca.h"
-
 #include "utils_httpc.h"
+
+
+
+#define OTA_HTTP_HEAD_CONTENT_LEN    256
 
 /* ofc, OTA fetch channel */
 
@@ -59,7 +62,9 @@ static int is_begin_with(const char * str1,char *str2)
     return 1;
 }
 
-void *ofc_Init(const char *url)
+
+static char sg_head_content[OTA_HTTP_HEAD_CONTENT_LEN];
+void *ofc_Init(const char *url, uint32_t offset, uint32_t size)
 {    
     OTAHTTPStruct *h_odc;
 
@@ -69,11 +74,16 @@ void *ofc_Init(const char *url)
     }
 
     memset(h_odc, 0, sizeof(OTAHTTPStruct));
+	memset(sg_head_content, 0, OTA_HTTP_HEAD_CONTENT_LEN);
+	HAL_Snprintf(sg_head_content, OTA_HTTP_HEAD_CONTENT_LEN,\
+					"Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n"\
+					"Accept-Encoding: gzip, deflate\r\n"\
+					"Range: bytes=%d-%d\r\n",
+					offset, size);
 
+	Log_d("head_content:%s", sg_head_content);
     /* set http request-header parameter */
-    h_odc->http.header = "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n" \
-                         "Accept-Encoding: gzip, deflate\r\n";
-
+    h_odc->http.header = sg_head_content;
     h_odc->url = url;
 
     return h_odc;

@@ -115,17 +115,6 @@ static void _ota_callback(void *pcontext, const char *msg, uint32_t msg_len) {
             goto End;
         }
 
-        if (NULL == (h_ota->ch_fetch = ofc_Init(h_ota->purl))) {
-            Log_e("Initialize fetch module failed");
-            goto End;
-        }
-
-        if (0 != qcloud_ofc_connect(h_ota->ch_fetch)) {
-            Log_e("Connect fetch module failed");
-            h_ota->state = IOT_OTAS_DISCONNECTED;
-            goto End;
-        }
-
         h_ota->state = IOT_OTAS_FETCHING;
     }
 
@@ -337,6 +326,38 @@ int IOT_OTA_Destroy(void *handle)
     return 0;
 }
 
+/*support continuous transmission of breakpoints*/
+int IOT_OTA_StartDownload(void *handle, uint32_t offset, uint32_t size)
+{
+	OTA_Struct_t *h_ota = (OTA_Struct_t *) handle;
+	int Ret;
+
+	h_ota->size_fetched += offset;
+	h_ota->ch_fetch = ofc_Init(h_ota->purl, offset, size);
+    if (NULL == h_ota->ch_fetch) {
+        Log_e("Initialize fetch module failed");
+		return QCLOUD_ERR_FAILURE;
+    }
+
+	Ret = qcloud_ofc_connect(h_ota->ch_fetch);
+    if (QCLOUD_ERR_SUCCESS != Ret) {
+        Log_e("Connect fetch module failed");
+        h_ota->state = IOT_OTAS_DISCONNECTED;	
+    }
+		
+	return Ret;
+}
+
+/*support continuous transmission of breakpoints*/
+void IOT_OTA_UpdateClientMd5(void *handle, char * buff, uint32_t size)
+{
+	OTA_Struct_t *h_ota = (OTA_Struct_t *) handle;
+
+	qcloud_otalib_md5_update(h_ota->md5, buff, size);	
+}
+
+
+
 int IOT_OTA_ReportVersion(void *handle, const char *version)
 {
 #define MSG_INFORM_LEN  (128)
@@ -400,12 +421,31 @@ int IOT_OTA_ReportUpgradeBegin(void *handle)
 
 int IOT_OTA_ReportUpgradeSuccess(void *handle, const char *version)
 {
-    return IOT_OTA_ReportUpgradeResult(handle, version, IOT_OTAR_UPGRADE_SUCCESS);
+	OTA_Struct_t *h_ota = (OTA_Struct_t *) handle;
+	int ret;
+
+	if(NULL == version){
+		ret = IOT_OTA_ReportUpgradeResult(handle, h_ota->version, IOT_OTAR_UPGRADE_SUCCESS);
+	}else{
+		ret = IOT_OTA_ReportUpgradeResult(handle, version, IOT_OTAR_UPGRADE_SUCCESS);
+	}
+	
+	return ret;
 }
+
 
 int IOT_OTA_ReportUpgradeFail(void *handle, const char *version)
 {
-    return IOT_OTA_ReportUpgradeResult(handle, version, IOT_OTAR_UPGRADE_FAIL);
+	OTA_Struct_t *h_ota = (OTA_Struct_t *) handle;
+	int ret;
+
+	if(NULL == version){
+		ret = IOT_OTA_ReportUpgradeResult(handle, h_ota->version, IOT_OTAR_UPGRADE_FAIL);
+	}else{
+		ret = IOT_OTA_ReportUpgradeResult(handle, version, IOT_OTAR_UPGRADE_FAIL);
+	}
+	
+	return ret;
 }
 
 

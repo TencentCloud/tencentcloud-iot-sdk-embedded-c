@@ -424,7 +424,9 @@ static int _http_client_retrieve_content(HTTPClient *client, char *data, int len
             
             if (rc != QCLOUD_ERR_SUCCESS) {
                 IOT_FUNC_EXIT_RC(rc);
-            }
+            }else if(0 == left_ms(&timer)){
+				IOT_FUNC_EXIT_RC(QCLOUD_ERR_HTTP_TIMEOUT);
+			}
             
             if (len == 0) {
                 /* read no more data */
@@ -530,6 +532,8 @@ static int _http_client_retrieve_content(HTTPClient *client, char *data, int len
                 rc = _http_client_recv(client, data, 1, max_len, &len, left_ms(&timer), client_data);
                 if (rc != QCLOUD_ERR_SUCCESS) {
                     IOT_FUNC_EXIT_RC(rc);
+	            }else if(0 == left_ms(&timer)){
+					IOT_FUNC_EXIT_RC(QCLOUD_ERR_HTTP_TIMEOUT);
                 }
             }
         } while (readLen);
@@ -540,7 +544,7 @@ static int _http_client_retrieve_content(HTTPClient *client, char *data, int len
                 /* Read missing chars to find end of chunk */
                 rc = _http_client_recv(client, data + len, 2 - len, HTTP_CLIENT_CHUNK_SIZE - len - 1, &new_trf_len,
                                         left_ms(&timer), client_data);
-                if (rc != QCLOUD_ERR_SUCCESS) {
+               if ((rc != QCLOUD_ERR_SUCCESS )|| (0 == left_ms(&timer))) {
                     IOT_FUNC_EXIT_RC(rc);
                 }
                 len += new_trf_len;
@@ -720,7 +724,9 @@ static int _http_client_recv_response(HTTPClient *client, uint32_t timeout_ms, H
         
         if (rc != QCLOUD_ERR_SUCCESS) {
             IOT_FUNC_EXIT_RC(rc);
-        }
+        }else if(0 == left_ms(&timer)){
+			IOT_FUNC_EXIT_RC(QCLOUD_ERR_HTTP_TIMEOUT);
+		}
         
         buf[reclen] = '\0';
         

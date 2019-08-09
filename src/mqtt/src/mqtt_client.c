@@ -228,6 +228,7 @@ int qcloud_iot_mqtt_init(Qcloud_IoT_Client *pClient, MQTTInitParams *pParams) {
     POINTER_SANITY_CHECK(pParams, QCLOUD_ERR_INVAL);
 
 	memset(pClient, 0x0, sizeof(Qcloud_IoT_Client));
+	
 
     int size = HAL_Snprintf(s_qcloud_iot_host, HOST_STR_LENGTH, "%s.%s", pParams->product_id, QCLOUD_IOT_MQTT_DIRECT_DOMAIN);
     if (size < 0 || size > HOST_STR_LENGTH - 1) {
