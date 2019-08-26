@@ -374,6 +374,8 @@ static int _http_client_recv(HTTPClient *client, char *buf, int min_len, int max
     else if (rc == QCLOUD_ERR_SSL_READ_TIMEOUT || rc == QCLOUD_ERR_TCP_READ_TIMEOUT) {
         if (*p_read_len == client_data->retrieve_len || client_data->retrieve_len == 0)
             rc = QCLOUD_ERR_SUCCESS;
+        else
+            Log_e("network_stack read timeout");
     }
     else if (rc == QCLOUD_ERR_TCP_PEER_SHUTDOWN && *p_read_len > 0) {
         /* HTTP server give response and close this connection */
@@ -424,9 +426,11 @@ static int _http_client_retrieve_content(HTTPClient *client, char *data, int len
             
             if (rc != QCLOUD_ERR_SUCCESS) {
                 IOT_FUNC_EXIT_RC(rc);
-            }else if(0 == left_ms(&timer)){
-				IOT_FUNC_EXIT_RC(QCLOUD_ERR_HTTP_TIMEOUT);
-			}
+            }
+            if (0 == left_ms(&timer)) {
+                Log_e("HTTP read timeout!");
+                IOT_FUNC_EXIT_RC(QCLOUD_ERR_HTTP_TIMEOUT);
+            }
             
             if (len == 0) {
                 /* read no more data */
@@ -532,8 +536,10 @@ static int _http_client_retrieve_content(HTTPClient *client, char *data, int len
                 rc = _http_client_recv(client, data, 1, max_len, &len, left_ms(&timer), client_data);
                 if (rc != QCLOUD_ERR_SUCCESS) {
                     IOT_FUNC_EXIT_RC(rc);
-	            }else if(0 == left_ms(&timer)){
-					IOT_FUNC_EXIT_RC(QCLOUD_ERR_HTTP_TIMEOUT);
+                }
+                if (left_ms(&timer) == 0) {
+                    Log_e("HTTP read timeout!");
+                    IOT_FUNC_EXIT_RC(QCLOUD_ERR_HTTP_TIMEOUT);
                 }
             }
         } while (readLen);
@@ -724,9 +730,7 @@ static int _http_client_recv_response(HTTPClient *client, uint32_t timeout_ms, H
         
         if (rc != QCLOUD_ERR_SUCCESS) {
             IOT_FUNC_EXIT_RC(rc);
-        }else if(0 == left_ms(&timer)){
-			IOT_FUNC_EXIT_RC(QCLOUD_ERR_HTTP_TIMEOUT);
-		}
+        }
         
         buf[reclen] = '\0';
         

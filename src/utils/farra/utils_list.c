@@ -228,7 +228,8 @@ void list_remove(List *self, ListNode *node)
     }
 
     HAL_Free(node);
-    --self->len;
+    if (self->len)
+        --self->len;
 }
 
 /*
