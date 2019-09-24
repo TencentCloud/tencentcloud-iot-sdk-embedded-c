@@ -1,4 +1,3 @@
-# �������ã�������Ҫ�����Դ�ļ�
 
 # UTILS
 file(GLOB src_utils	${CMAKE_CURRENT_SOURCE_DIR}/utils/*.c)
@@ -99,7 +98,7 @@ if(${FEATURE_SYSTEM_COMM_ENABLED} STREQUAL "ON")
 	list(APPEND src_sdk ${src_system})
 endif()
 
-# ���ɿ⣬��ȡԴ��
+
 if(${EXTRACT_SRC} STREQUAL  "ON")
 	file(COPY ${src_sdk} DESTINATION ${PROJECT_SOURCE_DIR}/output/qcloud_iot_c_sdk/sdk_src/)
 endif()
