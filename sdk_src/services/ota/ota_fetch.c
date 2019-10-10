@@ -41,6 +41,7 @@ typedef struct {
 
 } OTAHTTPStruct;
 
+#ifdef OTA_USE_HTTPS
 static int is_begin_with(const char * str1,char *str2)
 {
     if(str1 == NULL || str2 == NULL)
@@ -60,7 +61,7 @@ static int is_begin_with(const char * str1,char *str2)
     }
     return 1;
 }
-
+#endif
 
 static char sg_head_content[OTA_HTTP_HEAD_CONTENT_LEN];
 void *ofc_Init(const char *url, uint32_t offset, uint32_t size)
@@ -97,11 +98,13 @@ int32_t qcloud_ofc_connect(void *handle)
     int port = 80;
     const char *ca_crt = NULL;
 
+#ifdef OTA_USE_HTTPS
     if (is_begin_with(h_odc->url, "https")) 
     {
         port = 443;
         ca_crt = iot_https_ca_get();
     }
+#endif
 
     int32_t rc = qcloud_http_client_common(&h_odc->http, h_odc->url, port, ca_crt, HTTP_GET, &h_odc->http_data);
 

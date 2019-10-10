@@ -18,10 +18,11 @@ extern "C" {
 #endif
 
 #include "ca.h"
-
+#include "qcloud_iot_import.h"
 #include <stdlib.h>
 
 #ifndef AUTH_WITH_NOTLS
+#if defined(AUTH_MODE_CERT) || defined(DEV_DYN_REG_ENABLED)
 static const char *iot_ca_crt = \
 {
     "-----BEGIN CERTIFICATE-----\r\n"
@@ -48,7 +49,9 @@ static const char *iot_ca_crt = \
     "QVrcRBDxzx/G\r\n" \
     "-----END CERTIFICATE-----"
 };
+#endif
 
+#ifdef OTA_USE_HTTPS
 static const char *iot_https_ca_crt = \
 {
     "-----BEGIN CERTIFICATE-----\r\n"
@@ -100,10 +103,15 @@ static const char *iot_https_ca_crt = \
     "-----END CERTIFICATE-----"
 };
 #endif
+#endif
 
 const char *iot_ca_get() {
 #ifndef AUTH_WITH_NOTLS
+#if defined(AUTH_MODE_CERT) || defined(DEV_DYN_REG_ENABLED)
 	return iot_ca_crt;
+#else
+    return NULL;
+#endif
 #else
     return NULL;
 #endif
@@ -111,7 +119,13 @@ const char *iot_ca_get() {
 
 const char *iot_https_ca_get() {
 #ifndef AUTH_WITH_NOTLS
+
+#ifdef OTA_USE_HTTPS
 	return iot_https_ca_crt;
+#else
+    return NULL;
+#endif
+
 #else
     return NULL;
 #endif

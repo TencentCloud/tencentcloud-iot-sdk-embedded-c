@@ -22,7 +22,8 @@ SWITCH_VARS := \
     FEATURE_AT_OS_USED \
     FEATURE_AT_DEBUG \
     FEATURE_DEBUG_DEV_INFO_USED \
-
+    FEATURE_OTA_USE_HTTPS \
+    
 $(foreach v, \
     $(SETTING_VARS) $(SWITCH_VARS), \
     $(eval export $(v)=$($(v))) \

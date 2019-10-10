@@ -39,7 +39,7 @@ sdk_src为SDK的核心逻辑及协议相关代码，一般不需要修改，其�
 用户可将qcloud_iot_c_sdk拷贝到其目标平台的编译开发环境，并根据具体情况修改编译选项。
 
 ## 乐鑫ESP8266 RTOS平台移植示例
-在Linux开发环境基于乐鑫ESP8266 RTOS平台搭建一个工程示例
+在Linux开发环境基于乐鑫ESP8266 RTOS平台搭建一个工程示例，完整可实际运行例程可参考[基于ESP8266 Launcher开发板的工程](https://github.com/tencentyun/qcloud-iot-c-sdk-porting-examples/tree/master/QCloud_IoT_ESP8266_RTOS)
 
 ### 1. 获取 ESP8266_RTOS_SDK 并创建工程
 

@@ -67,7 +67,7 @@ typedef enum{
 typedef struct _ProductDataDefine {
     TYPE_DEF_TEMPLATE_BOOL m_light_switch; 
     TYPE_DEF_TEMPLATE_ENUM m_color;
-    TYPE_DEF_TEMPLATE_FLOAT m_brightness;
+    TYPE_DEF_TEMPLATE_INT m_brightness;
     TYPE_DEF_TEMPLATE_STRING m_name[MAX_STR_NAME_LEN+1];
 } ProductDataDefine;
 

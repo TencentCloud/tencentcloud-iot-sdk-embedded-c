@@ -1004,8 +1004,13 @@ static int _handle_suback_packet(Qcloud_IoT_Client *pClient, Timer *timer, QoS q
             if (0 == _check_handle_is_identical(&pClient->sub_handles[i], &sub_handle)) {                
                 flag_dup = 1;
                 Log_w("Identical topic found: %s", sub_handle.topic_filter);
+                if (pClient->sub_handles[i].handler_user_data != sub_handle.handler_user_data) {
+                    Log_w("Update handler_user_data %p -> %p!", 
+                        pClient->sub_handles[i].handler_user_data, sub_handle.handler_user_data);
+                    pClient->sub_handles[i].handler_user_data = sub_handle.handler_user_data;
+                }
                 HAL_Free((void *)sub_handle.topic_filter);
-                sub_handle.topic_filter = NULL;
+                sub_handle.topic_filter = NULL;                
                 break;
             }
         } else {

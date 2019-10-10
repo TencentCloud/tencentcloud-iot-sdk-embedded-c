@@ -251,6 +251,15 @@ typedef struct SUBSCRIBE_INFO {
 int qcloud_iot_mqtt_init(Qcloud_IoT_Client *pClient, MQTTInitParams *pParams);
 
 /**
+ * @brief Release resources of MQTT client
+ *
+ * @param pClient    handle to MQTT client
+ *
+ * @return QCLOUD_RET_SUCCESS for success, or err code for failure
+ */
+int qcloud_iot_mqtt_fini(Qcloud_IoT_Client *pClient);
+
+/**
  * @brief Connect with MQTT server
  *
  * @param pClient    handle to MQTT client

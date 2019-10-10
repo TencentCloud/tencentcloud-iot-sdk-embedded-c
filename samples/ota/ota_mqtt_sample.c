@@ -280,8 +280,8 @@ int main(int argc, char **argv)
     int rc;
 	uint32_t firmware_valid;
     char version[128], md5sum[33];
-    uint32_t len, size_downloaded, size_file;
-	
+    uint32_t size_downloaded, size_file;
+    int len;	
 	int ota_over = 0;
     bool upgrade_fetch_success = true;
     char buf_ota[OTA_BUF_LEN];

@@ -69,3 +69,6 @@ FEATURE_AT_OS_USED                      = y
 
 # 是否打开AT模组调试功能
 FEATURE_AT_DEBUG                        = y
+
+# 是否使用HTTPS下载固件
+FEATURE_OTA_USE_HTTPS                   = y

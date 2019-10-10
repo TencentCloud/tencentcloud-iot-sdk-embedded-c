@@ -24,6 +24,14 @@
 #include "lite-utils.h"
 #include "qcloud_iot_export_error.h"
 
+#ifndef SCNi8
+#define SCNi8 "hhi"
+#endif
+
+#ifndef SCNu8
+#define SCNu8 "hhu"  
+#endif
+
 char *LITE_json_value_of(char *key, char *src)
 {
     char       *value = NULL;
