@@ -61,7 +61,7 @@ char* HAL_Timer_current(void) {
 	time(&now);
 	localtime_s(&tm_val, &now);
 
-	snprintf(time_str, sizeof(time_str), "%04d/%02d/%02d %02d:%02d:%02d", tm_val.tm_year, tm_val.tm_mon, tm_val.tm_mday, tm_val.tm_hour, tm_val.tm_min, tm_val.tm_sec);
+	snprintf(time_str, sizeof(time_str), "%04d/%02d/%02d %02d:%02d:%02d", tm_val.tm_year+1900, tm_val.tm_mon+1, tm_val.tm_mday, tm_val.tm_hour, tm_val.tm_min, tm_val.tm_sec);
 
 	return time_str;
 }
