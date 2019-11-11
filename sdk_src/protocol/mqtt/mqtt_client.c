@@ -26,8 +26,8 @@ extern "C" {
 
 #include "mqtt_client.h"
 
-#include "ca.h"
-#include "device.h"
+#include "qcloud_iot_ca.h"
+#include "qcloud_iot_device.h"
 #include "qcloud_iot_import.h"
 #include "qcloud_iot_export.h"
 #include "qcloud_iot_common.h"

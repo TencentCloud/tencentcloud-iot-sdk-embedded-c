@@ -61,7 +61,6 @@ sdk_src为SDK的核心逻辑及协议相关代码，一般不需要修改，其�
 | FEATURE_AUTH_WITH_NOTLS          | ON/OFF        | OFF: TLS使能, ON: TLS关闭                                    |
 | FEATURE_DEV_DYN_REG_ENABLED      | ON/OFF        | 设备动态注册开关                                             |
 | FEATURE_LOG_UPLOAD_ENABLED       | ON/OFF        | 日志上报开关                                                 |
-| FEATURE_EVENT_POST_ENABLED       | ON/OFF        | 事件上报开关                                                 |
 | FEATURE_DEBUG_DEV_INFO_USED      | ON/OFF        | 设备信息获取来源开关                                         |
 | FEATURE_SYSTEM_COMM_ENABLED      | ON/OFF        | 获取后台时间开关                                             |
 | FEATURE_AT_TCP_ENABLED           | ON/OFF        | AT模组TCP功能开关                                            |
@@ -131,16 +130,18 @@ set(FEATURE_DEBUG_DEV_INFO_USED  OFF)
 4. 填写设备信息
 将在腾讯云物联网平台创建的设备的设备信息(以**密钥认证设备**为例)填写到device_info.json中，如：
 ```
-"auth_mode":"KEY",	
-"productId":"S3EUVBRJLB",
-"deviceName":"test_device",	
-"key_deviceinfo":{    
-    "deviceSecret":"vX6PQqazsGsMyf5SMfs6OA6y"
+{
+  "auth_mode":"KEY",	
+  "productId":"S3EUVBRJLB",
+  "deviceName":"test_device",	
+  "key_deviceinfo":{    
+      "deviceSecret":"vX6PQqazsGsMyf5SMfs6OA6y"
+  }
 }
 ```
 
 5. 运行示例
-示例输出位于`output/release/bin`文件夹中，比如运行data_template_sample示例，输入`./output/release/bin/data_template_sample`即可。
+示例输出位于`output/release/bin`文件夹中，比如运行mqtt_sample示例，输入`./output/release/bin/mqtt_sample`即可。
 
 
 ### Windows环境

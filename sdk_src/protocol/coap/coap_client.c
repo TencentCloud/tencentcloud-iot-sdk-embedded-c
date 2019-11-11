@@ -29,8 +29,8 @@ extern "C" {
 
 #include "coap_client.h"
 
-#include "ca.h"
-#include "device.h"
+#include "qcloud_iot_ca.h"
+#include "qcloud_iot_device.h"
 #include "utils_param_check.h"
 #include "utils_base64.h"
 

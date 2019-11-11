@@ -25,7 +25,7 @@ extern "C" {
 
 #include "mqtt_client.h"
 #include "lite-utils.h"
-#include "device.h"
+#include "qcloud_iot_device.h"
 #include "log_upload.h"
 
 typedef struct _log_mqtt_state {

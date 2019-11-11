@@ -40,6 +40,7 @@ set(FEATURE_DEBUG_DEV_INFO_USED  OFF)
 #### 2. 填写设备信息
 将控制台获取到的产品信息填写到一个JSON文件dynreg_device_info.json中，其中deviceName字段填写要生成的设备名字，deviceSecret字段保持为"YOUR_IOT_PSK"，这样dynreg_dev_sample就会判断设备信息为空，知道这个设备是需要进行动态注册。这部分逻辑可以由用户自行实现，sample仅作示例。
 ```
+{
     "auth_mode":"KEY",
     "productId":"S3EUVBRJLB",
     "productSecret":"8Xz56tyfgQAZEDCTUGau4snA",
@@ -47,6 +48,7 @@ set(FEATURE_DEBUG_DEV_INFO_USED  OFF)
     "key_deviceinfo":{
         "deviceSecret":"YOUR_IOT_PSK"
     }
+}
 ```
 #### 3. 运行示例
 执行设备动态注册例程dynreg_dev_sample：

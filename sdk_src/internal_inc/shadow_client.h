@@ -25,7 +25,7 @@ extern "C" {
 #include "qcloud_iot_export.h"
 #include "qcloud_iot_import.h"
 #include "utils_param_check.h"
-#include "device.h"
+#include "qcloud_iot_device.h"
 #include "mqtt_client.h"
 #include "shadow_client_json.h"
 

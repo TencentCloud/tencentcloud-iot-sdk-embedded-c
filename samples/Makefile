@@ -39,9 +39,9 @@ ifeq ($(FEATURE_AUTH_MODE),CERT)
 CFLAGS += -DAUTH_MODE_CERT
 endif
 
-.PHONY: mqtt_sample ota_mqtt_sample ota_coap_sample shadow_sample coap_sample gateway_sample multi_thread_mqtt_sample dynreg_dev_sample event_sample
+.PHONY: mqtt_sample ota_mqtt_sample ota_coap_sample shadow_sample coap_sample gateway_sample multi_thread_mqtt_sample dynreg_dev_sample
 
-all: mqtt_sample ota_mqtt_sample ota_coap_sample shadow_sample coap_sample gateway_sample multi_thread_mqtt_sample dynreg_dev_sample event_sample
+all: mqtt_sample ota_mqtt_sample ota_coap_sample shadow_sample coap_sample gateway_sample multi_thread_mqtt_sample dynreg_dev_sample
 
 ifneq (,$(filter -DMQTT_COMM_ENABLED,$(CFLAGS)))
 mqtt_sample:
@@ -90,12 +90,6 @@ shadow_sample:
 	$(PLATFORM_CC) $(CFLAGS) $(SAMPLE_DIR)/shadow/$@.c $(LDFLAGS) -o $@
 	
 	$(TOP_Q) \
-	$(PLATFORM_CC) $(CFLAGS) $(SAMPLE_DIR)/data_template/data_template_sample.c $(LDFLAGS) -o data_template_sample
-	
-	$(TOP_Q) \
-	$(PLATFORM_CC) $(CFLAGS) $(SAMPLE_DIR)/scenarized/light_data_template_sample.c $(LDFLAGS) -o light_data_template_sample
-	
-	$(TOP_Q) \
 	$(PLATFORM_CC) $(CFLAGS) $(SAMPLE_DIR)/scenarized/aircond_$@.c $(LDFLAGS) -o aircond_$@
 
 	$(TOP_Q) \
@@ -103,21 +97,10 @@ shadow_sample:
 	
 	$(TOP_Q) \
 	mv $@ $(FINAL_DIR)/bin && \
-	mv data_template_sample $(FINAL_DIR)/bin && \
-	mv light_data_template_sample $(FINAL_DIR)/bin && \
 	mv aircond_$@ $(FINAL_DIR)/bin && \
 	mv aircond_$@_v2 $(FINAL_DIR)/bin
 endif
 
-ifneq (,$(filter -DEVENT_POST_ENABLED,$(CFLAGS)))
-event_sample:
-	$(TOP_Q) \
-	$(PLATFORM_CC) $(CFLAGS) $(SAMPLE_DIR)/event/$@.c $(LDFLAGS) -o $@	
-
-	
-	$(TOP_Q) \
-	mv $@ $(FINAL_DIR)/bin
-endif
 
 ifneq (,$(filter -DGATEWAY_ENABLED,$(CFLAGS)))
 gateway_sample:

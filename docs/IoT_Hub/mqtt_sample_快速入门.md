@@ -70,12 +70,14 @@ set(FEATURE_DEBUG_DEV_INFO_USED  OFF)
 #### 2. 填写设备信息
 将上面在腾讯云物联网IoT Hub创建的设备的设备信息(以**密钥认证设备**为例)填写到device_info.json中
 ```
-    "auth_mode":"KEY",	
-	"productId":"S3EUVBRJLB",
-  	"deviceName":"test_device",	
-    "key_deviceinfo":{    
-        "deviceSecret":"vX6PQqazsGsMyf5SMfs6OA6y"
-    }
+{
+  "auth_mode":"KEY",	
+  "productId":"S3EUVBRJLB",
+  "deviceName":"test_device",	
+  "key_deviceinfo":{    
+      "deviceSecret":"vX6PQqazsGsMyf5SMfs6OA6y"
+  }
+}
 ```
 
 #### 3. 执行 mqtt_sample 示例程序

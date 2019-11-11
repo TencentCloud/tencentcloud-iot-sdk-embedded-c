@@ -24,7 +24,7 @@ extern "C" {
 #include "qcloud_iot_export.h"
 #include "qcloud_iot_import.h"
 
-#include "ca.h"
+#include "qcloud_iot_ca.h"
 #include "utils_httpc.h"
 
 

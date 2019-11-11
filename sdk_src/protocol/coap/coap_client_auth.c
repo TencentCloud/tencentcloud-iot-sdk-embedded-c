@@ -26,7 +26,7 @@ extern "C" {
 
 #include "coap_client.h"
 
-#include "device.h"
+#include "qcloud_iot_device.h"
 #include "utils_param_check.h"
 
 static void _coap_client_auth_callback(void *message, void *userContext)

@@ -19,7 +19,7 @@ extern "C" {
 #include <stdbool.h>
 #include <string.h>
 
-#include "device.h"
+#include "qcloud_iot_device.h"
 #include "qcloud_iot_export.h"
 
 static DeviceInfo   sg_device_info;

@@ -22,7 +22,7 @@
  - 密钥设备要通过平台的安全认证，必须具备三元组信息：产品 ID（ProductId）、设备名（DeviceName）、设备密钥（DeviceSecret），其中设备密钥由平台生成。
 
 ## 设备身份信息烧录
-- 创建产品后，在物联网开发平台 [控制台](https://console.cloud.tencent.com/iotexplorer) 或者通过 [云 API](https://cloud.tencent.com/document/product/1081/37178) 创建设备，并获取对应的设备信息，将上述的四元组或者三元组信息，在设备生产的特定环节，烧录到非易失介质中，设备 SDK 运行时读取存放的设备信息，进行设备认证。
+- 创建产品后，将上述的四元组或者三元组信息，在设备生产的特定环节，烧录到非易失介质中，设备 SDK 运行时读取存放的设备信息，进行设备认证。
 
 - SDK提供了设备信息读写的HAL接口，必须实现。可以参考linux平台HAL_Device_linux.c中设备信息读写的实现。
 

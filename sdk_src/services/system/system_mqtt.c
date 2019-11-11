@@ -30,7 +30,7 @@ extern "C" {
 #include "qcloud_iot_export_system.h"
 #include "mqtt_client.h"
 #include "lite-utils.h"
-#include "device.h"
+#include "qcloud_iot_device.h"
 
 typedef struct _sys_mqtt_state {
     bool topic_sub_ok;

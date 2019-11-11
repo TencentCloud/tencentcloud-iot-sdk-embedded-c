@@ -6,7 +6,7 @@
 
 #### 架构图
 
-![framework](https://main.qcloudimg.com/raw/ebcd38eda169523c4b1751dac1c630a0.png)
+![framework](https://main.qcloudimg.com/raw/b1a38c7d9a39a5414ccb3c8552d0efbc.png)
 
 #### 架构说明
 

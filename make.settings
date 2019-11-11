@@ -26,7 +26,7 @@ FEATURE_MQTT_DEVICE_SHADOW				= y
 FEATURE_COAP_COMM_ENABLED               = y
 
 # 是否打开MQTT通道网关功能
-FEATURE_GATEWAY_ENABLED                 = y
+FEATURE_GATEWAY_ENABLED                 = n
 
 # 是否打开OTA固件升级总开关
 FEATURE_OTA_COMM_ENABLED                = y
@@ -41,13 +41,10 @@ FEATURE_AUTH_MODE				        = KEY
 FEATURE_AUTH_WITH_NOTLS					= n
 
 # 是否使能设备动态注册
-FEATURE_DEV_DYN_REG_ENABLED             = y
+FEATURE_DEV_DYN_REG_ENABLED             = n
 
 # 是否打开日志上报云端功能
-FEATURE_LOG_UPLOAD_ENABLED              = y
-
-# 是否打开事件上报功能
-FEATURE_EVENT_POST_ENABLED              = y
+FEATURE_LOG_UPLOAD_ENABLED              = n
 
 # 是否打开获取iot后台时间功能
 FEATURE_SYSTEM_COMM_ENABLED             = y

@@ -38,12 +38,14 @@ set(FEATURE_DEBUG_DEV_INFO_USED  OFF)
 #### 2. 填写设备信息
 将设备信息填写到配置文件device_info.json中
 ```
-    "auth_mode":"KEY",	
-	"productId":"S3EUVBRJLB",
-  	"deviceName":"test_device",	
-    "key_deviceinfo":{    
-        "deviceSecret":"vX6PQqazsGsMyf5SMfs6OA6y"
-    }
+{
+  "auth_mode":"KEY",	
+  "productId":"S3EUVBRJLB",
+  "deviceName":"test_device",	
+  "key_deviceinfo":{    
+      "deviceSecret":"vX6PQqazsGsMyf5SMfs6OA6y"
+  }
+}
 ```
 #### 3. 第一次执行shadow_sample示例程序
 示例首先订阅了$shadow/operation/result/{productID}/{deviceName}主题，然后通过向$shadow/operation/{productID}/{deviceName}主题发送shadow GET命令来获取云端缓存的设备状态，然后就循环更新updateCount变量并执行shadow UPDATE。

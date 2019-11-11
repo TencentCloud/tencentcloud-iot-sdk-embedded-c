@@ -73,6 +73,7 @@ set(FEATURE_DEBUG_DEV_INFO_USED  OFF)
 #### 2. 填写设备信息
 将上面在腾讯云物联网IoT Hub创建的网关设备和子设备的设备信息(以**密钥认证设备**为例)填写到device_info.json中
 ```
+{
     "auth_mode":"KEY",	
 	"productId":"NINEPLMEB6",
   	"deviceName":"Gateway-demo",	
@@ -84,6 +85,7 @@ set(FEATURE_DEBUG_DEV_INFO_USED  OFF)
         "sub_productId":"S3EUVBRJLB",
         "sub_devName":"test_device"
     }
+}
 ```
 
 #### 3. 执行网关示例程序

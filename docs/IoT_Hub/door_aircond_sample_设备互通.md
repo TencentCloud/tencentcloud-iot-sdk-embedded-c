@@ -37,21 +37,25 @@ set(FEATURE_DEBUG_DEV_INFO_USED  OFF)
 #### 2. 填写设备信息
 将上面创建的airConditioner1设备的设备信息填写到一个JSON文件aircond_device_info.json中
 ```
+{
     "auth_mode":"KEY",	
 	"productId":"GYT9V6D4AF",
   	"deviceName":"airConditioner1",	
     "key_deviceinfo":{    
         "deviceSecret":"vXeds12qazsGsMyf5SMfs6OA6y"
     }
+}
 ```
 再将door1设备的设备信息填写到另一个JSON文件door_device_info.json中
 ```
+{
     "auth_mode":"KEY",	
 	"productId":"S3EUVBRJLB",
   	"deviceName":"door1",	
     "key_deviceinfo":{    
         "deviceSecret":"i92E3QMNmxi5hvIxUHjO8gTdg"
     }
+}
 ```
 
 #### 3. 执行aircond_shadow_sample示例程序

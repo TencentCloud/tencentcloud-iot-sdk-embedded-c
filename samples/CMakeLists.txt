@@ -66,14 +66,6 @@ if(${FEATURE_MQTT_DEVICE_SHADOW} STREQUAL "ON")
 	add_executable(shadow_sample 				${src_shadow_sample})
 	target_link_libraries(shadow_sample 			 ${lib})
 	
-	file(GLOB src_data_template_sample 			${PROJECT_SOURCE_DIR}/samples/data_template/data_template_sample.c)
-	add_executable(data_template_sample 		${src_data_template_sample})
-	target_link_libraries(data_template_sample 	 	 ${lib})
-	
-	file(GLOB src_light_data_template_sample	${PROJECT_SOURCE_DIR}/samples/scenarized/light_data_template_sample.c)
-	add_executable(light_data_template_sample 	${src_light_data_template_sample})
-	target_link_libraries(light_data_template_sample ${lib})
-	
 	file(GLOB src_aircond_shadow_sample 		${PROJECT_SOURCE_DIR}/samples/scenarized/aircond_shadow_sample.c)
 	file(GLOB src_aircond_shadow_sample_v2 		${PROJECT_SOURCE_DIR}/samples/scenarized/aircond_shadow_sample_v2.c)
 	add_executable(aircond_shadow_sample 		${src_aircond_shadow_sample})
@@ -82,13 +74,6 @@ if(${FEATURE_MQTT_DEVICE_SHADOW} STREQUAL "ON")
 	target_link_libraries(aircond_shadow_sample_v2   ${lib})
 endif()
 
-
-# EVENT
-if(${FEATURE_EVENT_POST_ENABLED} STREQUAL "ON" AND ${FEATURE_MQTT_DEVICE_SHADOW} STREQUAL "ON")
-	file(GLOB src_event_sample					${PROJECT_SOURCE_DIR}/samples/event/event_sample.c)
-	add_executable(event_sample 				${src_event_sample})
-	target_link_libraries(event_sample 			 	 ${lib})
-endif()
 
 # GATEWAY
 if(${FEATURE_GATEWAY_ENABLED} STREQUAL "ON")

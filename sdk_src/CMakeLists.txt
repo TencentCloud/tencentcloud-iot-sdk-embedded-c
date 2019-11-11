@@ -88,10 +88,6 @@ if(${FEATURE_DEV_DYN_REG_ENABLED} STREQUAL "ON")
 	list(APPEND src_sdk ${src_dyn_reg})
 endif()
 
-if(${FEATURE_EVENT_POST_ENABLED} STREQUAL "ON")
-	file(GLOB src_event ${CMAKE_CURRENT_SOURCE_DIR}/services/event/*.c)
-	list(APPEND src_sdk ${src_event})
-endif()
 
 if(${FEATURE_SYSTEM_COMM_ENABLED} STREQUAL "ON")
 	file(GLOB src_system ${CMAKE_CURRENT_SOURCE_DIR}/services/system/*.c)

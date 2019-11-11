@@ -25,7 +25,7 @@ extern "C" {
 
 #include "shadow_client_json.h"
 
-#include "device.h"
+#include "qcloud_iot_device.h"
 #include "shadow_client.h"
 #include "lite-utils.h"
 
