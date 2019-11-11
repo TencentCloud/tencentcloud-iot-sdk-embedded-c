@@ -109,6 +109,11 @@ static void _ota_callback(void *pcontext, const char *msg, uint32_t msg_len) {
             goto End;
         }
 
+        if(NULL != json_type) {
+            HAL_Free(json_type);
+            json_type = NULL;
+        }
+
         if (0 != qcloud_otalib_get_params(msg, &json_type, &h_ota->purl, &h_ota->version,
         		h_ota->md5sum, &h_ota->size_file)) {
             Log_e("Get firmware parameter failed");

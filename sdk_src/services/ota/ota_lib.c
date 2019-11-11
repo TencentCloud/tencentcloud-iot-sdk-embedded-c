@@ -184,9 +184,11 @@ int qcloud_otalib_get_report_version_result(const char *json)
 
     int rc = _qcloud_otalib_get_firmware_varlen_para(json, RESULT_FIELD, &result_code);
     if ( rc != QCLOUD_RET_SUCCESS || strcmp(result_code, "0") != 0) {
+        if(NULL != result_code) HAL_Free(result_code); 
         IOT_FUNC_EXIT_RC(IOT_OTA_ERR_FAIL);
     }
 
+    if(NULL != result_code) HAL_Free(result_code); 
     IOT_FUNC_EXIT_RC(QCLOUD_RET_SUCCESS);
 }
 
