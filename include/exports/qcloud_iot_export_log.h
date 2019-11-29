@@ -91,7 +91,7 @@ void IOT_Log_Set_Level(LOG_LEVEL level);
  *
  * @return
  */
-LOG_LEVEL IOT_Log_Get_Level();
+LOG_LEVEL IOT_Log_Get_Level(void);
 
 /**
  * @brief Set the global log level of upload
@@ -105,7 +105,7 @@ void IOT_Log_Set_Upload_Level(LOG_LEVEL level);
  *
  * @return
  */
-LOG_LEVEL IOT_Log_Get_Upload_Level();
+LOG_LEVEL IOT_Log_Get_Upload_Level(void);
 
 
 /**
