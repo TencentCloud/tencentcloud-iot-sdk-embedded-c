@@ -82,6 +82,11 @@ static void _copy_connect_params(MQTTConnectParams *destination, MQTTConnectPara
 	POINTER_SANITY_CHECK_RTN(destination);
 	POINTER_SANITY_CHECK_RTN(source);
 
+    /* In case of reconnecting, source == destination */
+    if (source == destination) {
+        return;
+    }
+
     destination->mqtt_version = source->mqtt_version;
     destination->client_id = source->client_id;
     destination->username = source->username;
