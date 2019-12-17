@@ -82,7 +82,7 @@ static void _ota_callback(void *pcontext, const char *msg, uint32_t msg_len) {
         goto End;
     }
 
-    if (msg == NULL || msg_len <= 0) {
+    if (msg == NULL || msg_len == 0) {
     	Log_e("OTA response message is NULL");
     	return;
     }

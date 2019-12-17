@@ -65,8 +65,8 @@ static void _gateway_message_handler(void *client, MQTTMessage *message, void *u
 
 	topic = (char *)message->ptopic;
 	topic_len = message->topic_len;
-	if (NULL == topic || topic_len <= 0) {
-		Log_e("topic == NULL or topic_len <= 0.");
+	if (NULL == topic || topic_len == 0) {
+		Log_e("topic == NULL or topic_len == 0.");
 		return;
 	}
 

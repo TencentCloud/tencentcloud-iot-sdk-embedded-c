@@ -439,7 +439,7 @@ int append_to_upload_buffer(const char *log_content, size_t log_size)
     if (!sg_log_uploader_init_done)
         return -1;
     
-    if (log_content == NULL || log_size <= 0) {
+    if (log_content == NULL || log_size == 0) {
         UPLOAD_ERR("invalid log content!");
         return -1;
     }

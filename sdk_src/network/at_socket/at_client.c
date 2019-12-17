@@ -158,7 +158,7 @@ const char *at_resp_get_line(at_response_t resp, uint32_t resp_line)
 
 	POINTER_SANITY_CHECK(resp, NULL);
 
-	if (resp_line > resp->line_counts || resp_line <= 0)
+	if (resp_line > resp->line_counts || resp_line == 0)
 	{
 		Log_e("AT response get line failed! Input response line(%d) error!", resp_line);
 		return NULL;
