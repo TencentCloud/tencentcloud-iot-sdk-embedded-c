@@ -20,14 +20,14 @@ extern "C" {
 #include "coap_client_net.h"
 
 #include "network_interface.h"
-    
+
 int qcloud_iot_coap_network_init(Network *pNetwork)
 {
     int rc;
     /* first choice: TLS */
     pNetwork->type = NETWORK_DTLS;
 
-#ifdef AUTH_WITH_NOTLS    
+#ifdef AUTH_WITH_NOTLS
     pNetwork->type = NETWORK_UDP;
 #endif
 

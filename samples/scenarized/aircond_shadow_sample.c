@@ -24,8 +24,8 @@
 #include "lite-utils.h"
 
 #ifdef AUTH_MODE_CERT
-    static char sg_cert_file[PATH_MAX + 1];      // full path of device cert file
-    static char sg_key_file[PATH_MAX + 1];       // full path of device key file
+static char sg_cert_file[PATH_MAX + 1];      // full path of device cert file
+static char sg_key_file[PATH_MAX + 1];       // full path of device key file
 #endif
 
 
@@ -49,7 +49,7 @@ static MQTTEventType sg_subscribe_event_result = MQTT_EVENT_UNDEF;
 // compare float value
 bool _is_value_equal(float left, float right)
 {
-    if((left<right+0.01) && (left>right-0.01))
+    if ((left < right + 0.01) && (left > right - 0.01))
         return true;
     else
         return false;
@@ -57,17 +57,18 @@ bool _is_value_equal(float left, float right)
 
 
 // simulate room temperature change
-static void _simulate_room_temperature(float *roomTemperature) {
+static void _simulate_room_temperature(float *roomTemperature)
+{
     float delta_change = 0;
 
     if (!sg_airconditioner_openned) {
-        if(!_is_value_equal(*roomTemperature, ROOM_TEMPERATURE)) {
-            delta_change = (*roomTemperature)>ROOM_TEMPERATURE ? -0.5: 0.5;
+        if (!_is_value_equal(*roomTemperature, ROOM_TEMPERATURE)) {
+            delta_change = (*roomTemperature) > ROOM_TEMPERATURE ? -0.5 : 0.5;
         }
     } else {
         sg_energy_consumption += 1;
         if (!_is_value_equal(*roomTemperature, sg_desire_temperature)) {
-            delta_change = (*roomTemperature)>sg_desire_temperature ? -1.0: 1.0;
+            delta_change = (*roomTemperature) > sg_desire_temperature ? -1.0 : 1.0;
         }
     }
 
@@ -75,62 +76,62 @@ static void _simulate_room_temperature(float *roomTemperature) {
 }
 
 // MQTT event callback
-static void event_handler(void *pclient, void *handle_context, MQTTEventMsg *msg) 
-{	
-	uintptr_t packet_id = (uintptr_t)msg->msg;
+static void event_handler(void *pclient, void *handle_context, MQTTEventMsg *msg)
+{
+    uintptr_t packet_id = (uintptr_t)msg->msg;
 
-	switch(msg->event_type) {
-		case MQTT_EVENT_UNDEF:
-			Log_i("undefined event occur.");
-			break;
+    switch (msg->event_type) {
+        case MQTT_EVENT_UNDEF:
+            Log_i("undefined event occur.");
+            break;
 
-		case MQTT_EVENT_DISCONNECT:
-			Log_i("MQTT disconnect.");
-			break;
+        case MQTT_EVENT_DISCONNECT:
+            Log_i("MQTT disconnect.");
+            break;
 
-		case MQTT_EVENT_RECONNECT:
-			Log_i("MQTT reconnect.");
-			break;
+        case MQTT_EVENT_RECONNECT:
+            Log_i("MQTT reconnect.");
+            break;
 
-		case MQTT_EVENT_SUBCRIBE_SUCCESS:
+        case MQTT_EVENT_SUBCRIBE_SUCCESS:
             sg_subscribe_event_result = msg->event_type;
-			Log_i("subscribe success, packet-id=%u", (unsigned int)packet_id);
-			break;
+            Log_i("subscribe success, packet-id=%u", (unsigned int)packet_id);
+            break;
 
-		case MQTT_EVENT_SUBCRIBE_TIMEOUT:
+        case MQTT_EVENT_SUBCRIBE_TIMEOUT:
             sg_subscribe_event_result = msg->event_type;
-			Log_i("subscribe wait ack timeout, packet-id=%u", (unsigned int)packet_id);
-			break;
+            Log_i("subscribe wait ack timeout, packet-id=%u", (unsigned int)packet_id);
+            break;
 
-		case MQTT_EVENT_SUBCRIBE_NACK:
+        case MQTT_EVENT_SUBCRIBE_NACK:
             sg_subscribe_event_result = msg->event_type;
-			Log_i("subscribe nack, packet-id=%u", (unsigned int)packet_id);
-			break;
+            Log_i("subscribe nack, packet-id=%u", (unsigned int)packet_id);
+            break;
 
-		case MQTT_EVENT_PUBLISH_SUCCESS:
-			Log_i("publish success, packet-id=%u", (unsigned int)packet_id);
-			break;
+        case MQTT_EVENT_PUBLISH_SUCCESS:
+            Log_i("publish success, packet-id=%u", (unsigned int)packet_id);
+            break;
 
-		case MQTT_EVENT_PUBLISH_TIMEOUT:
-			Log_i("publish timeout, packet-id=%u", (unsigned int)packet_id);
-			break;
+        case MQTT_EVENT_PUBLISH_TIMEOUT:
+            Log_i("publish timeout, packet-id=%u", (unsigned int)packet_id);
+            break;
 
-		case MQTT_EVENT_PUBLISH_NACK:
-			Log_i("publish nack, packet-id=%u", (unsigned int)packet_id);
-			break;
-		default:
-			Log_i("Should NOT arrive here.");
-			break;
-	}
+        case MQTT_EVENT_PUBLISH_NACK:
+            Log_i("publish nack, packet-id=%u", (unsigned int)packet_id);
+            break;
+        default:
+            Log_i("Should NOT arrive here.");
+            break;
+    }
 }
 
 // callback when MQTT msg arrives
-static void on_message_callback(void *pClient, MQTTMessage *message, void *userData) 
+static void on_message_callback(void *pClient, MQTTMessage *message, void *userData)
 {
     if (message == NULL)
         return;
 
-    const char *topicName = message->ptopic; 
+    const char *topicName = message->ptopic;
     size_t topicNameLen = message->topic_len;
 
     if (topicName == NULL || topicNameLen == 0) {
@@ -141,24 +142,21 @@ static void on_message_callback(void *pClient, MQTTMessage *message, void *userD
           (int) topicNameLen, topicName, (int) message->payload_len, (char *) message->payload);
 
 
-	static char cloud_rcv_buf[MAX_RECV_LEN + 1];
-	size_t len = (message->payload_len > MAX_RECV_LEN)?MAX_RECV_LEN:(message->payload_len);
+    static char cloud_rcv_buf[MAX_RECV_LEN + 1];
+    size_t len = (message->payload_len > MAX_RECV_LEN) ? MAX_RECV_LEN : (message->payload_len);
 
-	if(message->payload_len > MAX_RECV_LEN){
-		Log_e("paload len exceed buffer size");
-	}
+    if (message->payload_len > MAX_RECV_LEN) {
+        Log_e("paload len exceed buffer size");
+    }
 
-	memcpy(cloud_rcv_buf, message->payload, len);
-	cloud_rcv_buf[len] = '\0';    // jsmn_parse relies on a string
+    memcpy(cloud_rcv_buf, message->payload, len);
+    cloud_rcv_buf[len] = '\0';    // jsmn_parse relies on a string
 
     char* value = LITE_json_value_of("action", cloud_rcv_buf);
     if (value != NULL) {
-        if(strcmp(value, "come_home") == 0)
-        {
+        if (strcmp(value, "come_home") == 0) {
             sg_airconditioner_openned = true;
-        }
-        else if(strcmp(value, "leave_home") == 0)
-        {
+        } else if (strcmp(value, "leave_home") == 0) {
             sg_airconditioner_openned = false;
         }
     }
@@ -169,32 +167,31 @@ static void on_message_callback(void *pClient, MQTTMessage *message, void *userD
 // Setup MQTT construct parameters
 static int _setup_connect_init_params(ShadowInitParams* initParams)
 {
-	int ret;
+    int ret;
 
-	ret = HAL_GetDevInfo((void *)&sg_devInfo);	
-	if(QCLOUD_RET_SUCCESS != ret){
-		return ret;
-	}
-	
-	initParams->device_name = sg_devInfo.device_name;
-	initParams->product_id = sg_devInfo.product_id;
+    ret = HAL_GetDevInfo((void *)&sg_devInfo);
+    if (QCLOUD_RET_SUCCESS != ret) {
+        return ret;
+    }
+
+    initParams->device_name = sg_devInfo.device_name;
+    initParams->product_id = sg_devInfo.product_id;
 
 #ifdef AUTH_MODE_CERT
-	char certs_dir[PATH_MAX + 1] = "certs";
-	char current_path[PATH_MAX + 1];
-	char *cwd = getcwd(current_path, sizeof(current_path));
-	if (cwd == NULL)
-	{
-		Log_e("getcwd return NULL");
-		return QCLOUD_ERR_FAILURE;
-	}
-	sprintf(sg_cert_file, "%s/%s/%s", current_path, certs_dir, sg_devInfo.dev_cert_file_name);
-	sprintf(sg_key_file, "%s/%s/%s", current_path, certs_dir, sg_devInfo.dev_key_file_name);
+    char certs_dir[PATH_MAX + 1] = "certs";
+    char current_path[PATH_MAX + 1];
+    char *cwd = getcwd(current_path, sizeof(current_path));
+    if (cwd == NULL) {
+        Log_e("getcwd return NULL");
+        return QCLOUD_ERR_FAILURE;
+    }
+    sprintf(sg_cert_file, "%s/%s/%s", current_path, certs_dir, sg_devInfo.dev_cert_file_name);
+    sprintf(sg_key_file, "%s/%s/%s", current_path, certs_dir, sg_devInfo.dev_key_file_name);
 
-	initParams->cert_file = sg_cert_file;
-	initParams->key_file = sg_key_file;
+    initParams->cert_file = sg_cert_file;
+    initParams->key_file = sg_key_file;
 #else
-	initParams->device_secret = sg_devInfo.device_secret;
+    initParams->device_secret = sg_devInfo.device_secret;
 #endif
 
     initParams->auto_connect_enable = 1;
@@ -208,8 +205,7 @@ static int _register_subscribe_topics(void *client)
 {
     static char topic_name[128] = {0};
     int size = HAL_Snprintf(topic_name, sizeof(topic_name), "%s/%s/%s", sg_devInfo.product_id, sg_devInfo.device_name, "control");
-    if (size < 0 || size > sizeof(topic_name) - 1)
-    {
+    if (size < 0 || size > sizeof(topic_name) - 1) {
         Log_e("topic content length not enough! content size:%d  buf size:%d", size, (int)sizeof(topic_name));
         return QCLOUD_ERR_FAILURE;
     }
@@ -222,8 +218,7 @@ int main(int argc, char **argv)
 {
     int c;
     while ((c = utils_getopt(argc, argv, "c:")) != EOF)
-        switch (c) 
-        {
+        switch (c) {
             case 'c':
                 if (HAL_SetDevInfoFile(utils_optarg))
                     return -1;
@@ -231,10 +226,10 @@ int main(int argc, char **argv)
 
             default:
                 HAL_Printf("usage: %s [options]\n"
-                    "  [-c <config file for DeviceInfo>] \n"
-                    , argv[0]);
-                
-            return -1;
+                           "  [-c <config file for DeviceInfo>] \n"
+                           , argv[0]);
+
+                return -1;
         }
 
 
@@ -246,10 +241,10 @@ int main(int argc, char **argv)
     //init connection
     ShadowInitParams init_params = DEFAULT_SHAWDOW_INIT_PARAMS;
     rc = _setup_connect_init_params(&init_params);
-	if (rc != QCLOUD_RET_SUCCESS) {
-		Log_e("init params err,rc=%d", rc);
-		return rc;
-	}
+    if (rc != QCLOUD_RET_SUCCESS) {
+        Log_e("init params err,rc=%d", rc);
+        return rc;
+    }
 
     void *client = IOT_Shadow_Construct(&init_params);
     if (client != NULL) {
@@ -273,15 +268,13 @@ int main(int argc, char **argv)
         if (rc == QCLOUD_ERR_MQTT_ATTEMPTING_RECONNECT) {
             HAL_SleepMs(1000);
             continue;
+        } else if (rc != QCLOUD_RET_SUCCESS) {
+            Log_e("Exit loop caused of errCode: %d", rc);
         }
-		else if (rc != QCLOUD_RET_SUCCESS) {
-			Log_e("Exit loop caused of errCode: %d", rc);
-		}
 
         if (sg_subscribe_event_result != MQTT_EVENT_SUBCRIBE_SUCCESS &&
             sg_subscribe_event_result != MQTT_EVENT_SUBCRIBE_TIMEOUT &&
-            sg_subscribe_event_result != MQTT_EVENT_SUBCRIBE_NACK)
-        {
+            sg_subscribe_event_result != MQTT_EVENT_SUBCRIBE_NACK) {
             Log_i("Wait for subscribe result. sg_subscribe_event_result = %d", sg_subscribe_event_result);
             HAL_SleepMs(1000);
             continue;

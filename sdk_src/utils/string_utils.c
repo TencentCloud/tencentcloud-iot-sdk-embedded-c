@@ -57,9 +57,9 @@ char *LITE_format_nstring(const int len, const char *fmt, ...)
     int             rc = -1;
 
     va_start(ap, fmt);
-    tmp = HAL_Malloc(len+2);
-    memset(tmp, 0, len+2);
-    rc = HAL_Vsnprintf(tmp, len+1, fmt, ap);
+    tmp = HAL_Malloc(len + 2);
+    memset(tmp, 0, len + 2);
+    rc = HAL_Vsnprintf(tmp, len + 1, fmt, ap);
     va_end(ap);
     LITE_ASSERT(tmp);
     LITE_ASSERT(rc < 1024);

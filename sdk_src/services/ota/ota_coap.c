@@ -27,61 +27,60 @@ extern "C" {
 #include <string.h>
 
 typedef struct  {
-    void 					*coap;
+    void                    *coap;
 
-    const char 				*product_id;
-    const char 				*device_name;
+    const char              *product_id;
+    const char              *device_name;
 
-    char 					topic_upgrade[OTA_MAX_TOPIC_LEN];
+    char                    topic_upgrade[OTA_MAX_TOPIC_LEN];
 
-    OnOTAMessageCallback 	msg_callback;
+    OnOTAMessageCallback    msg_callback;
 
     void *context;
 } OTA_CoAP_Struct_t;
 
-static void _otacoap_upgrage_cb(void* coap_message, void *pcontext) {
-	int ret_code = IOT_COAP_GetMessageCode(coap_message);
+static void _otacoap_upgrage_cb(void* coap_message, void *pcontext)
+{
+    int ret_code = IOT_COAP_GetMessageCode(coap_message);
 
-	switch (ret_code) {
-		case COAP_EVENT_RECEIVE_ACK:
-			Log_i("received OTA message ACK, msgid: %d", IOT_COAP_GetMessageId(coap_message));
-			break;
-		case COAP_EVENT_RECEIVE_RESPCONTENT:
-		{
-			Log_i("received OTA message respconetent.");
-			char* payload = NULL;
-			int payload_len = 0;
-			int ret = -1;
-			ret = IOT_COAP_GetMessagePayload(coap_message, &payload, &payload_len);
-			if (ret == QCLOUD_RET_SUCCESS) {
-				OTA_CoAP_Struct_t *handle = (OTA_CoAP_Struct_t *) pcontext;
-				if (NULL != handle->msg_callback) {
-					handle->msg_callback(handle->context, payload, payload_len);
-				}
-			}
-			else {
-				Log_e("message received response, content error.");
-			}
-		}
-			break;
-		case COAP_EVENT_UNAUTHORIZED:
-			Log_e("coap client auth token expired or invalid, msgid: %d", IOT_COAP_GetMessageId(coap_message));
-			break;
-		case COAP_EVENT_FORBIDDEN:
-			Log_e("coap URI is invalid for this device, msgid: %d", IOT_COAP_GetMessageId(coap_message));
-			break;
-		case COAP_EVENT_INTERNAL_SERVER_ERROR:
-			Log_e("coap server internal error, msgid: %d", IOT_COAP_GetMessageId(coap_message));
-			break;
-		case COAP_EVENT_ACK_TIMEOUT:
-			Log_e("message receive ACK timeout, msgid: %d", IOT_COAP_GetMessageId(coap_message));
-			break;
-		case COAP_EVENT_SEPRESP_TIMEOUT:
-			Log_i("message received ACK but receive response timeout, msgid: %d", IOT_COAP_GetMessageId(coap_message));
-			break;
-		default:
-			break;
-	}
+    switch (ret_code) {
+        case COAP_EVENT_RECEIVE_ACK:
+            Log_i("received OTA message ACK, msgid: %d", IOT_COAP_GetMessageId(coap_message));
+            break;
+        case COAP_EVENT_RECEIVE_RESPCONTENT: {
+            Log_i("received OTA message respconetent.");
+            char* payload = NULL;
+            int payload_len = 0;
+            int ret = -1;
+            ret = IOT_COAP_GetMessagePayload(coap_message, &payload, &payload_len);
+            if (ret == QCLOUD_RET_SUCCESS) {
+                OTA_CoAP_Struct_t *handle = (OTA_CoAP_Struct_t *) pcontext;
+                if (NULL != handle->msg_callback) {
+                    handle->msg_callback(handle->context, payload, payload_len);
+                }
+            } else {
+                Log_e("message received response, content error.");
+            }
+        }
+        break;
+        case COAP_EVENT_UNAUTHORIZED:
+            Log_e("coap client auth token expired or invalid, msgid: %d", IOT_COAP_GetMessageId(coap_message));
+            break;
+        case COAP_EVENT_FORBIDDEN:
+            Log_e("coap URI is invalid for this device, msgid: %d", IOT_COAP_GetMessageId(coap_message));
+            break;
+        case COAP_EVENT_INTERNAL_SERVER_ERROR:
+            Log_e("coap server internal error, msgid: %d", IOT_COAP_GetMessageId(coap_message));
+            break;
+        case COAP_EVENT_ACK_TIMEOUT:
+            Log_e("message receive ACK timeout, msgid: %d", IOT_COAP_GetMessageId(coap_message));
+            break;
+        case COAP_EVENT_SEPRESP_TIMEOUT:
+            Log_i("message received ACK but receive response timeout, msgid: %d", IOT_COAP_GetMessageId(coap_message));
+            break;
+        default:
+            break;
+    }
 }
 
 /* Generate topic name according to @OTATopicType, @productId, @deviceName */
@@ -95,7 +94,7 @@ static int _otacoap_gen_topic_name(char *buf, size_t bufLen, const char *OTATopi
 
     ret = HAL_Snprintf(buf, bufLen, "$ota/%s/%s/%s", OTATopicType, productId, deviceName);
 
-    if(ret >= bufLen) IOT_FUNC_EXIT_RC(IOT_OTA_ERR_FAIL);
+    if (ret >= bufLen) IOT_FUNC_EXIT_RC(IOT_OTA_ERR_FAIL);
 
     if (ret < 0) {
         Log_e("HAL_Snprintf failed");
@@ -123,8 +122,8 @@ static int _otacoap_publish(OTA_CoAP_Struct_t *handle, const char *topicType, co
     /* inform OTA to topic: "/ota/device/progress/$(product_id)/$(device_name)" */
     ret = _otacoap_gen_topic_name(topic_name, OTA_MAX_TOPIC_LEN, topicType, handle->product_id, handle->device_name);
     if (ret < 0) {
-       Log_e("generate topic name of info failed");
-       IOT_FUNC_EXIT_RC(IOT_OTA_ERR_FAIL);
+        Log_e("generate topic name of info failed");
+        IOT_FUNC_EXIT_RC(IOT_OTA_ERR_FAIL);
     }
 
     ret = IOT_COAP_SendMessage(handle->coap, topic_name, &send_params);
@@ -138,29 +137,29 @@ static int _otacoap_publish(OTA_CoAP_Struct_t *handle, const char *topicType, co
 
 void *qcloud_osc_init(const char *productId, const char *deviceName, void *channel, OnOTAMessageCallback callback, void *context)
 {
-	OTA_CoAP_Struct_t *h_osc = NULL;
+    OTA_CoAP_Struct_t *h_osc = NULL;
 
-	if (NULL == (h_osc = HAL_Malloc(sizeof(OTA_CoAP_Struct_t)))) {
-		Log_e("allocate for h_osc failed");
-		goto do_exit;
-	}
+    if (NULL == (h_osc = HAL_Malloc(sizeof(OTA_CoAP_Struct_t)))) {
+        Log_e("allocate for h_osc failed");
+        goto do_exit;
+    }
 
-	memset(h_osc, 0, sizeof(OTA_CoAP_Struct_t));
+    memset(h_osc, 0, sizeof(OTA_CoAP_Struct_t));
 
-	h_osc->coap = channel;
-	h_osc->product_id = productId;
-	h_osc->device_name = deviceName;
-	h_osc->msg_callback = callback;
-	h_osc->context = context;
+    h_osc->coap = channel;
+    h_osc->product_id = productId;
+    h_osc->device_name = deviceName;
+    h_osc->msg_callback = callback;
+    h_osc->context = context;
 
-	return h_osc;
+    return h_osc;
 
 do_exit:
-	if (NULL != h_osc) {
-		 HAL_Free(h_osc);
-	}
+    if (NULL != h_osc) {
+        HAL_Free(h_osc);
+    }
 
-	return NULL;
+    return NULL;
 }
 
 int qcloud_osc_deinit(void *handle)
@@ -193,7 +192,7 @@ int qcloud_osc_report_upgrade_result(void *handle, const char *msg)
 }
 
 /* OSC, OTA signal channel */
-#endif 
+#endif
 
 #ifdef __cplusplus
 }

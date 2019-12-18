@@ -21,8 +21,8 @@
 #include "qcloud_iot_import.h"
 
 #ifdef AUTH_MODE_CERT
-    static char sg_cert_file[PATH_MAX + 1];      // full path of device cert file
-    static char sg_key_file[PATH_MAX + 1];       // full path of device key file
+static char sg_cert_file[PATH_MAX + 1];      // full path of device cert file
+static char sg_key_file[PATH_MAX + 1];       // full path of device key file
 #endif
 
 
@@ -36,111 +36,108 @@ static int sg_packet_id = 0;
 
 void response_message_callback(void* coap_message, void* userContext)
 {
-	int ret_code = IOT_COAP_GetMessageCode(coap_message);
-	switch (ret_code) {
-		case COAP_EVENT_RECEIVE_ACK:
+    int ret_code = IOT_COAP_GetMessageCode(coap_message);
+    switch (ret_code) {
+        case COAP_EVENT_RECEIVE_ACK:
             Log_i("message received ACK, msgid: %d", IOT_COAP_GetMessageId(coap_message));
-			break;
-		case COAP_EVENT_RECEIVE_RESPCONTENT:
-		{
-			char* payload = NULL;
-			int payload_len = 0;
-			int ret = -1;
-			ret = IOT_COAP_GetMessagePayload(coap_message, &payload, &payload_len);
-			if (ret == QCLOUD_RET_SUCCESS) {
-				Log_i("message received response, content: %s", payload);
-			}
-			else {
-				Log_e("message received response, content error.");
-			}
-		}
+            break;
+        case COAP_EVENT_RECEIVE_RESPCONTENT: {
+            char* payload = NULL;
+            int payload_len = 0;
+            int ret = -1;
+            ret = IOT_COAP_GetMessagePayload(coap_message, &payload, &payload_len);
+            if (ret == QCLOUD_RET_SUCCESS) {
+                Log_i("message received response, content: %s", payload);
+            } else {
+                Log_e("message received response, content error.");
+            }
+        }
 
-			break;
-		case COAP_EVENT_UNAUTHORIZED:
-			Log_i("coap client auth token expired or invalid, msgid: %d", IOT_COAP_GetMessageId(coap_message));
-			break;
-		case COAP_EVENT_FORBIDDEN:
-			Log_i("coap URI is invalid for this device, msgid: %d", IOT_COAP_GetMessageId(coap_message));
-			break;
-		case COAP_EVENT_INTERNAL_SERVER_ERROR:
-			Log_i("coap server internal error, msgid: %d", IOT_COAP_GetMessageId(coap_message));
-			break;
-		case COAP_EVENT_ACK_TIMEOUT:
-			Log_i("message receive ACK timeout, msgid: %d", IOT_COAP_GetMessageId(coap_message));
-			break;
-		case COAP_EVENT_SEPRESP_TIMEOUT:
-			Log_i("message received ACK but receive response timeout, msgid: %d", IOT_COAP_GetMessageId(coap_message));
-			break;
-		default:
-			break;
-	}
+        break;
+        case COAP_EVENT_UNAUTHORIZED:
+            Log_i("coap client auth token expired or invalid, msgid: %d", IOT_COAP_GetMessageId(coap_message));
+            break;
+        case COAP_EVENT_FORBIDDEN:
+            Log_i("coap URI is invalid for this device, msgid: %d", IOT_COAP_GetMessageId(coap_message));
+            break;
+        case COAP_EVENT_INTERNAL_SERVER_ERROR:
+            Log_i("coap server internal error, msgid: %d", IOT_COAP_GetMessageId(coap_message));
+            break;
+        case COAP_EVENT_ACK_TIMEOUT:
+            Log_i("message receive ACK timeout, msgid: %d", IOT_COAP_GetMessageId(coap_message));
+            break;
+        case COAP_EVENT_SEPRESP_TIMEOUT:
+            Log_i("message received ACK but receive response timeout, msgid: %d", IOT_COAP_GetMessageId(coap_message));
+            break;
+        default:
+            break;
+    }
 }
 
 void event_handler(void *pcontext, CoAPEventMessage *message)
 {
-	switch (message->event_type) {
-		case COAP_EVENT_RECEIVE_ACK:
-            if(sg_packet_id == (unsigned)(uintptr_t)message->message){
+    switch (message->event_type) {
+        case COAP_EVENT_RECEIVE_ACK:
+            if (sg_packet_id == (unsigned)(uintptr_t)message->message) {
                 sg_pub_ack = true;
             }
-			Log_i("message received ACK, msgid: %d", sg_packet_id);
-			break;
-		case COAP_EVENT_RECEIVE_RESPCONTENT:
-			Log_i("message received response, content: %s", IOT_COAP_GetMessageId(message->message));
-			break;
-		case COAP_EVENT_UNAUTHORIZED:
-			Log_i("coap client auth token expired or invalid, msgid: %d", (unsigned)(uintptr_t)message->message);
-			break;
-		case COAP_EVENT_FORBIDDEN:
-			Log_i("coap URI is invalid for this device, msgid: %d", (unsigned)(uintptr_t)message->message);
-			break;
-		case COAP_EVENT_INTERNAL_SERVER_ERROR:
-			Log_i("coap server internal error, msgid: %d", (unsigned)(uintptr_t)message->message);
-			break;
-		case COAP_EVENT_ACK_TIMEOUT:
-			Log_i("message receive ACK timeout, msgid: %d", (unsigned)(uintptr_t)message->message);
-			break;
-		case COAP_EVENT_SEPRESP_TIMEOUT:
-			Log_i("message received ACK but receive response timeout, msgid: %d", (unsigned)(uintptr_t)message->message);
-			break;
-		default:
-			Log_e("unrecogonized event type: %d", message->event_type);
-			break;
-	}
+            Log_i("message received ACK, msgid: %d", sg_packet_id);
+            break;
+        case COAP_EVENT_RECEIVE_RESPCONTENT:
+            Log_i("message received response, content: %s", IOT_COAP_GetMessageId(message->message));
+            break;
+        case COAP_EVENT_UNAUTHORIZED:
+            Log_i("coap client auth token expired or invalid, msgid: %d", (unsigned)(uintptr_t)message->message);
+            break;
+        case COAP_EVENT_FORBIDDEN:
+            Log_i("coap URI is invalid for this device, msgid: %d", (unsigned)(uintptr_t)message->message);
+            break;
+        case COAP_EVENT_INTERNAL_SERVER_ERROR:
+            Log_i("coap server internal error, msgid: %d", (unsigned)(uintptr_t)message->message);
+            break;
+        case COAP_EVENT_ACK_TIMEOUT:
+            Log_i("message receive ACK timeout, msgid: %d", (unsigned)(uintptr_t)message->message);
+            break;
+        case COAP_EVENT_SEPRESP_TIMEOUT:
+            Log_i("message received ACK but receive response timeout, msgid: %d", (unsigned)(uintptr_t)message->message);
+            break;
+        default:
+            Log_e("unrecogonized event type: %d", message->event_type);
+            break;
+    }
 }
 
 static int _setup_connect_init_params(CoAPInitParams* initParams)
 {
-	int ret;
+    int ret;
 
-	ret = HAL_GetDevInfo((void *)&sg_devInfo);	
-	if(QCLOUD_RET_SUCCESS != ret){
-		return ret;
-	}
-	
-	initParams->device_name = sg_devInfo.device_name;
-	initParams->product_id = sg_devInfo.product_id;
+    ret = HAL_GetDevInfo((void *)&sg_devInfo);
+    if (QCLOUD_RET_SUCCESS != ret) {
+        return ret;
+    }
+
+    initParams->device_name = sg_devInfo.device_name;
+    initParams->product_id = sg_devInfo.product_id;
 
 #ifdef AUTH_MODE_CERT
-	char certs_dir[PATH_MAX + 1] = "certs";
-	char current_path[PATH_MAX + 1];
-	char *cwd = getcwd(current_path, sizeof(current_path));
-	if (cwd == NULL)
-	{
-		Log_e("getcwd return NULL");
-		return QCLOUD_ERR_FAILURE;
-	}
-	sprintf(sg_cert_file, "%s/%s/%s", current_path, certs_dir, sg_devInfo.dev_cert_file_name);
-	sprintf(sg_key_file, "%s/%s/%s", current_path, certs_dir, sg_devInfo.dev_key_file_name);
+    char certs_dir[PATH_MAX + 1] = "certs";
+    char current_path[PATH_MAX + 1];
+    char *cwd = getcwd(current_path, sizeof(current_path));
+    if (cwd == NULL) {
+        Log_e("getcwd return NULL");
+        return QCLOUD_ERR_FAILURE;
+    }
+    sprintf(sg_cert_file, "%s/%s/%s", current_path, certs_dir, sg_devInfo.dev_cert_file_name);
+    sprintf(sg_key_file, "%s/%s/%s", current_path, certs_dir, sg_devInfo.dev_key_file_name);
 
-	initParams->cert_file = sg_cert_file;
-	initParams->key_file = sg_key_file;
+    initParams->cert_file = sg_cert_file;
+    initParams->key_file = sg_key_file;
 #else
-	initParams->device_secret = sg_devInfo.device_secret;
+    initParams->device_secret = sg_devInfo.device_secret;
 #endif
 
 
-	initParams->command_timeout = QCLOUD_IOT_MQTT_COMMAND_TIMEOUT;
+    initParams->command_timeout = QCLOUD_IOT_MQTT_COMMAND_TIMEOUT;
     initParams->event_handle.h_fp = event_handler;
 
     return QCLOUD_RET_SUCCESS;
@@ -153,9 +150,9 @@ int main(int argc, char **argv)
 
     CoAPInitParams init_params = DEFAULT_COAPINIT_PARAMS;
     rc = _setup_connect_init_params(&init_params);
-	if (rc != QCLOUD_RET_SUCCESS) {
-		return rc;
-	}
+    if (rc != QCLOUD_RET_SUCCESS) {
+        return rc;
+    }
 
     void *client = IOT_COAP_Construct(&init_params);
     if (client != NULL) {
@@ -235,11 +232,10 @@ int main(int argc, char **argv)
 
         HAL_SleepMs(2000);
 
-    } while(!ota_over);
+    } while (!ota_over);
 
 
-    if (upgrade_fetch_success)
-    {
+    if (upgrade_fetch_success) {
         /* begin execute OTA files, should report upgrade begin */
         // sg_packet_id = IOT_OTA_ReportUpgradeBegin(h_ota);
         // if (0 > sg_packet_id) {
