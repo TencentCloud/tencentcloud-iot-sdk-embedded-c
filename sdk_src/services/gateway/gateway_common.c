@@ -4,8 +4,6 @@
 #include "gateway_common.h"
 
 
-static char cloud_rcv_buf[GATEWAY_RECEIVE_BUFFER_LEN];
-
 
 static bool get_json_type(char *json, char **v)
 {
@@ -81,16 +79,17 @@ static void _gateway_message_handler(void *client, MQTTMessage *message, void *u
     }
 
     cloud_rcv_len = Min(GATEWAY_RECEIVE_BUFFER_LEN - 1, message->payload_len);
-    memcpy(cloud_rcv_buf, message->payload, cloud_rcv_len + 1);
-    cloud_rcv_buf[cloud_rcv_len] = '\0';    // jsmn_parse relies on a string
+    char *json_buf = gateway->recv_buf;
+    memcpy(gateway->recv_buf, message->payload, cloud_rcv_len);
+    json_buf[cloud_rcv_len] = '\0';    // jsmn_parse relies on a string
 
-    if (!get_json_type(cloud_rcv_buf, &type)) {
-        Log_e("Fail to parse type from msg: %s", cloud_rcv_buf);
+    if (!get_json_type(json_buf, &type)) {
+        Log_e("Fail to parse type from msg: %s", json_buf);
         return;
     }
 
-    if (!get_json_devices(cloud_rcv_buf, &devices)) {
-        Log_e("Fail to parse devices from msg: %s", cloud_rcv_buf);
+    if (!get_json_devices(json_buf, &devices)) {
+        Log_e("Fail to parse devices from msg: %s", json_buf);
         HAL_Free(type);
         return;
     }
@@ -102,19 +101,19 @@ static void _gateway_message_handler(void *client, MQTTMessage *message, void *u
     }
 
     if (!get_json_result(devices_strip, &result)) {
-        Log_e("Fail to parse result from msg: %s", cloud_rcv_buf);
+        Log_e("Fail to parse result from msg: %s", json_buf);
         HAL_Free(type);
         HAL_Free(devices);
         return;
     }
     if (!get_json_product_id(devices_strip, &product_id)) {
-        Log_e("Fail to parse product_id from msg: %s", cloud_rcv_buf);
+        Log_e("Fail to parse product_id from msg: %s", json_buf);
         HAL_Free(type);
         HAL_Free(devices);
         return;
     }
     if (!get_json_device_name(devices_strip, &device_name)) {
-        Log_e("Fail to parse device_name from msg: %s", cloud_rcv_buf);
+        Log_e("Fail to parse device_name from msg: %s", json_buf);
         HAL_Free(type);
         HAL_Free(devices);
         HAL_Free(product_id);
@@ -261,6 +260,7 @@ SubdevSession* subdev_add_session(Gateway *gateway, char *product_id, char *devi
         IOT_FUNC_EXIT_RC(NULL);
     }
 
+    memset(session, 0, sizeof(SubdevSession));
     /* add session to list */
     session->next = gateway->session_list;
     gateway->session_list = session;

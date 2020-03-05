@@ -21,6 +21,8 @@ extern "C" {
 #endif
 
 #define PATH_MAX            4096
+/* Max size of cert/key file full path */
+#define FILE_PATH_MAX_LEN                       256
 
 #ifdef WIN32
 #include <Windows.h>

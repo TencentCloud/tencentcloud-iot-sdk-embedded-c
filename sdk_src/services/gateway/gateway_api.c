@@ -6,7 +6,6 @@
 #include "mqtt_client.h"
 
 
-Gateway g_gateway = {0};
 
 void _gateway_event_handler(void *client, void *context, MQTTEventMsg *msg)
 {
@@ -64,41 +63,41 @@ void* IOT_Gateway_Construct(GatewayInitParam* init_param)
     GatewayParam param = DEFAULT_GATEWAY_PARAMS;
     POINTER_SANITY_CHECK(init_param, NULL);
 
-    if (g_gateway.is_construct) {
-        Log_e("gateway have been construct");
+    Gateway *gateway = (Gateway *)HAL_Malloc(sizeof(Gateway));
+    if (gateway == NULL) {
+        Log_e("gateway malloc failed");
         IOT_FUNC_EXIT_RC(NULL);
     }
 
-    memset(&g_gateway, 0, sizeof(Gateway));
+    memset(gateway, 0, sizeof(Gateway));
 
     /* replace user event handle */
-    g_gateway.event_handle.h_fp = init_param->init_param.event_handle.h_fp;
-    g_gateway.event_handle.context = init_param->init_param.event_handle.context;
+    gateway->event_handle.h_fp = init_param->init_param.event_handle.h_fp;
+    gateway->event_handle.context = init_param->init_param.event_handle.context;
 
     /* set _gateway_event_handler as mqtt event handle */
     init_param->init_param.event_handle.h_fp = _gateway_event_handler;
-    init_param->init_param.event_handle.context = &g_gateway;
+    init_param->init_param.event_handle.context = gateway;
 
     /* construct MQTT client */
-    g_gateway.mqtt = IOT_MQTT_Construct(&init_param->init_param);
-    if (NULL == g_gateway.mqtt) {
+    gateway->mqtt = IOT_MQTT_Construct(&init_param->init_param);
+    if (NULL == gateway->mqtt) {
         Log_e("construct MQTT failed");
+        HAL_Free(gateway);
         IOT_FUNC_EXIT_RC(NULL);
     }
 
     /* subscribe default topic */
     param.product_id = init_param->init_param.product_id;
     param.device_name = init_param->init_param.device_name;
-    rc = gateway_subscribe_unsubscribe_default(&g_gateway, &param);
+    rc = gateway_subscribe_unsubscribe_default(gateway, &param);
     if (QCLOUD_RET_SUCCESS != rc) {
         Log_e("subscribe default topic failed");
-        IOT_Gateway_Destroy((void*)&g_gateway);
+        IOT_Gateway_Destroy((void*)gateway);
         IOT_FUNC_EXIT_RC(NULL);
     }
 
-    g_gateway.is_construct = 1;
-
-    return &g_gateway;
+    return (void*)gateway;
 }
 
 

@@ -20,14 +20,6 @@
 #include "qcloud_iot_export.h"
 #include "qcloud_iot_import.h"
 
-#ifdef AUTH_MODE_CERT
-static char sg_cert_file[PATH_MAX + 1];      // full path of device cert file
-static char sg_key_file[PATH_MAX + 1];       // full path of device key file
-#endif
-
-
-static DeviceInfo sg_devInfo;
-
 
 #define OTA_BUF_LEN (5000)
 
@@ -109,33 +101,37 @@ void event_handler(void *pcontext, CoAPEventMessage *message)
 
 static int _setup_connect_init_params(CoAPInitParams* initParams)
 {
-    int ret;
-
-    ret = HAL_GetDevInfo((void *)&sg_devInfo);
-    if (QCLOUD_RET_SUCCESS != ret) {
-        return ret;
+    DeviceInfo device_info = {0};
+    int rc = HAL_GetDevInfo((void *)&device_info);
+    if (QCLOUD_RET_SUCCESS != rc) {
+        Log_e("get device info failed: %d", rc);
+        return rc;
     }
-
-    initParams->device_name = sg_devInfo.device_name;
-    initParams->product_id = sg_devInfo.product_id;
+    
+    initParams->product_id = device_info.product_id;
+    initParams->device_name = device_info.device_name;
 
 #ifdef AUTH_MODE_CERT
-    char certs_dir[PATH_MAX + 1] = "certs";
-    char current_path[PATH_MAX + 1];
+    char certs_dir[16] = "certs";
+    char current_path[128];
     char *cwd = getcwd(current_path, sizeof(current_path));
+
     if (cwd == NULL) {
         Log_e("getcwd return NULL");
         return QCLOUD_ERR_FAILURE;
     }
-    sprintf(sg_cert_file, "%s/%s/%s", current_path, certs_dir, sg_devInfo.dev_cert_file_name);
-    sprintf(sg_key_file, "%s/%s/%s", current_path, certs_dir, sg_devInfo.dev_key_file_name);
 
-    initParams->cert_file = sg_cert_file;
-    initParams->key_file = sg_key_file;
+#ifdef WIN32
+    HAL_Snprintf(initParams->cert_file, FILE_PATH_MAX_LEN, "%s\\%s\\%s", current_path, certs_dir, device_info.dev_cert_file_name);
+    HAL_Snprintf(initParams->key_file, FILE_PATH_MAX_LEN, "%s\\%s\\%s", current_path, certs_dir, device_info.dev_key_file_name);
 #else
-    initParams->device_secret = sg_devInfo.device_secret;
+    HAL_Snprintf(initParams->cert_file, FILE_PATH_MAX_LEN, "%s/%s/%s", current_path, certs_dir, device_info.dev_cert_file_name);
+    HAL_Snprintf(initParams->key_file, FILE_PATH_MAX_LEN, "%s/%s/%s", current_path, certs_dir, device_info.dev_key_file_name);
 #endif
 
+#else
+    initParams->device_secret = device_info.device_secret;
+#endif
 
     initParams->command_timeout = QCLOUD_IOT_MQTT_COMMAND_TIMEOUT;
     initParams->event_handle.h_fp = event_handler;
@@ -162,7 +158,8 @@ int main(int argc, char **argv)
         return QCLOUD_ERR_FAILURE;
     }
 
-    void *h_ota = IOT_OTA_Init(sg_devInfo.product_id, sg_devInfo.device_name, client);
+    DeviceInfo *dev_info = IOT_COAP_GetDeviceInfo(client);
+    void *h_ota = IOT_OTA_Init(dev_info->product_id, dev_info->device_name, client);
     if (NULL == h_ota) {
         Log_e("initialize OTA failed");
         return QCLOUD_ERR_FAILURE;

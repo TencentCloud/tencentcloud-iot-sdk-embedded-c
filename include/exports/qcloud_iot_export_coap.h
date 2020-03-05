@@ -89,8 +89,8 @@ typedef struct {
     char                        *device_name;             // device name
 
 #ifdef AUTH_MODE_CERT
-    char                        *cert_file;              // cert file path
-    char                        *key_file;               // key file path
+    char                        cert_file[FILE_PATH_MAX_LEN];      // full path of device cert file
+    char                        key_file[FILE_PATH_MAX_LEN];       // full path of device key file
 #else
     char                        *device_secret;                    // device secret
 #endif
@@ -104,7 +104,7 @@ typedef struct {
 } CoAPInitParams;
 
 #ifdef AUTH_MODE_CERT
-#define DEFAULT_COAPINIT_PARAMS { NULL, NULL, NULL, NULL, 2000, 5, {0}}
+#define DEFAULT_COAPINIT_PARAMS { NULL, NULL, {0}, {0}, 2000, 5, {0}}
 #else
 #define DEFAULT_COAPINIT_PARAMS { NULL, NULL, NULL, 2000, 5, {0}}
 #endif
@@ -170,6 +170,14 @@ int   IOT_COAP_GetMessagePayload(void *pMessage, char **payload, int *payloadLen
  * @return  COAPEventType converted from msg error code
  */
 int   IOT_COAP_GetMessageCode(void *pMessage);
+
+/**
+ * @brief Get the device Info of the dedicated COAP client
+ *
+ * @param pClient       handle to COAP client
+ * @return pointer to the device Info
+ */
+DeviceInfo* IOT_COAP_GetDeviceInfo(void *pClient);
 
 #ifdef __cplusplus
 }

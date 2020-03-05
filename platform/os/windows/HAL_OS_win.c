@@ -19,11 +19,12 @@
 #include <memory.h>
 
 #include "qcloud_iot_import.h"
-#include "qcloud_iot_export.h"
+#include "qcloud_iot_export_error.h"
 
 
 void *HAL_MutexCreate(void)
 {
+#ifdef MULTITHREAD_ENABLED
     HANDLE mutex = CreateMutex(
                        NULL,
                        FALSE,
@@ -35,26 +36,45 @@ void *HAL_MutexCreate(void)
     }
 
     return (void *)mutex;
+#else
+    return (void *)0xFFFFFFFF;
+#endif 
 }
 
 void HAL_MutexDestroy(_IN_ void *mutex)
 {
+#ifdef MULTITHREAD_ENABLED
     CloseHandle((HANDLE)mutex);
+#else
+    return ;
+#endif
 }
 
 void HAL_MutexLock(_IN_ void *mutex)
 {
+#ifdef MULTITHREAD_ENABLED
     WaitForSingleObject((HANDLE)mutex, INFINITE);
+#else
+    return ;
+#endif
 }
 
 int HAL_MutexTryLock(_IN_ void *mutex)
 {
+#ifdef MULTITHREAD_ENABLED
     return WaitForSingleObject((HANDLE)mutex, 0) == WAIT_OBJECT_0 ? 0 : -1;
+#else
+    return 0;
+#endif
 }
 
 void HAL_MutexUnlock(_IN_ void *mutex)
 {
+#ifdef MULTITHREAD_ENABLED
     ReleaseMutex((HANDLE)mutex);
+#else
+    return ;
+#endif
 }
 
 void *HAL_Malloc(_IN_ uint32_t size)
@@ -105,17 +125,36 @@ void HAL_SleepMs(_IN_ uint32_t ms)
     Sleep(ms);
 }
 
-#ifdef AT_TCP_ENABLED
+#ifdef MULTITHREAD_ENABLED
 
-void * HAL_ThreadCreate(uint16_t stack_size, int priority, char * taskname, void *(*fn)(void*), void* arg)
+// platform-dependant thread routine/entry function
+static void _HAL_thread_func_wrapper_(void *ptr)
 {
-    return NULL;
+    ThreadParams* params = (ThreadParams*)ptr;
+
+    params->thread_func(params->user_arg);
+
+    _endthread();    
 }
 
-int HAL_ThreadDestroy(void *thread_t)
+// platform-dependant thread create function
+int HAL_ThreadCreate(ThreadParams* params)
 {
+    if (params == NULL)
+        return QCLOUD_ERR_INVAL;
+    
+    uintptr_t  ret = _beginthread(_HAL_thread_func_wrapper_, params->stack_size, (void *)params);
+    if (ret == -1L) {
+        HAL_Printf("%s: _beginthread failed: %d\n", __FUNCTION__, errno);
+        return QCLOUD_ERR_FAILURE;
+    }
+
     return QCLOUD_RET_SUCCESS;
 }
+
+#endif
+
+#ifdef AT_TCP_ENABLED
 
 void *HAL_SemaphoreCreate(void)
 {

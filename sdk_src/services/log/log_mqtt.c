@@ -142,8 +142,7 @@ static int _iot_log_level_get_publish(void *pClient)
     static unsigned int sg_client_token = 1;
 
     Qcloud_IoT_Client   *mqtt_client = (Qcloud_IoT_Client *)pClient;
-    DeviceInfo          *dev_info = iot_device_info_get();
-    POINTER_SANITY_CHECK(dev_info, QCLOUD_ERR_INVAL);
+    DeviceInfo          *dev_info = &mqtt_client->device_info;
 
     char topic_name[128] = {0};
     char payload_content[128] = {0};
@@ -164,8 +163,10 @@ int qcloud_log_topic_subscribe(void *client)
 {
     /* subscribe the log topic: "$log/operation/result/${productId}/${deviceName}" */
     char topic_name[128] = {0};
+    Qcloud_IoT_Client   *mqtt_client = (Qcloud_IoT_Client *)client;
+    DeviceInfo          *dev_info = &mqtt_client->device_info;
     int size = HAL_Snprintf(topic_name, sizeof(topic_name), "$log/operation/result/%s/%s",
-                            iot_device_info_get()->product_id, iot_device_info_get()->device_name);
+                            dev_info->product_id, dev_info->device_name);
     if (size < 0 || size > sizeof(topic_name) - 1) {
         Log_e("topic content buf not enough! content size:%d buf size:%d", size, (int)sizeof(topic_name));
         return QCLOUD_ERR_FAILURE;
@@ -202,7 +203,7 @@ int qcloud_get_log_level(void* pClient, int *log_level)
             }
 
             /* wait for sub ack */
-            ret = qcloud_iot_mqtt_yield((Qcloud_IoT_Client *)pClient, 100);
+            ret = qcloud_iot_mqtt_yield_mt((Qcloud_IoT_Client *)pClient, 100);
             if (sg_state.topic_sub_ok) {
                 break;
             }
@@ -224,7 +225,7 @@ int qcloud_get_log_level(void* pClient, int *log_level)
     }
 
     do {
-        ret = qcloud_iot_mqtt_yield((Qcloud_IoT_Client *)pClient, 100);
+        ret = qcloud_iot_mqtt_yield_mt((Qcloud_IoT_Client *)pClient, 100);
         cntRev++;
     } while (!sg_state.result_recv_ok && cntRev < 20);
 

@@ -35,8 +35,8 @@ typedef struct {
     char                        *device_name;            // device name
 
 #ifdef AUTH_MODE_CERT
-    char                        *cert_file;              // cert file path
-    char                        *key_file;               // key file path
+    char                        cert_file[FILE_PATH_MAX_LEN];      // full path of device cert file
+    char                        key_file[FILE_PATH_MAX_LEN];       // full path of device key file
 #else
     char                        *device_secret;          // device secret
 #endif
@@ -54,7 +54,7 @@ typedef struct {
 } ShadowInitParams;
 
 #ifdef AUTH_MODE_CERT
-#define DEFAULT_SHAWDOW_INIT_PARAMS { NULL, NULL, NULL, NULL, 5000, 240 * 1000, 1, 1, {0}, 0}
+#define DEFAULT_SHAWDOW_INIT_PARAMS { NULL, NULL, {0}, {0}, 5000, 240 * 1000, 1, 1, {0}, 0}
 #else
 #define DEFAULT_SHAWDOW_INIT_PARAMS { NULL, NULL, NULL, 5000, 240 * 1000, 1, 1, {0}, 0}
 #endif

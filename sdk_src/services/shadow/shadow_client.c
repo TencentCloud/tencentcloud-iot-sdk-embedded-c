@@ -99,8 +99,8 @@ static void _copy_shadow_init_params_to_mqtt(MQTTInitParams *pMqttInitParams, Sh
     pMqttInitParams->product_id = shadowInitParams->product_id;
 
 #ifdef AUTH_MODE_CERT
-    pMqttInitParams->cert_file = shadowInitParams->cert_file;
-    pMqttInitParams->key_file = shadowInitParams->key_file;
+    memcpy(pMqttInitParams->cert_file, shadowInitParams->cert_file, FILE_PATH_MAX_LEN);
+    memcpy(pMqttInitParams->key_file, shadowInitParams->key_file, FILE_PATH_MAX_LEN);
 #else
     pMqttInitParams->device_secret = shadowInitParams->device_secret;
 #endif
@@ -145,6 +145,7 @@ void* IOT_Shadow_Construct(ShadowInitParams *pParams)
         goto End;
     }
 
+    memset(shadow_client, 0, sizeof(Qcloud_IoT_Shadow));
     shadow_client->mqtt = mqtt_client;
     shadow_client->shadow_type = pParams->shadow_type;
     shadow_client->event_handle = pParams->event_handle;
@@ -397,7 +398,8 @@ int IOT_Shadow_Get(void *handle, OnRequestCallback callback, void *userContext, 
     }
 
     char getRequestJsonDoc[MAX_SIZE_OF_JSON_WITH_CLIENT_TOKEN];
-    build_empty_json(&(shadow->inner_data.token_num), getRequestJsonDoc);
+    Qcloud_IoT_Client *mqtt_client = (Qcloud_IoT_Client *)shadow->mqtt;
+    build_empty_json(&(shadow->inner_data.token_num), getRequestJsonDoc, mqtt_client->device_info.product_id);
     Log_d("GET Request Document: %s", getRequestJsonDoc);
 
     RequestParams request_params = DEFAULT_REQUEST_PARAMS;
@@ -496,7 +498,8 @@ static int IOT_Shadow_JSON_Finalize(Qcloud_IoT_Shadow *pShadow, char *jsonBuffer
         return QCLOUD_ERR_JSON_BUFFER_TOO_SMALL;
     }
 
-    rc_of_snprintf = generate_client_token(jsonBuffer + strlen(jsonBuffer), remain_size, &(pShadow->inner_data.token_num));
+    Qcloud_IoT_Client *mqtt_client = (Qcloud_IoT_Client *)pShadow->mqtt;
+    rc_of_snprintf = generate_client_token(jsonBuffer + strlen(jsonBuffer), remain_size, &(pShadow->inner_data.token_num), mqtt_client->device_info.product_id);
     rc = _check_snprintf_return(rc_of_snprintf, remain_size);
 
     if (rc != QCLOUD_RET_SUCCESS) {

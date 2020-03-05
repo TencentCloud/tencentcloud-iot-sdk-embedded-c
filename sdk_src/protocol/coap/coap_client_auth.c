@@ -106,11 +106,11 @@ int coap_client_auth(CoAPClient *pclient)
     int  len = get_coap_message_token(pclient, message_token);
     coap_message_token_set(&send_message, message_token, len);
 
-    len = MAX_SIZE_OF_PRODUCT_ID + strlen(iot_device_info_get()->device_name)
+    len = MAX_SIZE_OF_PRODUCT_ID + strlen(pclient->device_info.device_name)
           + strlen(COAP_AUTH_URI) + 4;
     char *auth_path = (char*)HAL_Malloc(len);
-    HAL_Snprintf(auth_path, len, "%s/%s/%s", iot_device_info_get()->product_id,
-                 iot_device_info_get()->device_name, COAP_AUTH_URI);
+    HAL_Snprintf(auth_path, len, "%s/%s/%s", pclient->device_info.product_id,
+                 pclient->device_info.device_name, COAP_AUTH_URI);
     coap_message_option_add(&send_message, COAP_MSG_URI_PATH, strlen(auth_path), auth_path);
     HAL_Free(auth_path);
 

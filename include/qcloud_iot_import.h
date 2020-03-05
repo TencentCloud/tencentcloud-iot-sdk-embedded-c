@@ -46,24 +46,26 @@ extern "C" {
  * Require porting when adapt SDK to new platform/OS
  *********************************************************************/
 
+
+typedef void (*ThreadRunFunc)(void *arg);
+
+typedef struct ThreadParams {
+    char            *thread_name;
+    uint32_t        thread_id;
+    ThreadRunFunc   thread_func;
+    void            *user_arg;
+    uint16_t        priority;
+    uint32_t        stack_size;
+} ThreadParams;
+
 /**
  * @brief Create a thread/task
  *
- * @param stack_size    thread stack size
- * @param priority      thread priority
- * @param taskname      task name
- * @param fn            thread runtime function callback
- * @param arg           thread function context
- * @return a valid thread handle when success, or NULL otherwise
+ * @param params    thread parameters
+ * @return 0 when success, or error code otherwise
  */
-void * HAL_ThreadCreate(uint16_t stack_size, int priority, char * taskname, void *(*fn)(void*), void* arg);
+int HAL_ThreadCreate(ThreadParams* params);
 
-/**
- * @brief Destroy a thread/task
- *
- * @return QCLOUD_RET_SUCCESS for success, or err code for failure
- */
-int HAL_ThreadDestroy(void *thread_t);
 
 /**
  * @brief create semaphore
@@ -211,6 +213,15 @@ int HAL_SetDevInfo(void *pdevInfo);
  */
 int HAL_GetDevInfo(void *pdevInfo);
 
+/**
+ * @brief Get device info from a JSON file
+ *
+ * @param file_name JSON file path
+ * @param pdevInfo reference to device info
+ * @return         QCLOUD_RET_SUCCESS for success, or err code for failure
+ */
+int HAL_GetDevInfoFromFile(const char *file_name, void *dev_info);
+
 #ifdef GATEWAY_ENABLED
 /**
  * @brief Get gateway device info from NVS(flash/files)
@@ -283,12 +294,13 @@ int HAL_Timer_remain(Timer *timer);
  */
 void HAL_Timer_init(Timer *timer);
 
+#define TIME_FORMAT_STR_LEN                                         (20)
 /**
- * @brief Get local time in format: %Y-%m-%d %z %H:%M:%S
+ * @brief Get local time in format: %y-%m-%d %H:%M:%S
  *
  * @return string of formatted time
  */
-char* HAL_Timer_current(void);
+char* HAL_Timer_current(char *time_str);
 
 /**
  * @brief Get timestamp in second

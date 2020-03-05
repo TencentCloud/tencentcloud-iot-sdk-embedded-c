@@ -40,7 +40,6 @@ extern "C" {
 #define  DYN_BUFF_DATA_MORE         (10)
 #define  BASE64_ENCODE_OUT_LEN(x)   (((x+3)*4)/3)
 #define  DYN_REG_RES_HTTP_TIMEOUT_MS  (2000)
-#define  FILE_PATH_MAX_LEN          (128)
 
 #ifdef AUTH_MODE_CERT
 #define  DYN_RESPONSE_BUFF_LEN      (5*1024)

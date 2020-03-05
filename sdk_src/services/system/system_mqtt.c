@@ -14,9 +14,6 @@
  */
 
 
-
-#include <string.h>
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -26,23 +23,13 @@ extern "C" {
 
 
 #ifdef SYSTEM_COMM
+#include <string.h>
 
 #include "qcloud_iot_export_system.h"
 #include "mqtt_client.h"
 #include "lite-utils.h"
 #include "qcloud_iot_device.h"
 
-typedef struct _sys_mqtt_state {
-    bool topic_sub_ok;
-    bool result_recv_ok;
-    long  time;
-} SysMQTTState;
-
-static SysMQTTState sg_state = {
-    .topic_sub_ok = false,
-    .result_recv_ok = false,
-    .time = 0
-};
 
 
 static void _system_mqtt_message_callback(void *pClient, MQTTMessage *message, void *pUserData)
@@ -109,7 +96,7 @@ static int _iot_system_info_get_publish(void *pClient)
     POINTER_SANITY_CHECK(pClient, QCLOUD_ERR_INVAL);
 
     Qcloud_IoT_Client   *mqtt_client = (Qcloud_IoT_Client *)pClient;
-    DeviceInfo          *dev_info = iot_device_info_get();
+    DeviceInfo          *dev_info = &mqtt_client->device_info;
     POINTER_SANITY_CHECK(dev_info, QCLOUD_ERR_INVAL);
 
     char topic_name[128] = {0};
@@ -130,8 +117,9 @@ static int _iot_system_info_result_subscribe(void *pClient)
 {
     POINTER_SANITY_CHECK(pClient, QCLOUD_ERR_INVAL);
 
-    DeviceInfo          *dev_info = iot_device_info_get();
-    POINTER_SANITY_CHECK(dev_info, QCLOUD_ERR_INVAL);
+    Qcloud_IoT_Client   *mqtt_client = (Qcloud_IoT_Client *)pClient;
+    DeviceInfo          *dev_info = &mqtt_client->device_info;
+    SysMQTTState *sys_state = &mqtt_client->sys_state;
 
     char topic_name[128] = {0};
     int size = HAL_Snprintf(topic_name, sizeof(topic_name), "$sys/operation/result/%s/%s", dev_info->product_id, dev_info->device_name);
@@ -142,7 +130,7 @@ static int _iot_system_info_result_subscribe(void *pClient)
     SubscribeParams sub_params = DEFAULT_SUB_PARAMS;
     sub_params.on_message_handler = _system_mqtt_message_callback;
     sub_params.on_sub_event_handler = _system_mqtt_sub_event_handler;
-    sub_params.user_data = (void *)&sg_state;
+    sub_params.user_data = (void *)sys_state;
     sub_params.qos = QOS0;
 
     return IOT_MQTT_Subscribe(pClient, topic_name, &sub_params);
@@ -157,9 +145,10 @@ int IOT_Get_SysTime(void* pClient, long *time)
     POINTER_SANITY_CHECK(pClient, QCLOUD_ERR_INVAL);
     Qcloud_IoT_Client   *mqtt_client = (Qcloud_IoT_Client *)pClient;
 
+    SysMQTTState *sys_state = &mqtt_client->sys_state;
     // subscribe sys topic: $sys/operation/get/${productid}/${devicename}
     // skip this if the subscription is done and valid
-    if (!sg_state.topic_sub_ok) {
+    if (!sys_state->topic_sub_ok) {
         for (cntSub = 0; cntSub < 3; cntSub++) {
             ret = _iot_system_info_result_subscribe(mqtt_client);
             if (ret < 0) {
@@ -168,20 +157,20 @@ int IOT_Get_SysTime(void* pClient, long *time)
             }
 
             /* wait for sub ack */
-            ret = qcloud_iot_mqtt_yield((Qcloud_IoT_Client *)pClient, 100);
-            if (sg_state.topic_sub_ok) {
+            ret = qcloud_iot_mqtt_yield_mt((Qcloud_IoT_Client *)pClient, 100);
+            if (sys_state->topic_sub_ok) {
                 break;
             }
         }
     }
 
     // return failure if subscribe failed
-    if (!sg_state.topic_sub_ok) {
+    if (!sys_state->topic_sub_ok) {
         Log_e("Subscribe sys topic failed!");
         return QCLOUD_ERR_FAILURE;
     }
 
-    sg_state.result_recv_ok = false;
+    sys_state->result_recv_ok = false;
     // publish msg to get system timestamp
     ret = _iot_system_info_get_publish(mqtt_client);
     if (ret < 0) {
@@ -190,13 +179,13 @@ int IOT_Get_SysTime(void* pClient, long *time)
     }
 
     do {
-        ret = qcloud_iot_mqtt_yield((Qcloud_IoT_Client *)pClient, 100);
+        ret = qcloud_iot_mqtt_yield_mt((Qcloud_IoT_Client *)pClient, 100);
         cntRev++;
-    } while (!sg_state.result_recv_ok && cntRev < 20);
+    } while (!sys_state->result_recv_ok && cntRev < 20);
 
 
-    if (sg_state.result_recv_ok) {
-        *time = sg_state.time;
+    if (sys_state->result_recv_ok) {
+        *time = sys_state->time;
         ret = QCLOUD_RET_SUCCESS;
     } else {
         *time = 0;

@@ -22,11 +22,6 @@
 #include "utils_getopt.h"
 #include "qcloud_iot_export.h"
 
-#ifdef AUTH_MODE_CERT
-static char sg_cert_file[PATH_MAX + 1];      // full path of device cert file
-static char sg_key_file[PATH_MAX + 1];       // full path of device key file
-#endif
-
 
 void _event_handler(void *client, void *context, MQTTEventMsg *msg)
 {
@@ -112,8 +107,8 @@ static int _setup_gw_init_params(GatewayInitParam* gw_init_params, GatewayDevice
     init_params->device_name = dev_info->device_name;
 
 #ifdef AUTH_MODE_CERT
-    char certs_dir[PATH_MAX + 1] = "certs";
-    char current_path[PATH_MAX + 1];
+    char certs_dir[16] = "certs";
+    char current_path[128];
     char *cwd = getcwd(current_path, sizeof(current_path));
 
     if (cwd == NULL) {
@@ -122,15 +117,12 @@ static int _setup_gw_init_params(GatewayInitParam* gw_init_params, GatewayDevice
     }
 
 #ifdef WIN32
-    sprintf(sg_cert_file, "%s\\%s\\%s", current_path, certs_dir, dev_info->ev_cert_file_name);
-    sprintf(sg_key_file, "%s\\%s\\%s", current_path, certs_dir, dev_info->dev_key_file_name);
+    HAL_Snprintf(init_params->cert_file, FILE_PATH_MAX_LEN, "%s\\%s\\%s", current_path, certs_dir, dev_info->dev_cert_file_name);
+    HAL_Snprintf(init_params->key_file, FILE_PATH_MAX_LEN, "%s\\%s\\%s", current_path, certs_dir, dev_info->dev_key_file_name);
 #else
-    sprintf(sg_cert_file, "%s/%s/%s", current_path, certs_dir, dev_info->dev_cert_file_name);
-    sprintf(sg_key_file, "%s/%s/%s", current_path, certs_dir, dev_info->dev_key_file_name);
+    HAL_Snprintf(init_params->cert_file, FILE_PATH_MAX_LEN, "%s/%s/%s", current_path, certs_dir, dev_info->dev_cert_file_name);
+    HAL_Snprintf(init_params->key_file, FILE_PATH_MAX_LEN, "%s/%s/%s", current_path, certs_dir, dev_info->dev_key_file_name);
 #endif
-
-    init_params->cert_file = sg_cert_file;
-    init_params->key_file = sg_key_file;
 
 #else
     init_params->device_secret = dev_info->device_secret;

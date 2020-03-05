@@ -569,7 +569,7 @@ static int at_recv_readline(at_client_t client)
 
 
 #ifdef AT_OS_USED
-static void *client_parser(void *userContex)
+static void client_parser(void *userContex)
 {
     int resp_buf_len = 0;
     const at_urc *urc;
@@ -642,7 +642,6 @@ static void *client_parser(void *userContex)
         }
 
     }
-    return NULL;
 }
 #else
 void at_client_yeild(at_urc *expect_urc, uint32_t timeout)
@@ -822,26 +821,25 @@ int at_client_init(at_client_t *pClient)
         client->status = AT_STATUS_INITIALIZED;
         *pClient = client;
 
-#ifdef AT_OS_USED
+#if defined(AT_OS_USED) && defined(MULTITHREAD_ENABLED)
         //  create thread for at parser
         if (NULL != client->parser) {
 #define AT_PARSER_THREAD_STACK      6144
 #define AT_PARSER_THREAD_PRIORITY   0
+            ThreadParams thread_params = {0};
+            thread_params.thread_func = client->parser;
+            thread_params.thread_name = "at_client_parser";
+            thread_params.user_arg = client;
+            thread_params.stack_size = AT_PARSER_THREAD_STACK;
+            thread_params.priority = AT_PARSER_THREAD_PRIORITY;
 
-            client->thread_t = HAL_ThreadCreate(
-                                   AT_PARSER_THREAD_STACK, \
-                                   AT_PARSER_THREAD_PRIORITY,
-                                   "at_client_parser",
-                                   client->parser, \
-                                   client);
-
-            result = client->thread_t ?  QCLOUD_RET_SUCCESS : QCLOUD_ERR_FAILURE;
+            result =  HAL_ThreadCreate(&thread_params);
             if (QCLOUD_RET_SUCCESS == result) {
                 Log_d("create at_parser thread success!");
             } else {
-                Log_d("create at_parser thread fail!");
+                Log_e("create at_parser thread fail!");
             }
-
+            
 #undef  AT_PARSER_THREAD_STACK
 #undef  AT_PARSER_THREAD_PRIORITY
         }

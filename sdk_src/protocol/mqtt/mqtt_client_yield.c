@@ -284,6 +284,23 @@ int qcloud_iot_mqtt_yield(Qcloud_IoT_Client *pClient, uint32_t timeout_ms)
     IOT_FUNC_EXIT_RC(rc);
 }
 
+// workaround wrapper for qcloud_iot_mqtt_yield for multi-thread mode
+int qcloud_iot_mqtt_yield_mt(Qcloud_IoT_Client *mqtt_client, uint32_t timeout_ms)
+{
+    POINTER_SANITY_CHECK(mqtt_client, QCLOUD_ERR_INVAL);
+    NUMBERIC_SANITY_CHECK(timeout_ms, QCLOUD_ERR_INVAL);
+    
+#ifdef MULTITHREAD_ENABLED
+    /* only one instance of yield is allowed in running state*/
+    if (mqtt_client->thread_running) {
+        HAL_SleepMs(timeout_ms);
+        return QCLOUD_RET_SUCCESS;
+    }
+#endif
+    
+    return qcloud_iot_mqtt_yield(mqtt_client, timeout_ms);
+}
+
 /**
  * @brief puback waiting timeout process
  *

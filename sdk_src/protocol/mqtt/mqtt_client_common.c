@@ -144,7 +144,7 @@ size_t get_mqtt_packet_len(size_t rem_len)
  * @param value the decoded length returned
  * @return the number of bytes read from the socket
  */
-static int _decode_packet_rem_len_from_buf_read(uint32_t (*getcharfn)(unsigned char *, uint32_t), uint32_t *value,
+static int _decode_packet_rem_len_from_buf_read(unsigned char *bufptr, uint32_t *value,
         uint32_t *readBytesLen)
 {
     IOT_FUNC_ENTRY;
@@ -158,11 +158,7 @@ static int _decode_packet_rem_len_from_buf_read(uint32_t (*getcharfn)(unsigned c
             /* bad data */
             IOT_FUNC_EXIT_RC(QCLOUD_ERR_MQTT_PACKET_READ);
         }
-        uint32_t getLen = 0;
-        getLen = (*getcharfn)(&c, 1);
-        if (1 != getLen) {
-            IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
-        }
+        c = *bufptr++;
         *value += (c & 127) * multiplier;
         multiplier *= 128;
     } while ((c & 128) != 0);
@@ -172,22 +168,10 @@ static int _decode_packet_rem_len_from_buf_read(uint32_t (*getcharfn)(unsigned c
     IOT_FUNC_EXIT_RC(QCLOUD_RET_SUCCESS);
 }
 
-static unsigned char *bufptr;
-uint32_t bufchar(unsigned char *c, uint32_t count)
-{
-    uint32_t i;
-
-    for (i = 0; i < count; ++i) {
-        *c = *bufptr++;
-    }
-
-    return count;
-}
 
 int mqtt_read_packet_rem_len_form_buf(unsigned char *buf, uint32_t *value, uint32_t *readBytesLen)
 {
-    bufptr = buf;
-    return _decode_packet_rem_len_from_buf_read(bufchar, value, readBytesLen);
+    return _decode_packet_rem_len_from_buf_read(buf, value, readBytesLen);
 }
 
 /**
@@ -1126,39 +1110,35 @@ static int _handle_unsuback_packet(Qcloud_IoT_Client *pClient, Timer *timer)
 
 #ifdef MQTT_RMDUP_MSG_ENABLED
 
-#define MQTT_MAX_REPEAT_BUF_LEN 50
-static uint16_t sg_repeat_packet_id_buf[MQTT_MAX_REPEAT_BUF_LEN];
-
-
-static int _get_packet_id_in_repeat_buf(uint16_t packet_id)
+static int _get_packet_id_in_repeat_buf(Qcloud_IoT_Client *pClient, uint16_t packet_id)
 {
     int i;
     for (i = 0; i < MQTT_MAX_REPEAT_BUF_LEN; ++i) {
-        if (packet_id == sg_repeat_packet_id_buf[i]) {
+        if (packet_id == pClient->repeat_packet_id_buf[i]) {
             return packet_id;
         }
     }
     return -1;
 }
 
-static void _add_packet_id_to_repeat_buf(uint16_t packet_id)
+static void _add_packet_id_to_repeat_buf(Qcloud_IoT_Client *pClient, uint16_t packet_id)
 {
-    static unsigned int current_packet_id_cnt = 0;
-    if (_get_packet_id_in_repeat_buf(packet_id) > 0)
+    if (_get_packet_id_in_repeat_buf(pClient, packet_id) > 0)
         return;
 
-    sg_repeat_packet_id_buf[current_packet_id_cnt++] = packet_id;
+    pClient->repeat_packet_id_buf[pClient->current_packet_id_cnt++] = packet_id;
 
-    if (current_packet_id_cnt >= MQTT_MAX_REPEAT_BUF_LEN)
-        current_packet_id_cnt = current_packet_id_cnt % 50;
+    if (pClient->current_packet_id_cnt >= MQTT_MAX_REPEAT_BUF_LEN)
+        pClient->current_packet_id_cnt %= MQTT_MAX_REPEAT_BUF_LEN;
 }
 
-void reset_repeat_packet_id_buffer(void)
+void reset_repeat_packet_id_buffer(Qcloud_IoT_Client *pClient)
 {
     int i;
     for (i = 0; i < MQTT_MAX_REPEAT_BUF_LEN; ++i) {
-        sg_repeat_packet_id_buf[i] = 0;
+        pClient->repeat_packet_id_buf[i] = 0;
     }
+    pClient->current_packet_id_cnt = 0;
 }
 
 #endif
@@ -1199,7 +1179,7 @@ static int _handle_publish_packet(Qcloud_IoT_Client *pClient, Timer *timer)
     } else {
 #ifdef MQTT_RMDUP_MSG_ENABLED
         // check if packet_id has been received before
-        int repeat_id = _get_packet_id_in_repeat_buf(msg.id);
+        int repeat_id = _get_packet_id_in_repeat_buf(pClient, msg.id);
 
         // deliver to msg callback
         if (repeat_id < 0) {
@@ -1209,7 +1189,7 @@ static int _handle_publish_packet(Qcloud_IoT_Client *pClient, Timer *timer)
                 IOT_FUNC_EXIT_RC(rc);
 #ifdef MQTT_RMDUP_MSG_ENABLED
         }
-        _add_packet_id_to_repeat_buf(msg.id);
+        _add_packet_id_to_repeat_buf(pClient, msg.id);
 #endif
     }
 

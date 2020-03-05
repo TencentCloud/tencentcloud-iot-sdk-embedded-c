@@ -48,10 +48,6 @@ typedef struct {
 
 
 
-static char cloud_rcv_buf[CLOUD_IOT_JSON_RX_BUF_LEN];
-
-bool discard_old_delta_flag = true;
-
 typedef void (*TraverseHandle)(Qcloud_IoT_Shadow *pShadow, ListNode **node, List *list, const char *pClientToken, const char *pType);
 
 static void _on_operation_result_handler(void *pClient, MQTTMessage *message, void *pUserdata);
@@ -174,10 +170,13 @@ int subscribe_operation_result_to_cloud(Qcloud_IoT_Shadow *pShadow)
         if (operation_result_topic == NULL) IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
 
         memset(operation_result_topic, 0x0, MAX_SIZE_OF_CLOUD_TOPIC);
+        Qcloud_IoT_Client *mqtt_client = (Qcloud_IoT_Client *)pShadow->mqtt;
         if (eTEMPLATE == pShadow->shadow_type) {
-            size = HAL_Snprintf(operation_result_topic, MAX_SIZE_OF_CLOUD_TOPIC, "$template/operation/result/%s/%s", iot_device_info_get()->product_id, iot_device_info_get()->device_name);
+            size = HAL_Snprintf(operation_result_topic, MAX_SIZE_OF_CLOUD_TOPIC, "$template/operation/result/%s/%s",
+                                mqtt_client->device_info.product_id, mqtt_client->device_info.device_name);
         } else {
-            size = HAL_Snprintf(operation_result_topic, MAX_SIZE_OF_CLOUD_TOPIC, "$shadow/operation/result/%s/%s", iot_device_info_get()->product_id, iot_device_info_get()->device_name);
+            size = HAL_Snprintf(operation_result_topic, MAX_SIZE_OF_CLOUD_TOPIC, "$shadow/operation/result/%s/%s",
+                                mqtt_client->device_info.product_id, mqtt_client->device_info.device_name);
         }
         if (size < 0 || size > MAX_SIZE_OF_CLOUD_TOPIC - 1) {
             Log_e("buf size < topic length!");
@@ -215,10 +214,13 @@ static int _publish_operation_to_cloud(Qcloud_IoT_Shadow *pShadow, Method method
     char topic[MAX_SIZE_OF_CLOUD_TOPIC] = {0};
     int size;
 
+    Qcloud_IoT_Client *mqtt_client = (Qcloud_IoT_Client *)pShadow->mqtt;
     if (eTEMPLATE == pShadow->shadow_type) {
-        size = HAL_Snprintf(topic, MAX_SIZE_OF_CLOUD_TOPIC, "$template/operation/%s/%s", iot_device_info_get()->product_id, iot_device_info_get()->device_name);
+        size = HAL_Snprintf(topic, MAX_SIZE_OF_CLOUD_TOPIC, "$template/operation/%s/%s",
+                            mqtt_client->device_info.product_id, mqtt_client->device_info.device_name);
     } else {
-        size = HAL_Snprintf(topic, MAX_SIZE_OF_CLOUD_TOPIC, "$shadow/operation/%s/%s", iot_device_info_get()->product_id, iot_device_info_get()->device_name);
+        size = HAL_Snprintf(topic, MAX_SIZE_OF_CLOUD_TOPIC, "$shadow/operation/%s/%s",
+                            mqtt_client->device_info.product_id, mqtt_client->device_info.device_name);
     }
 
     if (size < 0 || size > MAX_SIZE_OF_CLOUD_TOPIC - 1) {
@@ -264,25 +266,25 @@ static void _on_operation_result_handler(void *pClient, MQTTMessage *message, vo
     }
 
     int cloud_rcv_len = Min(CLOUD_IOT_JSON_RX_BUF_LEN - 1, message->payload_len);
-    memcpy(cloud_rcv_buf, message->payload, cloud_rcv_len + 1);
-    cloud_rcv_buf[cloud_rcv_len] = '\0';    // jsmn_parse relies on a string
-
-    if (!parse_shadow_operation_type(cloud_rcv_buf, &type_str)) {
+    memcpy(shadow_client->shadow_recv_buf, message->payload, cloud_rcv_len + 1);
+    shadow_client->shadow_recv_buf[cloud_rcv_len] = '\0';    // jsmn_parse relies on a string
+    if (!parse_shadow_operation_type(shadow_client->shadow_recv_buf, &type_str)) {
         Log_e("Fail to parse type!");
         goto End;
     }
-    Log_d("type:%s", type_str);
+    Log_d("type: %s", type_str);
+
     // non-delta msg push is triggered by device side, parse client token first
-    if (strcmp(type_str, OPERATION_DELTA) && !parse_client_token(cloud_rcv_buf, &client_token)) {
-        Log_e("Fail to parse client token! Json=%s", cloud_rcv_buf);
+    if (strcmp(type_str, OPERATION_DELTA) && !parse_client_token(shadow_client->shadow_recv_buf, &client_token)) {
+        Log_e("Fail to parse client token! Json=%s", shadow_client->shadow_recv_buf);
         goto End;
     }
 
     if (!strcmp(type_str, OPERATION_DELTA)) {
         HAL_MutexLock(shadow_client->mutex);
         char* delta_str = NULL;
-        if (parse_shadow_operation_delta(cloud_rcv_buf, &delta_str)) {
-            Log_d("dlta:%s", delta_str);
+        if (parse_shadow_operation_delta(shadow_client->shadow_recv_buf, &delta_str)) {
+            Log_d("delta string: %s", delta_str);
             _handle_delta(shadow_client, delta_str);
             HAL_Free(delta_str);
         }
@@ -408,8 +410,10 @@ static int _unsubscribe_operation_result_to_cloud(void* pClient)
     IOT_FUNC_ENTRY;
     int rc = QCLOUD_RET_SUCCESS;
 
+    Qcloud_IoT_Client *mqtt_client = (Qcloud_IoT_Client *)pClient;
     char operation_result_topic[MAX_SIZE_OF_CLOUD_TOPIC] = {0};
-    int size = HAL_Snprintf(operation_result_topic, MAX_SIZE_OF_CLOUD_TOPIC, "$shadow/operation/result/%s/%s", iot_device_info_get()->product_id, iot_device_info_get()->device_name);
+    int size = HAL_Snprintf(operation_result_topic, MAX_SIZE_OF_CLOUD_TOPIC, "$shadow/operation/result/%s/%s",
+                            mqtt_client->device_info.product_id, mqtt_client->device_info.device_name);
 
     if (size < 0 || size > MAX_SIZE_OF_CLOUD_TOPIC - 1) {
         Log_e("buf size < topic length!");
@@ -520,7 +524,7 @@ static void _handle_request_callback(Qcloud_IoT_Shadow *pShadow, ListNode **node
         // result = 0 for success, result != 0 for fail
         int16_t result_code = 0;
 
-        bool parse_success = parse_shadow_operation_result_code(cloud_rcv_buf, &result_code);
+        bool parse_success = parse_shadow_operation_result_code(pShadow->shadow_recv_buf, &result_code);
         if (parse_success) {
             if (result_code == 0) {
                 status = ACK_ACCEPTED;
@@ -531,14 +535,14 @@ static void _handle_request_callback(Qcloud_IoT_Shadow *pShadow, ListNode **node
             if ((strcmp(pType, "get") == 0 && status == ACK_ACCEPTED) ||
                 (strcmp(pType, "update") && status == ACK_REJECTED)) {
                 char* delta_str = NULL;
-                if (parse_shadow_operation_get(cloud_rcv_buf, &delta_str)) {
+                if (parse_shadow_operation_get(pShadow->shadow_recv_buf, &delta_str)) {
                     _handle_delta(pShadow, delta_str);
                     HAL_Free(delta_str);
                 }
             }
 
             if (request->callback != NULL) {
-                request->callback(pShadow, request->method, status, cloud_rcv_buf, request->user_context);
+                request->callback(pShadow, request->method, status, pShadow->shadow_recv_buf, request->user_context);
             }
         } else {
             Log_e("parse shadow operation result code failed.");
@@ -563,7 +567,7 @@ static void _handle_expired_request_callback(Qcloud_IoT_Shadow *pShadow, ListNod
 
     if (expired(&request->timer)) {
         if (request->callback != NULL) {
-            request->callback(pShadow, request->method, ACK_TIMEOUT, cloud_rcv_buf, request->user_context);
+            request->callback(pShadow, request->method, ACK_TIMEOUT, pShadow->shadow_recv_buf, request->user_context);
         }
 
         list_remove(list, *node);

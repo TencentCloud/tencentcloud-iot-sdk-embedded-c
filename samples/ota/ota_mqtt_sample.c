@@ -32,12 +32,6 @@
 #define OTA_BUF_LEN                 5000
 #define FW_INFO_FILE_DATA_LEN       128
 
-#ifdef AUTH_MODE_CERT
-static char sg_cert_file[PATH_MAX + 1];      // full path of device cert file
-static char sg_key_file[PATH_MAX + 1];       // full path of device key file
-#endif
-
-static DeviceInfo sg_device_info = {0};
 
 typedef struct OTAContextData {
     void            *ota_handle;
@@ -117,8 +111,8 @@ static int _setup_connect_init_params(MQTTInitParams* initParams, void *ota_ctx,
     initParams->device_name = device_info->device_name;
 
 #ifdef AUTH_MODE_CERT
-    char certs_dir[PATH_MAX + 1] = "certs";
-    char current_path[PATH_MAX + 1];
+    char certs_dir[16] = "certs";
+    char current_path[128];
     char *cwd = getcwd(current_path, sizeof(current_path));
 
     if (cwd == NULL) {
@@ -127,15 +121,12 @@ static int _setup_connect_init_params(MQTTInitParams* initParams, void *ota_ctx,
     }
 
 #ifdef WIN32
-    sprintf(sg_cert_file, "%s\\%s\\%s", current_path, certs_dir, device_info->ev_cert_file_name);
-    sprintf(sg_key_file, "%s\\%s\\%s", current_path, certs_dir, device_info->dev_key_file_name);
+    HAL_Snprintf(initParams->cert_file, FILE_PATH_MAX_LEN, "%s\\%s\\%s", current_path, certs_dir, device_info->dev_cert_file_name);
+    HAL_Snprintf(initParams->key_file, FILE_PATH_MAX_LEN, "%s\\%s\\%s", current_path, certs_dir, device_info->dev_key_file_name);
 #else
-    sprintf(sg_cert_file, "%s/%s/%s", current_path, certs_dir, device_info->dev_cert_file_name);
-    sprintf(sg_key_file, "%s/%s/%s", current_path, certs_dir, device_info->dev_key_file_name);
+    HAL_Snprintf(initParams->cert_file, FILE_PATH_MAX_LEN, "%s/%s/%s", current_path, certs_dir, device_info->dev_cert_file_name);
+    HAL_Snprintf(initParams->key_file, FILE_PATH_MAX_LEN, "%s/%s/%s", current_path, certs_dir, device_info->dev_key_file_name);
 #endif
-
-    initParams->cert_file = sg_cert_file;
-    initParams->key_file = sg_key_file;
 
 #else
     initParams->device_secret = device_info->device_secret;
@@ -403,8 +394,9 @@ bool process_ota(OTAContextData *ota_ctx)
             IOT_OTA_Ioctl(h_ota, IOT_OTAG_FILE_SIZE, &ota_ctx->fw_file_size, 4);
             IOT_OTA_Ioctl(h_ota, IOT_OTAG_VERSION, ota_ctx->remote_version, FW_VERSION_MAX_LEN);
         
-            HAL_Snprintf(ota_ctx->fw_file_path, FW_FILE_PATH_MAX_LEN, "./FW_%s%s_%s.bin", sg_device_info.product_id, sg_device_info.device_name, ota_ctx->remote_version);
-            HAL_Snprintf(ota_ctx->fw_info_file_path, FW_FILE_PATH_MAX_LEN, "./FW_%s%s.json", sg_device_info.product_id, sg_device_info.device_name);
+            DeviceInfo *device_info = IOT_MQTT_GetDeviceInfo(ota_ctx->mqtt_client);
+            HAL_Snprintf(ota_ctx->fw_file_path, FW_FILE_PATH_MAX_LEN, "./FW_%s_%s.bin", device_info->client_id, ota_ctx->remote_version);
+            HAL_Snprintf(ota_ctx->fw_info_file_path, FW_FILE_PATH_MAX_LEN, "./FW_%s.json", device_info->client_id);
 
             /* check if pre-downloading finished or not */
             /* if local FW downloaded size (ota_ctx->downloaded_size) is not zero, it will do resuming download */
@@ -503,7 +495,8 @@ int main(int argc, char **argv)
     }
     memset(ota_ctx, 0, sizeof(OTAContextData));
 
-    rc = HAL_GetDevInfo((void *)&sg_device_info);
+    DeviceInfo device_info = {0};
+    rc = HAL_GetDevInfo((void *)&device_info);
     if (QCLOUD_RET_SUCCESS != rc) {
         Log_e("get device info failed: %d", rc);
         goto exit;
@@ -511,7 +504,7 @@ int main(int argc, char **argv)
     
     // setup MQTT init params
     MQTTInitParams init_params = DEFAULT_MQTTINIT_PARAMS;
-    rc = _setup_connect_init_params(&init_params, ota_ctx, &sg_device_info);
+    rc = _setup_connect_init_params(&init_params, ota_ctx, &device_info);
     if (rc != QCLOUD_RET_SUCCESS) {
         Log_e("init params err,rc=%d", rc);
         return rc;
@@ -527,7 +520,7 @@ int main(int argc, char **argv)
     }
 
     // init OTA handle
-    h_ota = IOT_OTA_Init(sg_device_info.product_id, sg_device_info.device_name, mqtt_client);
+    h_ota = IOT_OTA_Init(device_info.product_id, device_info.device_name, mqtt_client);
     if (NULL == h_ota) {
         Log_e("initialize OTA failed");
         goto exit;

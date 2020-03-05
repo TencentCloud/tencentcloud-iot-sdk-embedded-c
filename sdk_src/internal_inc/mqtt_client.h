@@ -26,6 +26,8 @@ extern "C" {
 
 #include "qcloud_iot_export.h"
 #include "qcloud_iot_import.h"
+#include "qcloud_iot_common.h"
+
 #include "utils_param_check.h"
 
 #include "mqtt_client_net.h"
@@ -60,6 +62,7 @@ extern "C" {
 /* minimal TLS handshaking timeout value (unit: ms) */
 #define QCLOUD_IOT_TLS_HANDSHAKE_TIMEOUT                            (5 * 1000)
 
+#define MQTT_RMDUP_MSG_ENABLED
 
 /**
  * @brief MQTT Message Type
@@ -167,6 +170,16 @@ typedef struct SubTopicHandle {
 } SubTopicHandle;
 
 /**
+ * @brief data structure for system time service
+ */
+typedef struct _sys_mqtt_state {
+    bool topic_sub_ok;
+    bool result_recv_ok;
+    long  time;
+} SysMQTTState;
+
+
+/**
  * @brief MQTT QCloud IoT Client structure
  */
 typedef struct Client {
@@ -204,6 +217,32 @@ typedef struct Client {
     Timer                    reconnect_delay_timer;                         // MQTT reconnect delay timer
 
     SubTopicHandle           sub_handles[MAX_MESSAGE_HANDLERS];             // subscription handle array
+
+    DeviceInfo               device_info;
+
+    char                     host_addr[HOST_STR_LENGTH];
+
+#ifdef AUTH_MODE_CERT
+    char                     cert_file_path[FILE_PATH_MAX_LEN];      // full path of device cert file
+    char                     key_file_path[FILE_PATH_MAX_LEN];       // full path of device key file
+#else
+    unsigned char            psk_decode[DECODE_PSK_LENGTH];
+#endif
+
+#ifdef MQTT_RMDUP_MSG_ENABLED
+#define MQTT_MAX_REPEAT_BUF_LEN 10
+    uint16_t                 repeat_packet_id_buf[MQTT_MAX_REPEAT_BUF_LEN];
+    unsigned int             current_packet_id_cnt;
+#endif
+
+#ifdef SYSTEM_COMM
+    SysMQTTState             sys_state;
+#endif
+
+#ifdef MULTITHREAD_ENABLED
+    bool                     thread_running;
+    int                      thread_exit_code;
+#endif
 
 } Qcloud_IoT_Client;
 
@@ -347,6 +386,9 @@ bool qcloud_iot_mqtt_is_sub_ready(Qcloud_IoT_Client *pClient, char *topicFilter)
  * @return QCLOUD_RET_SUCCESS when success, QCLOUD_ERR_MQTT_ATTEMPTING_RECONNECT when try reconnecing, or err code for failure
  */
 int qcloud_iot_mqtt_yield(Qcloud_IoT_Client *pClient, uint32_t timeout_ms);
+
+// workaround wrapper for qcloud_iot_mqtt_yield for multi-thread mode
+int qcloud_iot_mqtt_yield_mt(Qcloud_IoT_Client *mqtt_client, uint32_t timeout_ms);
 
 /**
  * @brief Check if auto reconnect is enabled or not
@@ -495,7 +537,7 @@ int deserialize_ack_packet(uint8_t *packet_type, uint8_t *dup, uint16_t *packet_
 
 #ifdef MQTT_RMDUP_MSG_ENABLED
 
-void reset_repeat_packet_id_buffer(void);
+void reset_repeat_packet_id_buffer(Qcloud_IoT_Client *pClient);
 
 #endif
 

@@ -64,10 +64,11 @@ typedef struct _GatewayData {
 /* The structure of gateway context */
 typedef struct _Gateway {
     void                            *mqtt;
-    SubdevSession           *session_list;
+    SubdevSession                   *session_list;
     GatewayData                     gateway_data;
-    MQTTEventHandler        event_handle;
+    MQTTEventHandler                event_handle;
     int                             is_construct;
+    char                            recv_buf[GATEWAY_RECEIVE_BUFFER_LEN];
 } Gateway;
 
 

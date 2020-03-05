@@ -19,30 +19,11 @@
 #include <string.h>
 #include "qcloud_iot_export.h"
 
-#ifdef AUTH_MODE_CERT
-static char sg_cert_file[PATH_MAX + 1];      // full path of device cert file
-static char sg_key_file[PATH_MAX + 1];       // full path of device key file
-#endif
-
-
-static DeviceInfo sg_devInfo;
-
-static char sg_shadow_update_buffer[200];
-size_t sg_shadow_update_buffersize = sizeof(sg_shadow_update_buffer) / sizeof(sg_shadow_update_buffer[0]);
-
-static DeviceProperty sg_shadow_property;
-static int sg_current_update_count = 0;
-static bool sg_delta_arrived = false;
 
 void OnDeltaCallback(void *pClient, const char *pJsonValueBuffer, uint32_t valueLength, DeviceProperty *pProperty)
 {
-    int rc = IOT_Shadow_JSON_ConstructDesireAllNull(pClient, sg_shadow_update_buffer, sg_shadow_update_buffersize);
-
-    if (rc == QCLOUD_RET_SUCCESS) {
-        sg_delta_arrived = true;
-    } else {
-        Log_e("construct desire failed, err: %d", rc);
-    }
+    Log_i(">>>>> Delta str: %s", pJsonValueBuffer);
+    pProperty->delta_arrived = true;
 }
 
 void OnShadowUpdateCallback(void *pClient, Method method, RequestAck requestAck, const char *pJsonDocument, void *pUserdata)
@@ -50,33 +31,51 @@ void OnShadowUpdateCallback(void *pClient, Method method, RequestAck requestAck,
     Log_i("recv shadow update response, response ack: %d", requestAck);
 }
 
-static int _setup_connect_init_params(ShadowInitParams* initParams)
+static int _report_desire_null(void *handle, char *jsonBuffer, size_t sizeOfBuffer)
 {
-    int ret;
+    /* device data updated, desire should be set null */
+    int rc = IOT_Shadow_JSON_ConstructDesireAllNull(handle, jsonBuffer, sizeOfBuffer);
+    if (rc == QCLOUD_RET_SUCCESS) {
+        rc = IOT_Shadow_Update(handle, jsonBuffer, sizeOfBuffer, 
+            OnShadowUpdateCallback, "desire_null", QCLOUD_IOT_MQTT_COMMAND_TIMEOUT);
+        if (rc == QCLOUD_RET_SUCCESS) {
+            Log_d("shadow update(desired) success");
+        } else {
+            Log_e("shadow update(desired) failed, err: %d", rc);
+        }
 
-    ret = HAL_GetDevInfo((void *)&sg_devInfo);
-    if (QCLOUD_RET_SUCCESS != ret) {
-        return ret;
+    } else {
+        Log_e("construct desire failed, err: %d", rc);
     }
 
-    initParams->device_name = sg_devInfo.device_name;
-    initParams->product_id = sg_devInfo.product_id;
+    return rc;
+}
+
+static int _setup_connect_init_params(ShadowInitParams* initParams, DeviceInfo *dev_info)
+{
+    initParams->device_name = dev_info->device_name;
+    initParams->product_id = dev_info->product_id;
 
 #ifdef AUTH_MODE_CERT
-    char certs_dir[PATH_MAX + 1] = "certs";
-    char current_path[PATH_MAX + 1];
+    char certs_dir[16] = "certs";
+    char current_path[128];
     char *cwd = getcwd(current_path, sizeof(current_path));
+
     if (cwd == NULL) {
         Log_e("getcwd return NULL");
         return QCLOUD_ERR_FAILURE;
     }
-    sprintf(sg_cert_file, "%s/%s/%s", current_path, certs_dir, sg_devInfo.dev_cert_file_name);
-    sprintf(sg_key_file, "%s/%s/%s", current_path, certs_dir, sg_devInfo.dev_key_file_name);
 
-    initParams->cert_file = sg_cert_file;
-    initParams->key_file = sg_key_file;
+#ifdef WIN32
+    HAL_Snprintf(initParams->cert_file, FILE_PATH_MAX_LEN, "%s\\%s\\%s", current_path, certs_dir, dev_info->dev_cert_file_name);
+    HAL_Snprintf(initParams->key_file, FILE_PATH_MAX_LEN, "%s\\%s\\%s", current_path, certs_dir, dev_info->dev_key_file_name);
 #else
-    initParams->device_secret = sg_devInfo.device_secret;
+    HAL_Snprintf(initParams->cert_file, FILE_PATH_MAX_LEN, "%s/%s/%s", current_path, certs_dir, dev_info->dev_cert_file_name);
+    HAL_Snprintf(initParams->key_file, FILE_PATH_MAX_LEN, "%s/%s/%s", current_path, certs_dir, dev_info->dev_key_file_name);
+#endif
+
+#else
+    initParams->device_secret = dev_info->device_secret;
 #endif
 
     initParams->command_timeout = QCLOUD_IOT_MQTT_COMMAND_TIMEOUT;
@@ -93,9 +92,22 @@ int demo_device_shadow()
 
     void* shadow_client = NULL;
 
+    char shadow_json_buffer[200];
+    size_t shadow_json_buf_size = sizeof(shadow_json_buffer) / sizeof(shadow_json_buffer[0]);
+
+    DeviceProperty shadow_property;
+    int current_update_count = 0;
+
+    DeviceInfo device_info = {0};
+    rc = HAL_GetDevInfo((void *)&device_info);
+    if (QCLOUD_RET_SUCCESS != rc) {
+        Log_e("get device info failed: %d", rc);
+        return rc;
+    }
+    
     //init connection
     ShadowInitParams init_params = DEFAULT_SHAWDOW_INIT_PARAMS;
-    rc = _setup_connect_init_params(&init_params);
+    rc = _setup_connect_init_params(&init_params, &device_info);
     if (rc != QCLOUD_RET_SUCCESS) {
         Log_e("init params err,rc=%d", rc);
         return rc;
@@ -108,10 +120,10 @@ int demo_device_shadow()
     }
 
     // register delta property
-    sg_shadow_property.key = "updateCount";
-    sg_shadow_property.data = &sg_current_update_count;
-    sg_shadow_property.type = JINT32;
-    rc = IOT_Shadow_Register_Property(shadow_client, &sg_shadow_property, OnDeltaCallback);
+    shadow_property.key = "updateCount";
+    shadow_property.data = &current_update_count;
+    shadow_property.type = JINT32;
+    rc = IOT_Shadow_Register_Property(shadow_client, &shadow_property, OnDeltaCallback);
     if (rc != QCLOUD_RET_SUCCESS) {
         rc = IOT_Shadow_Destroy(shadow_client);
         Log_e("register device shadow property failed, err: %d", rc);
@@ -128,35 +140,35 @@ int demo_device_shadow()
     while (IOT_Shadow_IsConnected(shadow_client) || QCLOUD_ERR_MQTT_ATTEMPTING_RECONNECT == rc ||
            QCLOUD_RET_MQTT_RECONNECTED == rc || QCLOUD_RET_SUCCESS == rc) {
 
-        rc = IOT_Shadow_Yield(shadow_client, 200);
+        rc = IOT_Shadow_Yield(shadow_client, 500);
 
         if (QCLOUD_ERR_MQTT_ATTEMPTING_RECONNECT == rc) {
             HAL_SleepMs(1000);
             continue;
         } else if (rc != QCLOUD_RET_SUCCESS && rc != QCLOUD_RET_MQTT_RECONNECTED) {
             Log_e("exit with error: %d", rc);
-            return rc;
+            break;
         }
 
-        if (sg_delta_arrived) {
-            rc = IOT_Shadow_Update_Sync(shadow_client, sg_shadow_update_buffer, sg_shadow_update_buffersize, QCLOUD_IOT_MQTT_COMMAND_TIMEOUT);
-            sg_delta_arrived = false;
-            if (rc == QCLOUD_RET_SUCCESS)
-                Log_i("shadow update success");
+        if (shadow_property.delta_arrived) {
+            _report_desire_null(shadow_client, shadow_json_buffer, shadow_json_buf_size);
+            
+            shadow_property.delta_arrived = false;
         }
 
-        IOT_Shadow_JSON_ConstructReport(shadow_client, sg_shadow_update_buffer, sg_shadow_update_buffersize, 1, &sg_shadow_property);
-        rc = IOT_Shadow_Update(shadow_client, sg_shadow_update_buffer, sg_shadow_update_buffersize, OnShadowUpdateCallback, NULL, QCLOUD_IOT_MQTT_COMMAND_TIMEOUT);
-        sg_current_update_count++;
+        IOT_Shadow_JSON_ConstructReport(shadow_client, shadow_json_buffer, shadow_json_buf_size, 1, &shadow_property);
+        rc = IOT_Shadow_Update(shadow_client, shadow_json_buffer, shadow_json_buf_size, OnShadowUpdateCallback, NULL, QCLOUD_IOT_MQTT_COMMAND_TIMEOUT);
+        current_update_count++;
 
-        // sleep for some time in seconds
-        HAL_SleepMs(1000);
+        // sleep for some time
+        HAL_SleepMs(3000);
     }
 
     Log_e("loop exit with error: %d", rc);
 
     rc = IOT_Shadow_Destroy(shadow_client);
-
+    shadow_client = NULL;
+    
     return rc;
 }
 

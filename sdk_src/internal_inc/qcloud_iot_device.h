@@ -23,11 +23,9 @@ extern "C" {
 #include "qcloud_iot_export.h"
 #include "qcloud_iot_import.h"
 
-int iot_device_info_init(void);
 
-int iot_device_info_set(const char *product_id, const char *device_name);
+int iot_device_info_set(DeviceInfo *device_info, const char *product_id, const char *device_name);
 
-DeviceInfo* iot_device_info_get(void);
 
 #ifdef __cplusplus
 }

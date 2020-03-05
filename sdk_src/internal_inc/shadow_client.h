@@ -83,6 +83,7 @@ typedef struct _Shadow {
     eShadowType shadow_type;
     MQTTEventHandler event_handle;
     ShadowInnerData inner_data;
+    char shadow_recv_buf[CLOUD_IOT_JSON_RX_BUF_LEN];
 } Qcloud_IoT_Shadow;
 
 int qcloud_iot_shadow_init(Qcloud_IoT_Shadow *pShadow);

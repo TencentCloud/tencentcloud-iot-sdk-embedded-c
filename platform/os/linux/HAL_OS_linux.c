@@ -27,11 +27,12 @@
 #include <unistd.h>
 
 #include "qcloud_iot_import.h"
-#include "qcloud_iot_export.h"
+#include "qcloud_iot_export_error.h"
 
 
 void *HAL_MutexCreate(void)
 {
+#ifdef MULTITHREAD_ENABLED
     int err_num;
     pthread_mutex_t *mutex = (pthread_mutex_t *)HAL_Malloc(sizeof(pthread_mutex_t));
     if (NULL == mutex) {
@@ -45,38 +46,57 @@ void *HAL_MutexCreate(void)
     }
 
     return mutex;
+#else
+    return (void *)0xFFFFFFFF;
+#endif  
 }
 
 void HAL_MutexDestroy(_IN_ void *mutex)
 {
+#ifdef MULTITHREAD_ENABLED
     int err_num;
     if (0 != (err_num = pthread_mutex_destroy((pthread_mutex_t *)mutex))) {
         HAL_Printf("%s: destroy mutex failed\n", __FUNCTION__);
     }
 
     HAL_Free(mutex);
+#else
+    return ;
+#endif
 }
 
 void HAL_MutexLock(_IN_ void *mutex)
 {
+#ifdef MULTITHREAD_ENABLED
     int err_num;
     if (0 != (err_num = pthread_mutex_lock((pthread_mutex_t *)mutex))) {
         HAL_Printf("%s: lock mutex failed\n", __FUNCTION__);
     }
+#else
+    return ;
+#endif
+
 }
 
 int HAL_MutexTryLock(_IN_ void *mutex)
 {
+#ifdef MULTITHREAD_ENABLED
     return pthread_mutex_trylock((pthread_mutex_t *)mutex);
-    //return 0;
+#else
+    return 0;
+#endif
 }
 
 void HAL_MutexUnlock(_IN_ void *mutex)
 {
+#ifdef MULTITHREAD_ENABLED
     int err_num;
     if (0 != (err_num = pthread_mutex_unlock((pthread_mutex_t *)mutex))) {
         HAL_Printf("%s: unlock mutex failed\n", __FUNCTION__);
     }
+#else
+    return ;
+#endif
 }
 
 void *HAL_Malloc(_IN_ uint32_t size)
@@ -133,31 +153,48 @@ void HAL_SleepMs(_IN_ uint32_t ms)
     usleep(1000 * ms);
 }
 
+#ifdef MULTITHREAD_ENABLED
+
+// platform-dependant thread routine/entry function
+static void *_HAL_thread_func_wrapper_(void *ptr)
+{
+    ThreadParams* params = (ThreadParams*)ptr;
+
+    params->thread_func(params->user_arg);
+
+    pthread_detach(pthread_self());
+    pthread_exit(0);
+    return NULL;    
+}
+
+// platform-dependant thread create function
+int HAL_ThreadCreate(ThreadParams* params)
+{
+    if (params == NULL)
+        return QCLOUD_ERR_INVAL;
+    
+    int ret = pthread_create((pthread_t *)&params->thread_id, NULL, _HAL_thread_func_wrapper_, (void *)params);
+    if (ret) {
+        HAL_Printf("%s: pthread_create failed: %d\n", __FUNCTION__, ret);
+        return QCLOUD_ERR_FAILURE;
+    }
+
+    return QCLOUD_RET_SUCCESS;
+}
+
+
+void HAL_ThreadExit(void)
+{
+        
+}
+
+#endif
+
 #ifdef AT_TCP_ENABLED
 
 void HAL_DelayMs(_IN_ uint32_t ms)
 {
     usleep(1000 * ms);
-}
-
-void * HAL_ThreadCreate(uint16_t stack_size, int priority, char * taskname, void *(*fn)(void*), void* arg)
-{
-    pthread_t *thread_t = (pthread_t *)HAL_Malloc(sizeof(unsigned long int));
-    return pthread_create(thread_t, NULL, fn, arg) ? NULL  : (void*)thread_t;
-}
-
-int HAL_ThreadDestroy(void* threadId)
-{
-    int ret;
-
-    if (0 == pthread_cancel(*((pthread_t*)threadId))) {
-        ret = QCLOUD_RET_SUCCESS;
-    } else {
-        ret = QCLOUD_ERR_FAILURE;
-    }
-
-    HAL_Free(threadId);
-    return ret;
 }
 
 void *HAL_SemaphoreCreate(void)

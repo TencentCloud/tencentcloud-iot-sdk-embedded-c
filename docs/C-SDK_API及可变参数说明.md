@@ -51,19 +51,14 @@ C-SDK 的使用可以根据具体场景需求，配置相应的参数，满足�
 | 5    | IOT_MQTT_Subscribe   | 订阅 MQTT 主题                                  |
 | 6    | IOT_MQTT_Unsubscribe | 取消订阅已订阅的 MQTT 主题                      |
 | 7    | IOT_MQTT_IsConnected | 查看当前 MQTT 是否已连接                        |
-| 8    | IOT_MQTT_GetErrCode  | 获取IOT_MQTT_Construct失败的错误码              |
+| 8    | IOT_MQTT_IsSubReady  | 查询对应的主题是否已经订阅成功              |
+| 9    | IOT_MQTT_GetDeviceInfo  | 获取该 MQTTclien对应的设备信息             |
+| 10    | IOT_MQTT_StartLoop  | 多线程环境下，启动 MQTTclient后台Yield线程       |
+| 11    | IOT_MQTT_StopLoop  | 多线程环境下，停止 MQTTclient后台Yield线程             |
 
 - 接口使用说明
 ```
 MQTT构造时候除了提供设备信息，还需要提供一个回调函数，用于接收消息包括连接状态通知，订阅主题是否成功，QoS1消息是否发布成功等等事件通知。订阅主题时则需提供另一个回调函数，用于接收该主题的消息下发。具体接口使用方式可以参考docs/IoT_Hub目录的mqtt_sample_快速入门文档。
-```
-
-- 多线程环境使用说明
-SDK对于MQTT接口在多线程环境下的使用有如下注意事项：
-```
-1. 不允许多线程调用IOT_MQTT_Yield，IOT_MQTT_Construct以及IOT_MQTT_Destroy
-2. 可以多线程调用IOT_MQTT_Publish，IOT_MQTT_Subscribe及IOT_MQTT_Unsubscribe
-3. IOT_MQTT_Yield 作为从socket读取并处理MQTT报文的函数，应保证一定的执行时间，避免被长时间挂起或抢占
 ```
 
 ### 2. 设备影子接口
@@ -88,6 +83,7 @@ SDK对于MQTT接口在多线程环境下的使用有如下注意事项：
 | 15   | IOT_Shadow_JSON_Construct_OverwriteReport          | 在JSON文档中添加reported字段，覆盖更新              |
 | 16   | IOT_Shadow_JSON_ConstructReportAndDesireAllNull    | 在JSON文档中添加reported字段，同时清空desired字段   |
 | 17   | IOT_Shadow_JSON_ConstructDesireAllNull             | 在JSON文档中添加 "desired": null 字段             |
+| 18   | IOT_Shadow_Get_Mqtt_Client                         | 获取该ShadowClient对应的MQTTclient             |
 
 ### 3. CoAP 接口
 
@@ -100,6 +96,7 @@ SDK对于MQTT接口在多线程环境下的使用有如下注意事项：
 | 5    | IOT_COAP_GetMessageId        | 获取 COAP Response 消息 msgId                     |
 | 6    | IOT_COAP_GetMessagePayload   | 获取 COAP Response 消息内容                        |
 | 7    | IOT_COAP_GetMessageCode      | 获取 COAP Response 消息错误码                      |
+| 9    | IOT_COAP_GetDeviceInfo       | 获取该 COAPclien对应的设备信息             |
 
 ### 4. OTA 接口
 关于 OTA 固件下载功能介绍，可以参考[设备固件升级](https://cloud.tencent.com/document/product/634/14674)
@@ -154,6 +151,7 @@ SDK对于MQTT接口在多线程环境下的使用有如下注意事项：
 | 4    | IOT_Gateway_Publish          | 发布 MQTT 消息                                  |
 | 5    | IOT_Gateway_Subscribe        | 订阅 MQTT 主题                                  |
 | 6    | IOT_Gateway_Unsubscribe      | 取消订阅已订阅的 MQTT 主题                      |
+| 18   | IOT_Gateway_Get_Mqtt_Client  | 获取该GatewayClient对应的MQTTclient             |
 
 ### 8. 动态注册接口
 

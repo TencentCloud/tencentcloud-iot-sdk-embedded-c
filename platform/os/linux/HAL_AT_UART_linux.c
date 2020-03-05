@@ -39,7 +39,7 @@
 #ifdef AT_UART_RECV_IRQ
 #include "utils_ringbuff.h"
 #include "at_client.h"
-static void *at_uart_irq_recv(void *userContex);
+static void at_uart_irq_recv(void *userContex);
 #endif
 
 #define  AT_UART_LINUX_DEV    "/dev/ttyUSB0"
@@ -147,12 +147,22 @@ int HAL_AT_Uart_Init(void)
     //read_and_discard_all_data(sg_at_uart.fd);
     //Log_e("open at uart 2\r\n");
 
-#ifdef AT_UART_RECV_IRQ
+#if defined(AT_UART_RECV_IRQ) && defined(MULTITHREAD_ENABLED)
     //START THERAD
-    //int result;
-    volatile void *recv_thread;
-    recv_thread = HAL_ThreadCreate(6144, 0, "at_uart_isr_thread", at_uart_irq_recv, NULL);
-    if (!recv_thread) Log_e("Init uart_irq_recv failed\r\n");
+    int result;
+    ThreadParams thread_params = {0};
+    thread_params.thread_func = at_uart_irq_recv;
+    thread_params.thread_name = "at_uart_isr_thread";
+    thread_params.user_arg = NULL;
+    thread_params.stack_size = 6144;
+    thread_params.priority = 0;
+
+    result =  HAL_ThreadCreate(&thread_params);
+    if (QCLOUD_RET_SUCCESS == result) {
+        Log_d("create uart_irq_recv thread success!");
+    } else {
+        Log_e("create uart_irq_recv thread fail!");
+    }
 #endif
 
     return QCLOUD_RET_SUCCESS;
@@ -217,7 +227,7 @@ int HAL_AT_Uart_Recv(void *data, uint32_t expect_size, uint32_t *recv_size, uint
 //simulate IRQ
 #ifdef AT_UART_RECV_IRQ
 extern void at_client_uart_rx_isr_cb(uint8_t *pdata, uint8_t len);
-static void *at_uart_irq_recv(void *userContex)
+static void at_uart_irq_recv(void *userContex)
 {
     uint8_t data[64];
     int readlen;
@@ -227,7 +237,6 @@ static void *at_uart_irq_recv(void *userContex)
         }
         at_client_uart_rx_isr_cb(data, readlen); //push
     }
-    return NULL;
 }
 #endif
 

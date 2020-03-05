@@ -25,7 +25,7 @@ extern "C" {
 
 
 /* IoT C-SDK version info */
-#define QCLOUD_IOT_DEVICE_SDK_VERSION                               "3.1.3"
+#define QCLOUD_IOT_DEVICE_SDK_VERSION                               "3.2.0"
 
 /**************** QCloud IoT C-SDK constants begin ************************/
 

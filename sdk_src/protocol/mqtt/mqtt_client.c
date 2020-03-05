@@ -38,19 +38,6 @@ extern "C" {
 #include "lite-utils.h"
 
 
-static char s_qcloud_iot_host[HOST_STR_LENGTH] = {0};
-#ifdef AUTH_WITH_NOTLS
-static int s_qcloud_iot_port = MQTT_SERVER_PORT_NOTLS;
-#else
-static int s_qcloud_iot_port = MQTT_SERVER_PORT_TLS;
-#endif
-
-#ifndef AUTH_MODE_CERT
-static unsigned char sg_psk_str[DECODE_PSK_LENGTH];
-#endif
-
-
-static int g_last_err_code = 0;
 
 static uint16_t _get_random_start_packet_id(void)
 {
@@ -58,60 +45,63 @@ static uint16_t _get_random_start_packet_id(void)
     return rand() % 65536 + 1;
 }
 
+DeviceInfo* IOT_MQTT_GetDeviceInfo(void *pClient)
+{
+    POINTER_SANITY_CHECK(pClient, NULL);
+    Qcloud_IoT_Client* mqtt_client = (Qcloud_IoT_Client *)pClient;
+    return &mqtt_client->device_info;
+}
+
+// currently return a constant value
 int IOT_MQTT_GetErrCode(void)
 {
-    return g_last_err_code;
+    return QCLOUD_ERR_FAILURE;
 }
 
 void* IOT_MQTT_Construct(MQTTInitParams *pParams)
 {
-    g_last_err_code = QCLOUD_ERR_INVAL;
-    POINTER_SANITY_CHECK(pParams, NULL);
+    POINTER_SANITY_CHECK(pParams, NULL);    
     STRING_PTR_SANITY_CHECK(pParams->product_id, NULL);
     STRING_PTR_SANITY_CHECK(pParams->device_name, NULL);
-
-    int rc = iot_device_info_set(pParams->product_id, pParams->device_name);
-    if ( rc != QCLOUD_RET_SUCCESS) {
-        Log_e("failed to set device info: %d", rc);
-        g_last_err_code = rc;
-        return NULL;
-    }
 
     Qcloud_IoT_Client* mqtt_client = NULL;
 
     // create and init MQTTClient
     if ((mqtt_client = (Qcloud_IoT_Client*) HAL_Malloc (sizeof(Qcloud_IoT_Client))) == NULL) {
         Log_e("malloc MQTTClient failed");
-        g_last_err_code = QCLOUD_ERR_MALLOC;
         return NULL;
     }
 
-    rc = qcloud_iot_mqtt_init(mqtt_client, pParams);
+    int rc = qcloud_iot_mqtt_init(mqtt_client, pParams);
     if (rc != QCLOUD_RET_SUCCESS) {
         Log_e("mqtt init failed: %d", rc);
         HAL_Free(mqtt_client);
-        g_last_err_code = rc;
         return NULL;
     }
 
     MQTTConnectParams connect_params = DEFAULT_MQTTCONNECT_PARAMS;
-    connect_params.client_id = iot_device_info_get()->client_id;
+    connect_params.client_id = mqtt_client->device_info.client_id;
     // Upper limit of keep alive interval is (11.5 * 60) seconds
     connect_params.keep_alive_interval = Min(pParams->keep_alive_interval_ms / 1000, 690);
     connect_params.clean_session = pParams->clean_session;
     connect_params.auto_connect_enable = pParams->auto_connect_enable;
 #if defined(AUTH_WITH_NOTLS) && defined(AUTH_MODE_KEY)
+    if (pParams->device_secret == NULL) {
+        Log_e("Device secret is null!");
+        qcloud_iot_mqtt_fini(mqtt_client);
+        HAL_Free(mqtt_client);
+        return NULL;
+    }
     size_t src_len = strlen(pParams->device_secret);
     size_t len;
-    memset(sg_psk_str, 0x00, DECODE_PSK_LENGTH);
-    rc = qcloud_iot_utils_base64decode(sg_psk_str, sizeof( sg_psk_str ), &len, (unsigned char *)pParams->device_secret, src_len );
-    connect_params.device_secret = (char *)sg_psk_str;
+    memset(mqtt_client->psk_decode, 0x00, DECODE_PSK_LENGTH);
+    rc = qcloud_iot_utils_base64decode(mqtt_client->psk_decode, DECODE_PSK_LENGTH, &len, (unsigned char *)pParams->device_secret, src_len );
+    connect_params.device_secret = (char *)mqtt_client->psk_decode;
     connect_params.device_secret_len = len;
     if (rc != QCLOUD_RET_SUCCESS) {
         Log_e("Device secret decode err, secret:%s", pParams->device_secret);
         qcloud_iot_mqtt_fini(mqtt_client);
         HAL_Free(mqtt_client);
-        g_last_err_code = rc;
         return NULL;
     }
 #endif
@@ -121,11 +111,9 @@ void* IOT_MQTT_Construct(MQTTInitParams *pParams)
         Log_e("mqtt connect with id: %s failed: %d", mqtt_client->options.conn_id, rc);
         qcloud_iot_mqtt_fini(mqtt_client);
         HAL_Free(mqtt_client);
-        g_last_err_code = rc;
         return NULL;
     } else {
         Log_i("mqtt connect with id: %s success", mqtt_client->options.conn_id);
-        g_last_err_code = QCLOUD_RET_SUCCESS;
     }
 
 #ifdef LOG_UPLOAD
@@ -142,7 +130,6 @@ void* IOT_MQTT_Construct(MQTTInitParams *pParams)
         IOT_Log_Upload(true);
     }
 #endif
-
     return mqtt_client;
 }
 
@@ -169,7 +156,7 @@ int IOT_MQTT_Destroy(void **pClient)
     }
 
 #ifdef MQTT_RMDUP_MSG_ENABLED
-    reset_repeat_packet_id_buffer();
+    reset_repeat_packet_id_buffer(mqtt_client);
 #endif
 
     HAL_MutexDestroy(mqtt_client->lock_generic);
@@ -193,8 +180,16 @@ int IOT_MQTT_Destroy(void **pClient)
 
 int IOT_MQTT_Yield(void *pClient, uint32_t timeout_ms)
 {
-
     Qcloud_IoT_Client  *mqtt_client = (Qcloud_IoT_Client *)pClient;
+    
+#ifdef MULTITHREAD_ENABLED
+    /* only one instance of yield is allowed in running state*/
+    if (mqtt_client->thread_running) {
+        HAL_SleepMs(timeout_ms);
+        return QCLOUD_RET_SUCCESS;
+    }
+#endif
+    
     int rc = qcloud_iot_mqtt_yield(mqtt_client, timeout_ms);
 
 #ifdef LOG_UPLOAD
@@ -217,7 +212,6 @@ int IOT_MQTT_Publish(void *pClient, char *topicName, PublishParams *pParams)
 
 int IOT_MQTT_Subscribe(void *pClient, char *topicFilter, SubscribeParams *pParams)
 {
-
     Qcloud_IoT_Client   *mqtt_client = (Qcloud_IoT_Client *)pClient;
 
     return qcloud_iot_mqtt_subscribe(mqtt_client, topicFilter, pParams);
@@ -225,7 +219,6 @@ int IOT_MQTT_Subscribe(void *pClient, char *topicFilter, SubscribeParams *pParam
 
 int IOT_MQTT_Unsubscribe(void *pClient, char *topicFilter)
 {
-
     Qcloud_IoT_Client   *mqtt_client = (Qcloud_IoT_Client *)pClient;
 
     return qcloud_iot_mqtt_unsubscribe(mqtt_client, topicFilter);
@@ -250,6 +243,96 @@ bool IOT_MQTT_IsConnected(void *pClient)
     IOT_FUNC_EXIT_RC(get_client_conn_state(mqtt_client) == 1)
 }
 
+#ifdef MULTITHREAD_ENABLED
+
+
+static void _mqtt_yield_thread(void *ptr)
+{
+    int rc = QCLOUD_RET_SUCCESS;
+    Qcloud_IoT_Client   *mqtt_client = (Qcloud_IoT_Client *)ptr;
+
+    Log_i("MQTT client %s start loop", mqtt_client->device_info.client_id);
+    while (mqtt_client->thread_running) {
+
+        int rc = qcloud_iot_mqtt_yield(mqtt_client, 500);
+
+#ifdef LOG_UPLOAD
+        /* do instant log uploading if MQTT communication error */
+        if (rc == QCLOUD_RET_SUCCESS)
+            IOT_Log_Upload(false);
+        else
+            IOT_Log_Upload(true);
+#endif
+
+        if (rc == QCLOUD_ERR_MQTT_ATTEMPTING_RECONNECT) {
+            HAL_SleepMs(500);
+            continue;
+        } else if (rc == QCLOUD_RET_MQTT_MANUALLY_DISCONNECTED ||
+                   rc == QCLOUD_ERR_MQTT_RECONNECT_TIMEOUT) {
+            Log_e("MQTT Yield thread exit with error: %d", rc);
+            break;
+        } else if (rc != QCLOUD_RET_SUCCESS && rc != QCLOUD_RET_MQTT_RECONNECTED) {
+            Log_e("MQTT Yield thread error: %d", rc);
+        }
+
+        HAL_SleepMs(200);
+    }
+
+    mqtt_client->thread_running = false;
+    mqtt_client->thread_exit_code = rc;
+
+#ifdef LOG_UPLOAD
+    IOT_Log_Upload(true);
+#endif
+
+    Log_i("MQTT client %s stop loop", mqtt_client->device_info.client_id);
+
+}
+
+
+int IOT_MQTT_StartLoop(void *pClient)
+{
+    POINTER_SANITY_CHECK(pClient, QCLOUD_ERR_INVAL);
+
+    Qcloud_IoT_Client   *mqtt_client = (Qcloud_IoT_Client *)pClient;
+    ThreadParams thread_params = {0};
+    thread_params.thread_func = _mqtt_yield_thread;
+    thread_params.thread_name = "MQTT_yield_thread";
+    thread_params.user_arg = pClient;
+    thread_params.stack_size = 4096;
+    thread_params.priority = 1;
+    mqtt_client->thread_running = true;
+
+    int rc =  HAL_ThreadCreate(&thread_params);
+    if (rc) {
+        Log_e("create mqtt yield thread fail: %d", rc);
+        return QCLOUD_ERR_FAILURE;
+    }
+
+    HAL_SleepMs(500);
+    return QCLOUD_RET_SUCCESS;
+}
+
+void IOT_MQTT_StopLoop(void *pClient)
+{
+    POINTER_SANITY_CHECK_RTN(pClient);
+
+    Qcloud_IoT_Client   *mqtt_client = (Qcloud_IoT_Client *)pClient;
+    mqtt_client->thread_running = false;
+    HAL_SleepMs(1000);
+    return ;
+}
+
+bool IOT_MQTT_GetLoopStatus(void *pClient, int *exit_code)
+{
+    POINTER_SANITY_CHECK(pClient, false);
+    Qcloud_IoT_Client   *mqtt_client = (Qcloud_IoT_Client *)pClient;
+    *exit_code = mqtt_client->thread_exit_code;
+    return mqtt_client->thread_running;
+}
+
+#endif
+
 #if 0
 static inline  void _strlowr(char *str)
 {
@@ -269,8 +352,13 @@ int qcloud_iot_mqtt_init(Qcloud_IoT_Client *pClient, MQTTInitParams *pParams)
 
     memset(pClient, 0x0, sizeof(Qcloud_IoT_Client));
 
+    int rc = iot_device_info_set(&(pClient->device_info), pParams->product_id, pParams->device_name);
+    if ( rc != QCLOUD_RET_SUCCESS) {
+        Log_e("failed to set device info: %d", rc);
+        return rc;
+    }
 
-    int size = HAL_Snprintf(s_qcloud_iot_host, HOST_STR_LENGTH, "%s.%s", pParams->product_id, QCLOUD_IOT_MQTT_DIRECT_DOMAIN);
+    int size = HAL_Snprintf(pClient->host_addr, HOST_STR_LENGTH, "%s.%s", pParams->product_id, QCLOUD_IOT_MQTT_DIRECT_DOMAIN);
     if (size < 0 || size > HOST_STR_LENGTH - 1) {
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
     }
@@ -337,48 +425,46 @@ int qcloud_iot_mqtt_init(Qcloud_IoT_Client *pClient, MQTTInitParams *pParams)
 
 #ifndef AUTH_WITH_NOTLS
     // device param for TLS connection
-#ifdef AUTH_MODE_CERT
-    bool certEmpty = (pParams->cert_file == NULL || pParams->key_file == NULL);
-    if (certEmpty) {
-        Log_e("cert file or key file is empty!");
-        IOT_FUNC_EXIT_RC(QCLOUD_ERR_INVAL);
-    }
+#ifdef AUTH_MODE_CERT    
     Log_d("cert file: %s", pParams->cert_file);
     Log_d("key file: %s", pParams->key_file);
 
-    pClient->network_stack.ssl_connect_params.cert_file = pParams->cert_file;
-    pClient->network_stack.ssl_connect_params.key_file = pParams->key_file;
+    strncpy(pClient->cert_file_path, pParams->cert_file, FILE_PATH_MAX_LEN - 1);
+    strncpy(pClient->key_file_path, pParams->key_file, FILE_PATH_MAX_LEN - 1);
+
+    pClient->network_stack.ssl_connect_params.cert_file = pClient->cert_file_path;
+    pClient->network_stack.ssl_connect_params.key_file = pClient->key_file_path;
     pClient->network_stack.ssl_connect_params.ca_crt = iot_ca_get();
     pClient->network_stack.ssl_connect_params.ca_crt_len = strlen(pClient->network_stack.ssl_connect_params.ca_crt);
 #else
     if (pParams->device_secret != NULL) {
         size_t src_len = strlen(pParams->device_secret);
         size_t len;
-        memset(sg_psk_str, 0x00, DECODE_PSK_LENGTH);
-        qcloud_iot_utils_base64decode(sg_psk_str, sizeof( sg_psk_str ), &len, (unsigned char *)pParams->device_secret, src_len );
-        pClient->network_stack.ssl_connect_params.psk = (char *)sg_psk_str;
+        memset(pClient->psk_decode, 0x00, DECODE_PSK_LENGTH);
+        qcloud_iot_utils_base64decode(pClient->psk_decode, DECODE_PSK_LENGTH, &len, (unsigned char *)pParams->device_secret, src_len );
+        pClient->network_stack.ssl_connect_params.psk = (char *)pClient->psk_decode;
         pClient->network_stack.ssl_connect_params.psk_length = len;
     } else {
         Log_e("psk is empty!");
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_INVAL);
     }
-    pClient->network_stack.ssl_connect_params.psk_id = iot_device_info_get()->client_id;
-    if (iot_device_info_get()->client_id == NULL) {
+    pClient->network_stack.ssl_connect_params.psk_id = pClient->device_info.client_id;
+    if (pClient->device_info.client_id == NULL) {
         Log_e("psk id is empty!");
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_INVAL);
     }
-    pClient->network_stack.ssl_connect_params.ca_crt = NULL; //iot_ca_get();
-    pClient->network_stack.ssl_connect_params.ca_crt_len = 0; //strlen(pClient->network_stack.ssl_connect_params.ca_crt);
+    pClient->network_stack.ssl_connect_params.ca_crt = NULL;
+    pClient->network_stack.ssl_connect_params.ca_crt_len = 0;
 #endif
 
-    pClient->network_stack.host = s_qcloud_iot_host;
-    pClient->network_stack.port = s_qcloud_iot_port;
+    pClient->network_stack.host = pClient->host_addr;
+    pClient->network_stack.port = MQTT_SERVER_PORT_TLS;
     pClient->network_stack.ssl_connect_params.timeout_ms =
         pClient->command_timeout_ms > QCLOUD_IOT_TLS_HANDSHAKE_TIMEOUT ? pClient->command_timeout_ms : QCLOUD_IOT_TLS_HANDSHAKE_TIMEOUT;
 
 #else
-    pClient->network_stack.host = s_qcloud_iot_host;
-    pClient->network_stack.port = s_qcloud_iot_port;
+    pClient->network_stack.host = pClient->host_addr;
+    pClient->network_stack.port = MQTT_SERVER_PORT_NOTLS;
 #endif
 
     // init network stack
@@ -387,6 +473,16 @@ int qcloud_iot_mqtt_init(Qcloud_IoT_Client *pClient, MQTTInitParams *pParams)
     // ping timer and reconnect delay timer
     InitTimer(&(pClient->ping_timer));
     InitTimer(&(pClient->reconnect_delay_timer));
+
+#ifdef SYSTEM_COMM
+    pClient->sys_state.result_recv_ok = false;
+    pClient->sys_state.topic_sub_ok = false;
+    pClient->sys_state.time = 0;
+#endif
+
+#ifdef MULTITHREAD_ENABLED
+    pClient->thread_running = false;
+#endif
 
     IOT_FUNC_EXIT_RC(QCLOUD_RET_SUCCESS);
 

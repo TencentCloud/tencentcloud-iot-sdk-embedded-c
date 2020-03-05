@@ -21,7 +21,6 @@ extern "C" {
 #include <Windows.h>
 #include "qcloud_iot_import.h"
 
-static char now_time_str[20] = {0};
 
 bool HAL_Timer_expired(Timer *timer)
 {
@@ -58,16 +57,15 @@ void HAL_Timer_init(Timer *timer)
     timer->end_time = 0;
 }
 
-char* HAL_Timer_current(void)
+char* HAL_Timer_current(char *time_str)
 {
-    static char time_str[64] = { '\0' };
     time_t now;
     struct tm tm_val;
 
     time(&now);
     localtime_s(&tm_val, &now);
 
-    snprintf(time_str, sizeof(time_str), "%04d/%02d/%02d %02d:%02d:%02d", tm_val.tm_year + 1900, tm_val.tm_mon + 1, tm_val.tm_mday, tm_val.tm_hour, tm_val.tm_min, tm_val.tm_sec);
+    snprintf(time_str, TIME_FORMAT_STR_LEN, "%04d/%02d/%02d %02d:%02d:%02d", tm_val.tm_year + 1900, tm_val.tm_mon + 1, tm_val.tm_mday, tm_val.tm_hour, tm_val.tm_min, tm_val.tm_sec);
 
     return time_str;
 }

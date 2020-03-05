@@ -24,6 +24,7 @@ extern "C" {
 #include <sys/types.h>
 
 #include "qcloud_iot_export.h"
+#include "qcloud_iot_common.h"
 
 #include "coap_client_net.h"
 
@@ -196,6 +197,17 @@ typedef struct Client {
     unsigned char                           max_retry_count;                                    // Max retry count
 
     CoAPEventHandler                        event_handle;                                       // event callback
+
+    DeviceInfo                              device_info;
+
+    char                                    host_addr[HOST_STR_LENGTH];
+
+#ifdef AUTH_MODE_CERT
+    char                                    cert_file_path[FILE_PATH_MAX_LEN];      // full path of device cert file
+    char                                    key_file_path[FILE_PATH_MAX_LEN];       // full path of device key file
+#else
+    unsigned char                           psk_decode[DECODE_PSK_LENGTH];
+#endif
 
 } CoAPClient;
 

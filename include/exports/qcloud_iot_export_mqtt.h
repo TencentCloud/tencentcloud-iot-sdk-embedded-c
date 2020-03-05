@@ -162,8 +162,8 @@ typedef struct {
     char                        *device_name;            // device name
 
 #ifdef AUTH_MODE_CERT
-    char                        *cert_file;              // cert file path
-    char                        *key_file;               // key file path
+    char                        cert_file[FILE_PATH_MAX_LEN];      // full path of device cert file
+    char                        key_file[FILE_PATH_MAX_LEN];       // full path of device key file
 #else
     char                        *device_secret;          // device secret
 #endif
@@ -183,7 +183,7 @@ typedef struct {
  * Default MQTT init parameters
  */
 #ifdef AUTH_MODE_CERT
-#define DEFAULT_MQTTINIT_PARAMS { NULL, NULL, NULL, NULL, 5000, 240 * 1000, 1, 1, {0}}
+#define DEFAULT_MQTTINIT_PARAMS { NULL, NULL, {0}, {0}, 5000, 240 * 1000, 1, 1, {0}}
 #else
 #define DEFAULT_MQTTINIT_PARAMS { NULL, NULL, NULL, 5000, 240 * 1000, 1, 1, {0}}
 #endif
@@ -272,6 +272,42 @@ bool IOT_MQTT_IsConnected(void *pClient);
  * @return error code of last IOT_MQTT_Construct operation
  */
 int IOT_MQTT_GetErrCode(void);
+
+/**
+ * @brief Get the device Info of the dedicated MQTT client
+ *
+ * @param pClient       handle to MQTT client
+ * @return pointer to the device Info
+ */
+DeviceInfo* IOT_MQTT_GetDeviceInfo(void *pClient);
+
+
+#ifdef MULTITHREAD_ENABLED
+/**
+ * @brief Start the default loop thread to read and handle MQTT packet
+ *
+ * @param pClient       handle to MQTT client
+ * @return QCLOUD_RET_SUCCESS when success, err code for failure
+ */
+int IOT_MQTT_StartLoop(void *pClient);
+
+/**
+ * @brief Stop the default loop thread to read and handle MQTT packet
+ *
+ * @param pClient       handle to MQTT client
+ */
+void IOT_MQTT_StopLoop(void *pClient);
+
+/**
+ * @brief Get the status of loop thread
+ *
+ * @param pClient       handle to MQTT client
+ * @param exit_code     exit code of the thread
+ * @return true= thread running, false = thread quit
+ */
+bool IOT_MQTT_GetLoopStatus(void *pClient, int *exit_code);
+
+#endif
 
 #ifdef __cplusplus
 }

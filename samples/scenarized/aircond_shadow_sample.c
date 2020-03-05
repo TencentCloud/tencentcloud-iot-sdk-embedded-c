@@ -23,11 +23,6 @@
 #include "qcloud_iot_import.h"
 #include "lite-utils.h"
 
-#ifdef AUTH_MODE_CERT
-static char sg_cert_file[PATH_MAX + 1];      // full path of device cert file
-static char sg_key_file[PATH_MAX + 1];       // full path of device key file
-#endif
-
 
 static DeviceInfo sg_devInfo;
 
@@ -178,18 +173,23 @@ static int _setup_connect_init_params(ShadowInitParams* initParams)
     initParams->product_id = sg_devInfo.product_id;
 
 #ifdef AUTH_MODE_CERT
-    char certs_dir[PATH_MAX + 1] = "certs";
-    char current_path[PATH_MAX + 1];
+    char certs_dir[16] = "certs";
+    char current_path[128];
     char *cwd = getcwd(current_path, sizeof(current_path));
+
     if (cwd == NULL) {
         Log_e("getcwd return NULL");
         return QCLOUD_ERR_FAILURE;
     }
-    sprintf(sg_cert_file, "%s/%s/%s", current_path, certs_dir, sg_devInfo.dev_cert_file_name);
-    sprintf(sg_key_file, "%s/%s/%s", current_path, certs_dir, sg_devInfo.dev_key_file_name);
 
-    initParams->cert_file = sg_cert_file;
-    initParams->key_file = sg_key_file;
+#ifdef WIN32
+    HAL_Snprintf(initParams->cert_file, FILE_PATH_MAX_LEN, "%s\\%s\\%s", current_path, certs_dir, sg_devInfo.dev_cert_file_name);
+    HAL_Snprintf(initParams->key_file, FILE_PATH_MAX_LEN, "%s\\%s\\%s", current_path, certs_dir, sg_devInfo.dev_key_file_name);
+#else
+    HAL_Snprintf(initParams->cert_file, FILE_PATH_MAX_LEN, "%s/%s/%s", current_path, certs_dir, sg_devInfo.dev_cert_file_name);
+    HAL_Snprintf(initParams->key_file, FILE_PATH_MAX_LEN, "%s/%s/%s", current_path, certs_dir, sg_devInfo.dev_key_file_name);
+#endif
+
 #else
     initParams->device_secret = sg_devInfo.device_secret;
 #endif

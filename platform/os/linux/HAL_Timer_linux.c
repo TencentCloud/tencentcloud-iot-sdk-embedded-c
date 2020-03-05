@@ -22,7 +22,6 @@ extern "C" {
 
 #include "qcloud_iot_import.h"
 
-static char now_time_str[20] = {0};
 
 bool HAL_Timer_expired(Timer *timer)
 {
@@ -63,16 +62,19 @@ void HAL_Timer_init(Timer *timer)
     };
 }
 
-char* HAL_Timer_current(void)
+char* HAL_Timer_current(char *time_str)
 {
+    if (time_str == NULL)
+        return " ";
+    
     struct timeval tv;
     gettimeofday(&tv, NULL);
     time_t now_time = tv.tv_sec;
 
     struct tm tm_tmp = *localtime(&now_time);
-    strftime(now_time_str, 20, "%F %T", &tm_tmp);
+    strftime(time_str, TIME_FORMAT_STR_LEN, "%F %T", &tm_tmp);
 
-    return now_time_str;
+    return time_str;
 }
 
 long HAL_Timer_current_sec(void)

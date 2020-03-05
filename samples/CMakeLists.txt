@@ -39,12 +39,20 @@ add_executable(door_mqtt_sample 			${src_door_mqtt_sample})
 target_link_libraries(door_mqtt_sample 		 	 ${lib})
 endif()
 
-if (PLATFORM STREQUAL "linux" AND COMPILE_TOOLS  STREQUAL "gcc")
+# Multi-Thread Multi-Client sample
+if (${FEATURE_MULTITHREAD_ENABLED} STREQUAL "ON")
 	file(GLOB src_multi_thread_mqtt_sample 		${PROJECT_SOURCE_DIR}/samples/mqtt/multi_thread_mqtt_sample.c)
 	add_executable(multi_thread_mqtt_sample 	${src_multi_thread_mqtt_sample})
 	target_link_libraries(multi_thread_mqtt_sample 			 ${lib})
-endif()
 
+	file(GLOB src_multi_client_mqtt_sample 		${PROJECT_SOURCE_DIR}/samples/multi_client/multi_client_mqtt_sample.c)
+	add_executable(multi_client_mqtt_sample 	${src_multi_client_mqtt_sample})
+	target_link_libraries(multi_client_mqtt_sample 			 ${lib})
+
+	file(GLOB src_multi_client_shadow_sample 		${PROJECT_SOURCE_DIR}/samples/multi_client/multi_client_shadow_sample.c)
+	add_executable(multi_client_shadow_sample 	${src_multi_client_shadow_sample})
+	target_link_libraries(multi_client_shadow_sample 			 ${lib})
+endif()
 
 # DYN_REG
 if(${FEATURE_DEV_DYN_REG_ENABLED} STREQUAL "ON")

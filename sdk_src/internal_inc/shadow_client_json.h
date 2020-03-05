@@ -76,17 +76,19 @@ int event_put_json_node(char *jsonBuffer, size_t sizeOfBuffer, const char *pKey,
  * @param pStrBuffer    string buffer
  * @param sizeOfBuffer  size of buffer
  * @param tokenNumber   shadow token number, increment every time
+ * @param product_id    device product ID
  * @return              QCLOUD_RET_SUCCESS for success, or err code for failure
  */
-int generate_client_token(char *pStrBuffer, size_t sizeOfBuffer, uint32_t *tokenNumber);
+int generate_client_token(char *pStrBuffer, size_t sizeOfBuffer, uint32_t *tokenNumber, char *product_id);
 
 /**
  * @brief generate an empty JSON with only clientToken
  *
  * @param tokenNumber   shadow token number, increment every time
  * @param pJsonBuffer   JSON string buffer
+ * @param product_id    device product ID
  */
-void build_empty_json(uint32_t *tokenNumber, char *pJsonBuffer);
+void build_empty_json(uint32_t *tokenNumber, char *pJsonBuffer, char *product_id);
 
 /**
  * @brief parse field of clientToken from JSON string

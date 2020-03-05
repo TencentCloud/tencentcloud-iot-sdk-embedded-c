@@ -63,20 +63,6 @@ static int _direct_update_value(char *value, DeviceProperty *pProperty)
     return rc;
 }
 
-/**
- * add field of client token into JSON
- *
- * @param pJsonDocument             JSON string
- * @param maxSizeOfJsonDocument     max size of JSON string
- * @return                          length after adding
- */
-static int32_t _add_client_token(char *pJsonDocument, size_t maxSizeOfJsonDocument, uint32_t *tokenNumber)
-{
-
-    int32_t rc_of_snprintf = HAL_Snprintf(pJsonDocument, maxSizeOfJsonDocument, "%s-%u", iot_device_info_get()->product_id, (*tokenNumber)++);
-
-    return rc_of_snprintf;
-}
 
 /**
  * @brief check return value of snprintf
@@ -232,14 +218,14 @@ int event_put_json_node(char *jsonBuffer, size_t sizeOfBuffer, const char *pKey,
 }
 
 
-int generate_client_token(char *pStrBuffer, size_t sizeOfBuffer, uint32_t *tokenNumber)
+int generate_client_token(char *pStrBuffer, size_t sizeOfBuffer, uint32_t *tokenNumber, char *product_id)
 {
-    return _add_client_token(pStrBuffer, sizeOfBuffer, tokenNumber);
+    return HAL_Snprintf(pStrBuffer, sizeOfBuffer, "%s-%u", product_id, (*tokenNumber)++);
 }
 
-void build_empty_json(uint32_t *tokenNumber, char *pJsonBuffer)
+void build_empty_json(uint32_t *tokenNumber, char *pJsonBuffer, char *product_id)
 {
-    HAL_Snprintf(pJsonBuffer, MAX_SIZE_OF_JSON_WITH_CLIENT_TOKEN, "{\"clientToken\":\"%s-%u\"}", iot_device_info_get()->product_id, (*tokenNumber)++);
+    HAL_Snprintf(pJsonBuffer, MAX_SIZE_OF_JSON_WITH_CLIENT_TOKEN, "{\"clientToken\":\"%s-%u\"}", product_id, (*tokenNumber)++);
 }
 
 bool parse_client_token(char *pJsonDoc, char **pClientToken)

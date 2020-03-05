@@ -17,6 +17,8 @@
 #include <stdarg.h>
 
 #include "qcloud_iot_import.h"
+#include "qcloud_iot_export_error.h"
+
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "freertos/task.h"
@@ -82,6 +84,7 @@ void HAL_Free(_IN_ void *ptr)
 
 void *HAL_MutexCreate(void)
 {
+#ifdef MULTITHREAD_ENABLED
     SemaphoreHandle_t mutex = xSemaphoreCreateMutex();
     if (NULL == mutex) {
         HAL_Printf("%s: xSemaphoreCreateMutex failed\n", __FUNCTION__);
@@ -89,19 +92,27 @@ void *HAL_MutexCreate(void)
     }
 
     return mutex;
+#else
+    return (void *)0xFFFFFFFF;
+#endif    
 }
 
 void HAL_MutexDestroy(_IN_ void *mutex)
 {
-    if (xSemaphoreTake(mutex, 0) != pdTRUE) {
+#ifdef MULTITHREAD_ENABLED
+if (xSemaphoreTake(mutex, 0) != pdTRUE) {
         HAL_Printf("%s: xSemaphoreTake failed\n", __FUNCTION__);
     }
 
     vSemaphoreDelete(mutex);
+#else
+    return ;
+#endif
 }
 
 void HAL_MutexLock(_IN_ void *mutex)
 {
+#ifdef MULTITHREAD_ENABLED
     if (!mutex) {
         HAL_Printf("%s: invalid mutex\n", __FUNCTION__);
         return ;
@@ -111,10 +122,14 @@ void HAL_MutexLock(_IN_ void *mutex)
         HAL_Printf("%s: xSemaphoreTake failed\n", __FUNCTION__);
         return ;
     }
+#else
+    return ;
+#endif
 }
 
 int HAL_MutexTryLock(_IN_ void *mutex)
 {
+#ifdef MULTITHREAD_ENABLED
     if (!mutex) {
         HAL_Printf("%s: invalid mutex\n", __FUNCTION__);
         return -1;
@@ -126,12 +141,16 @@ int HAL_MutexTryLock(_IN_ void *mutex)
     }
 
     return 0;
+#else
+    return 0;
+#endif
 }
 
 
 void HAL_MutexUnlock(_IN_ void *mutex)
 {
-    if (!mutex) {
+#ifdef MULTITHREAD_ENABLED
+if (!mutex) {
         HAL_Printf("%s: invalid mutex\n", __FUNCTION__);
         return ;
     }
@@ -140,30 +159,48 @@ void HAL_MutexUnlock(_IN_ void *mutex)
         HAL_Printf("%s: xSemaphoreGive failed\n", __FUNCTION__);
         return ;
     }
+#else
+    return ;
+#endif
 }
 
-#if defined(PLATFORM_HAS_CMSIS) && defined(AT_TCP_ENABLED)
+#ifdef MULTITHREAD_ENABLED
 
-/*
-* return void* threadId
-*/
-void * HAL_ThreadCreate(uint16_t stack_size, int priority, char * taskname, void *(*fn)(void*), void* arg)
+// platform-dependant thread routine/entry function
+static void _HAL_thread_func_wrapper_(void *ptr)
 {
-    osThreadId thread_t = (osThreadId)HAL_Malloc(sizeof(osThreadId));
+    ThreadParams* params = (ThreadParams*)ptr;
 
-    osThreadDef(taskname, (os_pthread)fn, (osPriority)priority, 0, stack_size);
-    thread_t = osThreadCreate(osThread(taskname), arg);
-    if (NULL == thread_t) {
-        HAL_Printf("create thread fail\n\r");
+    params->thread_func(params->user_arg);
+
+    vTaskDelete(NULL);    
+}
+
+// platform-dependant thread create function
+int HAL_ThreadCreate(ThreadParams* params)
+{
+    if (params == NULL)
+        return QCLOUD_ERR_INVAL;
+
+    if (params->thread_name == NULL) {
+        Log_e("thread name is required for FreeRTOS platform!");
+        return QCLOUD_ERR_INVAL;
+    }
+    
+    int ret = xTaskCreate(_HAL_thread_func_wrapper_, params->thread_name, 
+                            params->stack_size, (void *)params, 
+                            params->priority, (void *)&params->thread_id);
+    if (ret != pdPASS) {
+        HAL_Printf("%s: xTaskCreate failed: %d\n", __FUNCTION__, ret);
+        return QCLOUD_ERR_FAILURE;
     }
 
-    return (void *)thread_t;
+    return QCLOUD_RET_SUCCESS;
 }
 
-int HAL_ThreadDestroy(void* threadId)
-{
-    return osThreadTerminate(threadId);
-}
+#endif
+
+#if defined(PLATFORM_HAS_CMSIS) && defined(AT_TCP_ENABLED)
 
 void *HAL_SemaphoreCreate(void)
 {

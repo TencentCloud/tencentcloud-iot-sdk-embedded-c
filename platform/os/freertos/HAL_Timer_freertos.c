@@ -37,8 +37,6 @@ extern "C" {
 #endif
 
 
-static char now_time_str[20] = {0};
-
 
 uint32_t HAL_GetTimeMs(void)
 {
@@ -58,21 +56,21 @@ long HAL_Timer_current_sec(void)
     return HAL_GetTimeMs() / 1000;
 }
 
-char* HAL_Timer_current(void)
+char* HAL_Timer_current(char *time_str)
 {
 #if defined PLATFORM_HAS_TIME_FUNCS
     struct timeval tv;
     gettimeofday(&tv, NULL);
     time_t now_time = tv.tv_sec;
     struct tm tm_tmp = *localtime(&now_time);
-    strftime(now_time_str, 20, "%F %T", &tm_tmp);
-    return now_time_str;
+    strftime(time_str, TIME_FORMAT_STR_LEN, "%F %T", &tm_tmp);
+    return time_str;
 #else
     long time_sec;
     time_sec = HAL_Timer_current_sec();
-    memset(now_time_str, 0, 20);
-    snprintf(now_time_str, 20, "%ld", time_sec);
-    return now_time_str;
+    memset(time_str, 0, TIME_FORMAT_STR_LEN);
+    snprintf(time_str, TIME_FORMAT_STR_LEN, "%ld", time_sec);
+    return time_str;
 #endif
 }
 

@@ -39,9 +39,9 @@ ifeq ($(FEATURE_AUTH_MODE),CERT)
 CFLAGS += -DAUTH_MODE_CERT
 endif
 
-.PHONY: mqtt_sample ota_mqtt_sample ota_coap_sample shadow_sample coap_sample gateway_sample multi_thread_mqtt_sample dynreg_dev_sample
+.PHONY: mqtt_sample ota_mqtt_sample ota_coap_sample shadow_sample coap_sample gateway_sample multi_thread_mqtt_sample dynreg_dev_sample multi_client
 
-all: mqtt_sample ota_mqtt_sample ota_coap_sample shadow_sample coap_sample gateway_sample multi_thread_mqtt_sample dynreg_dev_sample
+all: mqtt_sample ota_mqtt_sample ota_coap_sample shadow_sample coap_sample gateway_sample multi_thread_mqtt_sample dynreg_dev_sample multi_client
 
 ifneq (,$(filter -DMQTT_COMM_ENABLED,$(CFLAGS)))
 mqtt_sample:
@@ -55,13 +55,25 @@ mqtt_sample:
 	mv door_$@ $(FINAL_DIR)/bin && \
 	mv $@ $(FINAL_DIR)/bin
 
-ifneq (,$(filter -DMULTITHREAD_TEST_ENABLED,$(CFLAGS)))
+# Multi-Thread Multi-Client sample
+ifneq (,$(filter -DMULTITHREAD_ENABLED,$(CFLAGS)))
 multi_thread_mqtt_sample:
 	$(TOP_Q) \
 	$(PLATFORM_CC) $(CFLAGS) $(SAMPLE_DIR)/mqtt/$@.c $(LDFLAGS) -o $@
 
 	$(TOP_Q) \
 	mv $@ $(FINAL_DIR)/bin
+
+multi_client:
+	$(TOP_Q) \
+	$(PLATFORM_CC) $(CFLAGS) $(SAMPLE_DIR)/multi_client/$@_mqtt_sample.c $(LDFLAGS) -o $@_mqtt_sample
+
+	$(TOP_Q) \
+	$(PLATFORM_CC) $(CFLAGS) $(SAMPLE_DIR)/multi_client/$@_shadow_sample.c $(LDFLAGS) -o $@_shadow_sample
+
+	$(TOP_Q) \
+	mv $@_mqtt_sample $(FINAL_DIR)/bin && \
+    mv $@_shadow_sample $(FINAL_DIR)/bin
 endif
 
 ifneq (,$(filter -DDEV_DYN_REG_ENABLED,$(CFLAGS)))

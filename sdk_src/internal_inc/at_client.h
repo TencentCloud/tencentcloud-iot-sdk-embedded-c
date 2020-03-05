@@ -34,7 +34,7 @@ extern "C" {
 #define GET_CHAR_TIMEOUT_MS            (5000)
 #define CMD_RESPONSE_INTERVAL_MS       (100)
 
-typedef void *(*ParserFunc)(void *userContex);
+typedef void (*ParserFunc)(void *userContex);
 
 typedef enum {
     AT_STATUS_UNINITIALIZED = 0,
@@ -95,7 +95,6 @@ typedef struct _at_client_ {
     uint16_t urc_table_size;
 
 #ifdef AT_OS_USED
-    volatile void *thread_t;
     void *resp_sem;         // resp received, send sem to notic ack wait
     ParserFunc parser;      // RX parser
 #else

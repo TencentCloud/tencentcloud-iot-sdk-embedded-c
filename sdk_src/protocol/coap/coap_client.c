@@ -35,19 +35,18 @@ extern "C" {
 #include "utils_base64.h"
 
 
-static char s_qcloud_iot_host[HOST_STR_LENGTH] = {0};
-static int s_qcloud_iot_port = COAP_SERVER_PORT;
-
-#ifndef AUTH_WITH_NOTLS
-#ifndef AUTH_MODE_CERT
-static unsigned char sg_psk_str[DECODE_PSK_LENGTH];
-#endif
-#endif
 
 static uint16_t _get_random_start_packet_id(void)
 {
     srand((unsigned)time(NULL));
     return rand() % 65536 + 1;
+}
+
+DeviceInfo* IOT_COAP_GetDeviceInfo(void *pClient)
+{
+    POINTER_SANITY_CHECK(pClient, NULL);
+    CoAPClient *coap_client = (CoAPClient *)pClient;
+    return &coap_client->device_info;
 }
 
 void* IOT_COAP_Construct(CoAPInitParams *pParams)
@@ -62,10 +61,6 @@ void* IOT_COAP_Construct(CoAPInitParams *pParams)
         return NULL;
     }
 
-    if (iot_device_info_init() == QCLOUD_RET_SUCCESS) {
-        iot_device_info_set(pParams->product_id, pParams->device_name);
-    }
-
     int rc = qcloud_iot_coap_init(coap_client, pParams);
     if (rc != QCLOUD_RET_SUCCESS) {
         Log_e("coap init failed: %d", rc);
@@ -74,11 +69,11 @@ void* IOT_COAP_Construct(CoAPInitParams *pParams)
     }
 
     if (coap_client->network_stack.connect(&coap_client->network_stack) != QCLOUD_RET_SUCCESS) {
-        Log_e("coap connect failed: %d", rc);
+        Log_e("coap connect to host: %s:%d failed: %d", coap_client->network_stack.host, coap_client->network_stack.port, rc);
         HAL_Free(coap_client);
         return NULL;
     } else {
-        Log_i("coap connect success");
+        Log_i("coap connect to host: %s:%d success", coap_client->network_stack.host, coap_client->network_stack.port);
     }
 
     coap_client_auth(coap_client);
@@ -260,7 +255,13 @@ int qcloud_iot_coap_init(CoAPClient *pClient, CoAPInitParams *pParams)
 
     memset(pClient, 0x0, sizeof(CoAPClient));
 
-    int size = HAL_Snprintf(s_qcloud_iot_host, HOST_STR_LENGTH, "%s.%s", pParams->product_id, QCLOUD_IOT_COAP_DEIRECT_DOMAIN);
+    int rc = iot_device_info_set(&(pClient->device_info), pParams->product_id, pParams->device_name);
+    if ( rc != QCLOUD_RET_SUCCESS) {
+        Log_e("failed to set device info: %d", rc);
+        return rc;
+    }
+
+    int size = HAL_Snprintf(pClient->host_addr, HOST_STR_LENGTH, "%s.%s", pParams->product_id, QCLOUD_IOT_COAP_DEIRECT_DOMAIN);
     if (size < 0 || size > HOST_STR_LENGTH - 1) {
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
     }
@@ -275,13 +276,11 @@ int qcloud_iot_coap_init(CoAPClient *pClient, CoAPInitParams *pParams)
 
 #ifndef AUTH_WITH_NOTLS
 #ifdef AUTH_MODE_CERT
-    bool certEmpty = (pParams->cert_file == NULL || pParams->key_file == NULL);
-    if (certEmpty) {
-        Log_e("cert file or key file is empty!");
-        IOT_FUNC_EXIT_RC(QCLOUD_ERR_INVAL);
-    }
     Log_d("cert file: %s", pParams->cert_file);
     Log_d("key file: %s", pParams->key_file);
+
+    strncpy(pClient->cert_file_path, pParams->cert_file, FILE_PATH_MAX_LEN - 1);
+    strncpy(pClient->key_file_path, pParams->key_file, FILE_PATH_MAX_LEN - 1);
 
     // device param for TLS connection
     pClient->network_stack.ssl_connect_params.cert_file = pParams->cert_file;
@@ -290,27 +289,27 @@ int qcloud_iot_coap_init(CoAPClient *pClient, CoAPInitParams *pParams)
     pClient->network_stack.ssl_connect_params.ca_crt_len = strlen(pClient->network_stack.ssl_connect_params.ca_crt);
 
 #else
-    pClient->network_stack.ssl_connect_params.psk_id = iot_device_info_get()->client_id;
+    pClient->network_stack.ssl_connect_params.psk_id = pClient->device_info.client_id;
     if (pParams->device_secret != NULL) {
         size_t src_len = strlen(pParams->device_secret);
         size_t len;
-        memset(sg_psk_str, 0x00, DECODE_PSK_LENGTH);
-        qcloud_iot_utils_base64decode(sg_psk_str, sizeof( sg_psk_str ), &len, (unsigned char *)pParams->device_secret, src_len );
-        pClient->network_stack.ssl_connect_params.psk = (char *)sg_psk_str;
+        memset(pClient->psk_decode, 0x00, DECODE_PSK_LENGTH);
+        qcloud_iot_utils_base64decode(pClient->psk_decode, DECODE_PSK_LENGTH, &len, (unsigned char *)pParams->device_secret, src_len );
+        pClient->network_stack.ssl_connect_params.psk = (char *)pClient->psk_decode;
         pClient->network_stack.ssl_connect_params.psk_length = len;
-        pClient->network_stack.ssl_connect_params.ca_crt = iot_ca_get();
-        pClient->network_stack.ssl_connect_params.ca_crt_len = strlen(pClient->network_stack.ssl_connect_params.ca_crt);
+        pClient->network_stack.ssl_connect_params.ca_crt = NULL;
+        pClient->network_stack.ssl_connect_params.ca_crt_len = 0;
     } else {
         Log_e("psk is empty!");
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_INVAL);
     }
 #endif
 
-    pClient->network_stack.host = s_qcloud_iot_host;
-    pClient->network_stack.port = s_qcloud_iot_port;
+    pClient->network_stack.host = pClient->host_addr;
+    pClient->network_stack.port = COAP_SERVER_PORT;
 #else
-    pClient->network_stack.host = s_qcloud_iot_host;
-    pClient->network_stack.port = s_qcloud_iot_port;
+    pClient->network_stack.host = pClient->host_addr;
+    pClient->network_stack.port = COAP_SERVER_PORT;
 #endif
 
     pClient->auth_token = NULL;
