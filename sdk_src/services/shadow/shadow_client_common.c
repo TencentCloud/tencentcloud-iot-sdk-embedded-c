@@ -26,8 +26,7 @@ static int _add_property_handle_to_list(Qcloud_IoT_Shadow *pShadow, DeviceProper
     IOT_FUNC_ENTRY;
 
     PropertyHandler *property_handle = (PropertyHandler *)HAL_Malloc(sizeof(PropertyHandler));
-    if (NULL == property_handle)
-    {
+    if (NULL == property_handle) {
         Log_e("run memory malloc is error!");
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
     }
@@ -70,7 +69,7 @@ int shadow_common_remove_property(Qcloud_IoT_Shadow *pshadow, DeviceProperty *pP
         list_remove(pshadow->inner_data.property_handle_list, node);
     }
     HAL_MutexUnlock(pshadow->mutex);
-    
+
     return rc;
 }
 

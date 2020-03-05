@@ -25,19 +25,19 @@ extern "C" {
 /* Specify the maximum characters of version */
 #define OTA_MAX_TOPIC_LEN   (64)
 
-#define TYPE_FIELD 				"type"
-#define MD5_FIELD				"md5sum"
-#define VERSION_FIELD			"version"
-#define URL_FIELD				"url"
-#define FILESIZE_FIELD			"file_size"
-#define RESULT_FIELD			"result_code"
+#define TYPE_FIELD              "type"
+#define MD5_FIELD               "md5sum"
+#define VERSION_FIELD           "version"
+#define URL_FIELD               "url"
+#define FILESIZE_FIELD          "file_size"
+#define RESULT_FIELD            "result_code"
 
-#define REPORT_VERSION_RSP		"report_version_rsp"
-#define UPDATE_FIRMWARE			"update_firmware"
+#define REPORT_VERSION_RSP      "report_version_rsp"
+#define UPDATE_FIRMWARE         "update_firmware"
 
 enum {
-	MQTT_CHANNEL,
-	COAP_CHANNEL
+    MQTT_CHANNEL,
+    COAP_CHANNEL
 };
 
 typedef void (*OnOTAMessageCallback)(void *pcontext, const char *msg, uint32_t msgLen);

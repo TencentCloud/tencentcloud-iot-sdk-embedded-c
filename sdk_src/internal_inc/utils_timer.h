@@ -19,7 +19,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-    
+
 // Add the platform specific timer includes to define the Timer struct
 #include "qcloud_iot_import.h"
 
@@ -71,7 +71,7 @@ int left_ms(Timer *timer);
  * @param timer - pointer to the timer to be initialized
  */
 void InitTimer(Timer *timer);
-    
+
 #ifdef __cplusplus
 }
 #endif

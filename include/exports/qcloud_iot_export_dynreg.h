@@ -13,7 +13,7 @@
  *
  */
 
-#ifndef QLCOUD_IOT_EXPORT_DYNREG_H_ 
+#ifndef QLCOUD_IOT_EXPORT_DYNREG_H_
 #define QLCOUD_IOT_EXPORT_DYNREG_H_
 
 #ifdef __cplusplus
@@ -23,7 +23,7 @@ extern "C" {
 #include "qcloud_iot_export.h"
 
 /**
- * @brief Do dynamic register/create device 
+ * @brief Do dynamic register/create device
  *
  * @param pDevInfo  In:     device info with [ProductId, ProductKey, DeviceName]
  *                  Out:    device info with [ProductId, DeviceName, DeviceSecret or Device cert/key file]

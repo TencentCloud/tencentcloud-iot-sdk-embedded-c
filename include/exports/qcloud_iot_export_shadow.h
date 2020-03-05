@@ -22,41 +22,41 @@ extern "C" {
 
 #include "qcloud_iot_export_mqtt.h"
 
-typedef enum _eShadowType_{
-	eSHADOW = 0,    // normal shadow
-	eTEMPLATE = 1,  // data template
-}eShadowType;
+typedef enum _eShadowType_ {
+    eSHADOW = 0,    // normal shadow
+    eTEMPLATE = 1,  // data template
+} eShadowType;
 
 
 /* The structure of MQTT shadow init parameters */
 typedef struct {
-        /* device info */
-        char                        *product_id;             // product ID
-        char                        *device_name;            // device name
-    
+    /* device info */
+    char                        *product_id;             // product ID
+    char                        *device_name;            // device name
+
 #ifdef AUTH_MODE_CERT
-        char                        *cert_file;              // cert file path
-        char                        *key_file;               // key file path
+    char                        *cert_file;              // cert file path
+    char                        *key_file;               // key file path
 #else
-        char                        *device_secret;          // device secret
+    char                        *device_secret;          // device secret
 #endif
 
-    uint32_t					command_timeout;		    // timeout value (unit: ms) for MQTT connect/pub/sub/yield
-    uint32_t					keep_alive_interval_ms;	    // MQTT keep alive time interval in millisecond
+    uint32_t                    command_timeout;            // timeout value (unit: ms) for MQTT connect/pub/sub/yield
+    uint32_t                    keep_alive_interval_ms;     // MQTT keep alive time interval in millisecond
 
-    uint8_t         			clean_session;			    // flag of clean session, 1 clean, 0 not clean
+    uint8_t                     clean_session;              // flag of clean session, 1 clean, 0 not clean
 
-    uint8_t                   	auto_connect_enable;        // flag of auto reconnection, 1 is enable and recommended
+    uint8_t                     auto_connect_enable;        // flag of auto reconnection, 1 is enable and recommended
 
     MQTTEventHandler            event_handle;               // event callback
 
-	eShadowType					shadow_type;			    // shadow type
+    eShadowType                 shadow_type;                // shadow type
 } ShadowInitParams;
 
 #ifdef AUTH_MODE_CERT
-    #define DEFAULT_SHAWDOW_INIT_PARAMS { NULL, NULL, NULL, NULL, 5000, 240 * 1000, 1, 1, {0}, 0}
+#define DEFAULT_SHAWDOW_INIT_PARAMS { NULL, NULL, NULL, NULL, 5000, 240 * 1000, 1, 1, {0}, 0}
 #else
-    #define DEFAULT_SHAWDOW_INIT_PARAMS { NULL, NULL, NULL, 5000, 240 * 1000, 1, 1, {0}, 0}
+#define DEFAULT_SHAWDOW_INIT_PARAMS { NULL, NULL, NULL, 5000, 240 * 1000, 1, 1, {0}, 0}
 #endif
 
 /**
@@ -98,7 +98,7 @@ typedef enum {
  * @brief Define a device property, as a JSON document node
  */
 typedef struct _JSONNode {
-    char   		 *key;    // Key of this JSON node
+    char         *key;    // Key of this JSON node
     void         *data;   // Value of this JSON node
     JsonDataType type;    // Data type of this JSON node
 } DeviceProperty;
@@ -107,14 +107,14 @@ typedef struct _JSONNode {
 /**
  * @brief Data type of template
  */
- 
-#define TYPE_TEMPLATE_INT    	JINT32
-#define TYPE_TEMPLATEENUM    	JINT32
-#define TYPE_TEMPLATE_FLOAT  	JFLOAT
-#define TYPE_TEMPLATE_BOOL   	JINT8
-#define TYPE_TEMPLATE_STRING 	JSTRING
-#define TYPE_TEMPLATE_TIME 		JUINT32
-#define TYPE_TEMPLATE_JOBJECT 	JOBJECT
+
+#define TYPE_TEMPLATE_INT       JINT32
+#define TYPE_TEMPLATEENUM       JINT32
+#define TYPE_TEMPLATE_FLOAT     JFLOAT
+#define TYPE_TEMPLATE_BOOL      JINT8
+#define TYPE_TEMPLATE_STRING    JSTRING
+#define TYPE_TEMPLATE_TIME      JUINT32
+#define TYPE_TEMPLATE_JOBJECT   JOBJECT
 
 
 
@@ -130,9 +130,9 @@ typedef void *    TYPE_DEF_TEMPLATE_OBJECT;
 /**
  * @brief Define property status in data template
  */
-typedef enum _eDataState_{
+typedef enum _eDataState_ {
     eNOCHANGE = 0,
-	eCHANGED = 1,	
+    eCHANGED = 1,
 } eDataState;
 
 /**
@@ -148,7 +148,7 @@ typedef struct {
  * @brief Define MQTT shadow callback when request response arrived
  *
  * @param method         type of request
- * @param requestAck     response type 
+ * @param requestAck     response type
  * @param pJsonDocument  JSON document from server
  * @param userContext    User context
  *
@@ -176,7 +176,7 @@ void* IOT_Shadow_Construct(ShadowInitParams *pParams);
 /**
  * @brief Publish MQTT message
  *
- * @param pClient       handle to shadow client 
+ * @param pClient       handle to shadow client
  * @param topicName     MQTT topic name
  * @param pParams       publish parameters
  *
@@ -187,7 +187,7 @@ int IOT_Shadow_Publish(void *pClient, char *topicName, PublishParams *pParams);
 /**
  * @brief Subscribe MQTT message
  *
- * @param pClient       handle to shadow client 
+ * @param pClient       handle to shadow client
  * @param topicFilter   MQTT topic filter
  * @param pParams       subscribe parameters
  *
@@ -198,7 +198,7 @@ int IOT_Shadow_Subscribe(void *pClient, char *topicFilter, SubscribeParams *pPar
 /**
  * @brief Unsubscribe MQTT message
  *
- * @param pClient       handle to shadow client 
+ * @param pClient       handle to shadow client
  * @param topicFilter   MQTT topic filter
  *
  * @return packet id (>=0) when success, or err code (<0) for failure
@@ -208,7 +208,7 @@ int IOT_Shadow_Unsubscribe(void *pClient, char *topicFilter);
 /**
  * @brief Check if MQTT shadow is connected
  *
- * @param pClient       handle to shadow client 
+ * @param pClient       handle to shadow client
  * @return true= connected, false = unconnected
  */
 bool IOT_Shadow_IsConnected(void *pClient);
@@ -339,7 +339,7 @@ int IOT_Shadow_JSON_Construct_OverwriteReport(void *pClient, char *jsonBuffer, s
  * @param jsonBuffer    string buffer to store JSON document
  * @param sizeOfBuffer  size of string buffer
  * @param count         number of properties
- * @return              QCLOUD_RET_SUCCESS when success, or err code for failure 
+ * @return              QCLOUD_RET_SUCCESS when success, or err code for failure
  */
 int IOT_Shadow_JSON_ConstructReportAndDesireAllNull(void *pClient, char *jsonBuffer, size_t sizeOfBuffer, uint8_t count, ...);
 

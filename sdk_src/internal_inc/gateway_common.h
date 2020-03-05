@@ -24,50 +24,50 @@
 
 /* Subdevice    seesion status */
 typedef enum _SubdevSessionStatus {
-	/* Initial */
-	SUBDEV_SEESION_STATUS_INIT,
+    /* Initial */
+    SUBDEV_SEESION_STATUS_INIT,
 
-	/* Online */
-	SUBDEV_SEESION_STATUS_ONLINE,
+    /* Online */
+    SUBDEV_SEESION_STATUS_ONLINE,
 
-	/* Offline */
-	SUBDEV_SEESION_STATUS_OFFLINE,
+    /* Offline */
+    SUBDEV_SEESION_STATUS_OFFLINE,
 
-	/* Maximum number of seesion status type */
-	SUBDEV_SEESION_STATUS_MAX
-}SubdevSessionStatus;
+    /* Maximum number of seesion status type */
+    SUBDEV_SEESION_STATUS_MAX
+} SubdevSessionStatus;
 
 /* The structure of subdevice session */
 typedef struct _SubdevSession {
-	char 			product_id[MAX_SIZE_OF_PRODUCT_ID+1];
-	char 			device_name[MAX_SIZE_OF_DEVICE_NAME+1];
-	SubdevSessionStatus 	session_status;
-	struct _SubdevSession 	*next;
+    char            product_id[MAX_SIZE_OF_PRODUCT_ID + 1];
+    char            device_name[MAX_SIZE_OF_DEVICE_NAME + 1];
+    SubdevSessionStatus     session_status;
+    struct _SubdevSession   *next;
 } SubdevSession;
 
 
 /* The structure of common reply data */
-typedef struct _ReplyData{
-	int32_t 	result;
-	char 		client_id[MAX_SIZE_OF_CLIENT_ID+1];
-}ReplyData;
+typedef struct _ReplyData {
+    int32_t     result;
+    char        client_id[MAX_SIZE_OF_CLIENT_ID + 1];
+} ReplyData;
 
 
 /* The structure of gateway data */
 typedef struct _GatewayData {
-	int32_t 		sync_status;
-	ReplyData 		online;
-	ReplyData 		offline;
+    int32_t         sync_status;
+    ReplyData       online;
+    ReplyData       offline;
 } GatewayData;
 
 
 /* The structure of gateway context */
 typedef struct _Gateway {
-	void                            *mqtt;
-	SubdevSession 			*session_list;
-	GatewayData                 	gateway_data;
-	MQTTEventHandler 		event_handle;
-	int                             is_construct;
+    void                            *mqtt;
+    SubdevSession           *session_list;
+    GatewayData                     gateway_data;
+    MQTTEventHandler        event_handle;
+    int                             is_construct;
 } Gateway;
 
 

@@ -49,7 +49,7 @@ int qcloud_otalib_get_report_version_result(const char *json);
  * @return              QCLOUD_RET_SUCCESS for success, or err code for failure
  */
 int qcloud_otalib_get_params(const char *json, char **type, char **url, char **version, char *md5,
-                     uint32_t *fileSize);
+                             uint32_t *fileSize);
 
 
 /**

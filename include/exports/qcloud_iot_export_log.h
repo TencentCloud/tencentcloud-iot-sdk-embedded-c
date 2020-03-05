@@ -53,7 +53,7 @@ typedef bool (*LogMessageHandler)(const char* message);
 /**
  * @brief user callback for saving/reading logs into/from NVS(files/FLASH) after upload fail/recover
  */
-// callback for saving logs into NVS(files/FLASH) after upload fail 
+// callback for saving logs into NVS(files/FLASH) after upload fail
 typedef size_t (*LogSaveFunc)(const char *msg, size_t wLen);
 // callback for reading logs from NVS(files/FLASH) when upload ready
 typedef size_t (*LogReadFunc)(char *buff, size_t rLen);
@@ -72,8 +72,8 @@ typedef struct {
     /* auth key, use device secret for PSK device and cert file path for cert device */
     const char      *sign_key;
     /* user callback saving/reading logs into/from NVS(files/FLASH) */
-    LogSaveFunc     save_func; 
-    LogReadFunc     read_func; 
+    LogSaveFunc     save_func;
+    LogReadFunc     read_func;
     LogDelFunc      del_func;
     LogGetSizeFunc  get_size_func;
 } LogUploadInitParams;
@@ -82,7 +82,7 @@ typedef struct {
 /**
  * @brief Set the global log level of print
  *
- * @param level 
+ * @param level
  */
 void IOT_Log_Set_Level(LOG_LEVEL level);
 
@@ -129,14 +129,14 @@ int IOT_Log_Init_Uploader(LogUploadInitParams *init_params);
 /**
  * @brief Stop log upload and release the resource
  *
- * @return 
+ * @return
  */
 void IOT_Log_Fini_Uploader(void);
 
 /**
  * @brief Do one log upload
  *
- * @param force_upload true = upload log at once, false = upload in defined time interval 
+ * @param force_upload true = upload log at once, false = upload in defined time interval
  * @return QCLOUD_RET_SUCCESS when success, or error code when fail
  */
 int IOT_Log_Upload(bool force_upload);
@@ -162,34 +162,34 @@ void IOT_Log_Gen(const char *file, const char *func, const int line, const int l
 
 /* Macro for debug mode */
 #ifdef IOT_DEBUG
-	#define IOT_FUNC_ENTRY    \
-		{\
-		printf("FUNC_ENTRY:   %s L#%d \n", __FUNCTION__, __LINE__);  \
-		}
-	#define IOT_FUNC_EXIT    \
-		{\
-		printf("FUNC_EXIT:   %s L#%d \n", __FUNCTION__, __LINE__);  \
-		return;\
-		}
-	#define IOT_FUNC_EXIT_RC(x)    \
-		{\
-		printf("FUNC_EXIT:   %s L#%d Return Code : %ld \n", __FUNCTION__, __LINE__, (long)(x));  \
-		return x; \
-		}
+#define IOT_FUNC_ENTRY    \
+     {\
+     printf("FUNC_ENTRY:   %s L#%d \n", __FUNCTION__, __LINE__);  \
+     }
+#define IOT_FUNC_EXIT    \
+     {\
+     printf("FUNC_EXIT:   %s L#%d \n", __FUNCTION__, __LINE__);  \
+     return;\
+     }
+#define IOT_FUNC_EXIT_RC(x)    \
+     {\
+     printf("FUNC_EXIT:   %s L#%d Return Code : %ld \n", __FUNCTION__, __LINE__, (long)(x));  \
+     return x; \
+     }
 #else
-	#define IOT_FUNC_ENTRY
-	#define IOT_FUNC_EXIT 			\
-		{\
-			return;\
-		}
-	#define IOT_FUNC_EXIT_RC(x)     \
-		{\
-			return x; \
-		}
+#define IOT_FUNC_ENTRY
+#define IOT_FUNC_EXIT           \
+     {\
+         return;\
+     }
+#define IOT_FUNC_EXIT_RC(x)     \
+     {\
+         return x; \
+     }
 #endif
 
 /* Macro for interval debug */
-//#define LOG_UPLOAD_DEBUG 
+//#define LOG_UPLOAD_DEBUG
 #ifdef LOG_UPLOAD_DEBUG
 #define UPLOAD_DBG(fmt, ...)   HAL_Printf(">>LOG-DBG>>%s(%d): " fmt "\n", __FUNCTION__, __LINE__, ##__VA_ARGS__)
 #else

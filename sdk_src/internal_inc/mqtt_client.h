@@ -34,25 +34,25 @@ extern "C" {
 #include "utils_list.h"
 
 /* packet id, random from [1 - 65536] */
-#define MAX_PACKET_ID               								(65535)
+#define MAX_PACKET_ID                                               (65535)
 
 /* Max size of conn Id  */
-#define MAX_CONN_ID_LEN												(6)
+#define MAX_CONN_ID_LEN                                             (6)
 
 /* Max number of topic subscribed */
-#define MAX_MESSAGE_HANDLERS        								(10)
+#define MAX_MESSAGE_HANDLERS                                        (10)
 
 /* Max number in repub list */
 #define MAX_REPUB_NUM                                               (20)
 
 /* Minimal wait interval when reconnect */
-#define MIN_RECONNECT_WAIT_INTERVAL 								(1000)
+#define MIN_RECONNECT_WAIT_INTERVAL                                 (1000)
 
 /* Minimal MQTT timeout value */
-#define MIN_COMMAND_TIMEOUT         								(500)
+#define MIN_COMMAND_TIMEOUT                                         (500)
 
 /* Maxmal MQTT timeout value  */
-#define MAX_COMMAND_TIMEOUT         								(20000)
+#define MAX_COMMAND_TIMEOUT                                         (20000)
 
 /* Max size of a topic name */
 #define MAX_SIZE_OF_CLOUD_TOPIC                                     ((MAX_SIZE_OF_DEVICE_NAME) + (MAX_SIZE_OF_PRODUCT_ID) + 64 + 6)
@@ -65,30 +65,30 @@ extern "C" {
  * @brief MQTT Message Type
  */
 typedef enum msgTypes {
-	RESERVED    = 0,     // Reserved
-	CONNECT     = 1,     // Client request to connect to Server
-	CONNACK     = 2,     // Connect Acknowledgment
-	PUBLISH     = 3,     // Publish message
-	PUBACK      = 4,     // Publish Acknowledgment
-	PUBREC      = 5,     // Publish Received
-	PUBREL      = 6,     // Publish Release
-	PUBCOMP     = 7,     // Publish Complete
-	SUBSCRIBE   = 8,     // Client Subscribe request
-	SUBACK      = 9,     // Subscribe Acknowledgment
-	UNSUBSCRIBE = 10,    // Client Unsubscribe request
-	UNSUBACK    = 11,    // Unsubscribe Acknowledgment
-	PINGREQ     = 12,    // PING Request
-	PINGRESP    = 13,    // PING Response
-	DISCONNECT  = 14     // Client is Disconnecting
+    RESERVED    = 0,     // Reserved
+    CONNECT     = 1,     // Client request to connect to Server
+    CONNACK     = 2,     // Connect Acknowledgment
+    PUBLISH     = 3,     // Publish message
+    PUBACK      = 4,     // Publish Acknowledgment
+    PUBREC      = 5,     // Publish Received
+    PUBREL      = 6,     // Publish Release
+    PUBCOMP     = 7,     // Publish Complete
+    SUBSCRIBE   = 8,     // Client Subscribe request
+    SUBACK      = 9,     // Subscribe Acknowledgment
+    UNSUBSCRIBE = 10,    // Client Unsubscribe request
+    UNSUBACK    = 11,    // Unsubscribe Acknowledgment
+    PINGREQ     = 12,    // PING Request
+    PINGRESP    = 13,    // PING Response
+    DISCONNECT  = 14     // Client is Disconnecting
 } MessageTypes;
 
 typedef enum {
-	NOTCONNECTED = 0,
-	CONNECTED	 = 1
+    NOTCONNECTED = 0,
+    CONNECTED    = 1
 } ConnStatus;
 
 
-/** 
+/**
  * MQTT byte 1: fixed header
  * bits  |7654: Message Type  | 3:DUP flag |  21:QoS level | 0:RETAIN |
  */
@@ -98,7 +98,7 @@ typedef enum {
 #define MQTT_HEADER_DUP_MASK            0x08
 #define MQTT_HEADER_QOS_SHIFT           0x01
 #define MQTT_HEADER_QOS_MASK            0x06
-#define MQTT_HEADER_RETAIN_MASK	        0x01
+#define MQTT_HEADER_RETAIN_MASK         0x01
 
 
 /**
@@ -108,10 +108,10 @@ typedef enum {
 typedef struct {
     char        struct_id[4];      // The eyecatcher for this structure. must be MQTW
     uint8_t     struct_version;    // struct version = 0
-    char        *topic_name;       
-    char        *message;          
-    uint8_t     retained;          
-    QoS         qos;               
+    char        *topic_name;
+    char        *message;
+    uint8_t     retained;
+    QoS         qos;
 } WillOptions;
 
 /**
@@ -124,24 +124,24 @@ typedef struct {
  *
  */
 typedef struct {
-    char            			*client_id;             // unique client id
-    char            			*username;              // user name
-    char						*password;				// passwrod
+    char                        *client_id;             // unique client id
+    char                        *username;              // user name
+    char                        *password;              // passwrod
 
-    char					 	conn_id[MAX_CONN_ID_LEN];
+    char                        conn_id[MAX_CONN_ID_LEN];
 
-    char            			struct_id[4];           // The eyecatcher for this structure.  must be MQTC.
-    uint8_t         			struct_version;         // struct version = 0
-    uint8_t         			mqtt_version;            // MQTT protocol version: 4 = 3.1.1
+    char                        struct_id[4];           // The eyecatcher for this structure.  must be MQTC.
+    uint8_t                     struct_version;         // struct version = 0
+    uint8_t                     mqtt_version;            // MQTT protocol version: 4 = 3.1.1
 
-    uint16_t        			keep_alive_interval;    // keep alive interval, unit: second
-    uint8_t         			clean_session;          // flag of clean session, refer to MQTT spec 3.1.2.4
+    uint16_t                    keep_alive_interval;    // keep alive interval, unit: second
+    uint8_t                     clean_session;          // flag of clean session, refer to MQTT spec 3.1.2.4
 
-    uint8_t                   	auto_connect_enable;    // enable auto connection or not
+    uint8_t                     auto_connect_enable;    // enable auto connection or not
 
 #ifdef AUTH_WITH_NOTLS
-    char						*device_secret;					// PSK
-    int						    device_secret_len;			    // length of PSK
+    char                        *device_secret;                 // PSK
+    int                         device_secret_len;              // length of PSK
 #endif
 
 } MQTTConnectParams;
@@ -170,8 +170,8 @@ typedef struct SubTopicHandle {
  * @brief MQTT QCloud IoT Client structure
  */
 typedef struct Client {
-    uint8_t                  is_connected;                                  
-    uint8_t                  was_manually_disconnected;                     
+    uint8_t                  is_connected;
+    uint8_t                  was_manually_disconnected;
     uint8_t                  is_ping_outstanding;                           // 1 = ping request is sent while ping response not arrived yet
 
     uint16_t                 next_packet_id;                                // MQTT random packet id
@@ -186,7 +186,7 @@ typedef struct Client {
     unsigned char            read_buf[QCLOUD_IOT_MQTT_RX_BUF_LEN];          // MQTT read buffer
 
     void                     *lock_generic;                                 // mutex/lock for this client struture
-    void                     *lock_write_buf;                          		// mutex/lock for write buffer 
+    void                     *lock_write_buf;                               // mutex/lock for write buffer
 
     void                     *lock_list_pub;                                // mutex/lock for puback waiting list
     void                     *lock_list_sub;                                // mutex/lock for suback waiting list
@@ -290,7 +290,7 @@ int qcloud_iot_mqtt_disconnect(Qcloud_IoT_Client *pClient);
 /**
  * @brief Publish MQTT message
  *
- * @param pClient       handle to MQTT client 
+ * @param pClient       handle to MQTT client
  * @param topicName     MQTT topic name
  * @param pParams       publish parameters
  *
@@ -301,7 +301,7 @@ int qcloud_iot_mqtt_publish(Qcloud_IoT_Client *pClient, char *topicName, Publish
 /**
  * @brief Subscribe MQTT topic
  *
- * @param pClient       handle to MQTT client 
+ * @param pClient       handle to MQTT client
  * @param topicFilter   MQTT topic filter
  * @param pParams       subscribe parameters
  *
@@ -312,19 +312,19 @@ int qcloud_iot_mqtt_subscribe(Qcloud_IoT_Client *pClient, char *topicFilter, Sub
 /**
  * @brief Re-subscribe MQTT topics
  *
- * @param pClient       handle to MQTT client 
+ * @param pClient       handle to MQTT client
  *
- * @return QCLOUD_RET_SUCCESS for success, or err code for failure 
+ * @return QCLOUD_RET_SUCCESS for success, or err code for failure
  */
 int qcloud_iot_mqtt_resubscribe(Qcloud_IoT_Client *pClient);
 
 /**
  * @brief Unsubscribe MQTT topic
  *
- * @param pClient       handle to MQTT client 
+ * @param pClient       handle to MQTT client
  * @param topicFilter   MQTT topic filter
  *
- * @return packet id (>=0) when success, or err code (<0) for failure  
+ * @return packet id (>=0) when success, or err code (<0) for failure
  */
 int qcloud_iot_mqtt_unsubscribe(Qcloud_IoT_Client *pClient, char *topicFilter);
 
@@ -410,11 +410,11 @@ int mqtt_init_packet_header(unsigned char *header, MessageTypes message_type, Qo
 int cycle_for_read(Qcloud_IoT_Client *pClient, Timer *timer, uint8_t *packet_type, QoS qos);
 
 /**
- * @brief Send the packet in buffer 
+ * @brief Send the packet in buffer
  *
- * @param pClient       
- * @param length        
- * @param timer         
+ * @param pClient
+ * @param length
+ * @param timer
  * @return
  */
 int send_mqtt_packet(Qcloud_IoT_Client *pClient, size_t length, Timer *timer);
@@ -434,8 +434,8 @@ int wait_for_read(Qcloud_IoT_Client *pClient, uint8_t packet_type, Timer *timer,
 /**
  * @brief Set MQTT connection state
  *
- * @param pClient 		MQTT Client
- * @param connected 	0: disconnected  1: connected
+ * @param pClient       MQTT Client
+ * @param connected     0: disconnected  1: connected
  * @return
  */
 void set_client_conn_state(Qcloud_IoT_Client *pClient, uint8_t connected);
@@ -443,8 +443,8 @@ void set_client_conn_state(Qcloud_IoT_Client *pClient, uint8_t connected);
 /**
  * @brief Get MQTT connection state
  *
- * @param pClient 		MQTT Client
- * @return				0: disconnected  1: connected
+ * @param pClient       MQTT Client
+ * @return              0: disconnected  1: connected
  */
 uint8_t get_client_conn_state(Qcloud_IoT_Client *pClient);
 
@@ -465,19 +465,19 @@ int qcloud_iot_mqtt_pub_info_proc(Qcloud_IoT_Client *pClient);
 int qcloud_iot_mqtt_sub_info_proc(Qcloud_IoT_Client *pClient);
 
 int push_sub_info_to(Qcloud_IoT_Client *c, int len, unsigned short msgId, MessageTypes type,
-								   SubTopicHandle *handler, ListNode **node);
+                     SubTopicHandle *handler, ListNode **node);
 
 int serialize_pub_ack_packet(unsigned char *buf, size_t buf_len, MessageTypes packet_type, uint8_t dup,
-							 uint16_t packet_id,
-							 uint32_t *serialized_len);
+                             uint16_t packet_id,
+                             uint32_t *serialized_len);
 
 int serialize_packet_with_zero_payload(unsigned char *buf, size_t buf_len, MessageTypes packetType, uint32_t *serialized_len);
 
 int deserialize_publish_packet(unsigned char *dup, QoS *qos, uint8_t *retained, uint16_t *packet_id, char **topicName,
-							   uint16_t *topicNameLen, unsigned char **payload, size_t *payload_len, unsigned char *buf, size_t buf_len);
+                               uint16_t *topicNameLen, unsigned char **payload, size_t *payload_len, unsigned char *buf, size_t buf_len);
 
 int deserialize_suback_packet(uint16_t *packet_id, uint32_t max_count, uint32_t *count,
-                                     QoS *grantedQoSs, unsigned char *buf, size_t buf_len);
+                              QoS *grantedQoSs, unsigned char *buf, size_t buf_len);
 
 int deserialize_unsuback_packet(uint16_t *packet_id, unsigned char *buf, size_t buf_len);
 

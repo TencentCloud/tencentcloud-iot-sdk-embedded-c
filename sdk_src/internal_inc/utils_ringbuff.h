@@ -12,7 +12,7 @@
  * limitations under the License.
  *
  */
- 
+
 #ifndef __AT_RING_BUFF_H__
 #define __AT_RING_BUFF_H__
 
@@ -23,20 +23,19 @@
 
 #define RINGBUFF_OK            0    /* No error, everything OK. */
 #define RINGBUFF_ERR          -1    /* Out of memory error.     */
-#define RINGBUFF_EMPTY        -3    /* Timeout.                	    */
+#define RINGBUFF_EMPTY        -3    /* Timeout.                     */
 #define RINGBUFF_FULL         -4    /* Routing problem.          */
-#define RINGBUFF_TOO_SHORT    -5 
+#define RINGBUFF_TOO_SHORT    -5
 
 
 
 
-typedef struct _ring_buff_
-{
-  uint32_t  size;
-  uint32_t  readpoint;
-  uint32_t  writepoint;
-  char*  buffer;
-  bool full;
+typedef struct _ring_buff_ {
+    uint32_t  size;
+    uint32_t  readpoint;
+    uint32_t  writepoint;
+    char*  buffer;
+    bool full;
 } sRingbuff;
 
 typedef sRingbuff*  ring_buff_t;

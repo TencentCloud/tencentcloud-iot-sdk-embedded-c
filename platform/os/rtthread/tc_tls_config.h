@@ -540,7 +540,7 @@
  *
  * Comment macros to disable the curve and functions for it
  */
-#if 0 
+#if 0
 #define MBEDTLS_ECP_DP_SECP192R1_ENABLED
 #define MBEDTLS_ECP_DP_SECP224R1_ENABLED
 #define MBEDTLS_ECP_DP_SECP256R1_ENABLED
@@ -1806,7 +1806,7 @@
  *
  * This module provides debugging functions.
  */
- 
+
 #ifdef PKG_USING_MBEDTLS_DEBUG
 #define MBEDTLS_DEBUG_C
 #endif

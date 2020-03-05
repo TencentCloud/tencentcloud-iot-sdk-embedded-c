@@ -49,14 +49,14 @@ extern "C" {
 /**
  * @brief Create a thread/task
  *
- * @param stack_size    thread stack size    
+ * @param stack_size    thread stack size
  * @param priority      thread priority
  * @param taskname      task name
  * @param fn            thread runtime function callback
  * @param arg           thread function context
  * @return a valid thread handle when success, or NULL otherwise
  */
-void * HAL_ThreadCreate(uint16_t stack_size, int priority, char * taskname,void *(*fn)(void*), void* arg);
+void * HAL_ThreadCreate(uint16_t stack_size, int priority, char * taskname, void *(*fn)(void*), void* arg);
 
 /**
  * @brief Destroy a thread/task
@@ -236,9 +236,9 @@ int HAL_SetDevInfoFile(const char *file_name);
  */
 struct Timer {
 #if defined(__linux__) && defined(__GLIBC__)
-	struct timeval end_time;
+    struct timeval end_time;
 #else
-	uintptr_t end_time;
+    uintptr_t end_time;
 #endif
 };
 
@@ -301,7 +301,7 @@ long HAL_Timer_current_sec(void);
 int HAL_AT_TCP_Init(void);
 uintptr_t HAL_AT_TCP_Connect(const char *host, uint16_t port);
 int HAL_AT_TCP_Disconnect(uintptr_t fd);
-int HAL_AT_TCP_Write(uintptr_t fd, const unsigned char *buf, uint32_t len, uint32_t timeout_ms, size_t *written_len);	
+int HAL_AT_TCP_Write(uintptr_t fd, const unsigned char *buf, uint32_t len, uint32_t timeout_ms, size_t *written_len);
 int HAL_AT_TCP_Read(uintptr_t fd, uint8_t *buf, uint32_t len, uint32_t timeout_ms, uint32_t *read_len);
 int at_device_init(void);
 int HAL_AT_Uart_Init(void);
@@ -319,13 +319,13 @@ int HAL_AT_Uart_Recv(void *data, uint32_t expect_size, uint32_t *recv_size, uint
  *
  */
 typedef struct {
-    const char		 *ca_crt;
-    uint16_t 		 ca_crt_len;
+    const char       *ca_crt;
+    uint16_t         ca_crt_len;
 
 #ifdef AUTH_MODE_CERT
-	/**
-	 * Device with certificate
-	 */
+    /**
+     * Device with certificate
+     */
     const char       *cert_file;            // public certificate file
     const char       *key_file;             // pravite certificate file
 #else
@@ -373,7 +373,7 @@ void HAL_TLS_Disconnect(uintptr_t handle);
  * @return              QCLOUD_RET_SUCCESS for success, or err code for failure
  */
 int HAL_TLS_Write(uintptr_t handle, unsigned char *data, size_t totalLen, uint32_t timeout_ms,
-                                 size_t *written_len);
+                  size_t *written_len);
 
 /**
  * @brief Read data via TLS connection
@@ -386,7 +386,7 @@ int HAL_TLS_Write(uintptr_t handle, unsigned char *data, size_t totalLen, uint32
  * @return              QCLOUD_RET_SUCCESS for success, or err code for failure
  */
 int HAL_TLS_Read(uintptr_t handle, unsigned char *data, size_t totalLen, uint32_t timeout_ms,
-                                size_t *read_len);
+                 size_t *read_len);
 
 /********** DTLS network **********/
 #ifdef COAP_COMM_ENABLED
@@ -467,7 +467,7 @@ int HAL_TCP_Disconnect(uintptr_t fd);
  * @return              QCLOUD_RET_SUCCESS for success, or err code for failure
  */
 int HAL_TCP_Write(uintptr_t fd, const unsigned char *data, uint32_t len, uint32_t timeout_ms,
-                size_t *written_len);
+                  size_t *written_len);
 
 /**
  * @brief Read data via TCP connection
@@ -480,7 +480,7 @@ int HAL_TCP_Write(uintptr_t fd, const unsigned char *data, uint32_t len, uint32_
  * @return              QCLOUD_RET_SUCCESS for success, or err code for failure
  */
 int HAL_TCP_Read(uintptr_t fd, unsigned char *data, uint32_t len, uint32_t timeout_ms,
-                size_t *read_len);
+                 size_t *read_len);
 
 /********** UDP network **********/
 #ifdef COAP_COMM_ENABLED
@@ -548,13 +548,13 @@ size_t HAL_Log_Save(const char *log, size_t len);
  * @param buf           destination log buffer
  * @param len           length of log to read
  * @return              length of data read when success, or 0 for failure
- */ 
+ */
 size_t HAL_Log_Read(char *buf, size_t len);
 
 /**
- * @brief Functions for deleting logs in NVS(files/FLASH). 
+ * @brief Functions for deleting logs in NVS(files/FLASH).
  * @return              0 when success
- */ 
+ */
 int HAL_Log_Del(void);
 
 /**

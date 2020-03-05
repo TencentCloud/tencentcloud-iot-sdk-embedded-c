@@ -28,14 +28,14 @@
 The descriptions of the json value node type
 **/
 enum JSONTYPE {
-	JSNONE = -1,
-	JSSTRING = 0,
-	JSOBJECT,
-	JSARRAY,
-	JSNUMBER,
-	JSBOOLEAN,
-	JSNULL,
-	JSTYPEMAX
+    JSNONE = -1,
+    JSSTRING = 0,
+    JSOBJECT,
+    JSARRAY,
+    JSNUMBER,
+    JSBOOLEAN,
+    JSNULL,
+    JSTYPEMAX
 };
 
 /**

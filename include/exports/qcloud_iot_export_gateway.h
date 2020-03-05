@@ -26,11 +26,11 @@ extern "C" {
 /* Gateway and sub-device parameter */
 typedef struct {
     /*gateway device info */
-    char 						*product_id;
-    char 						*device_name;
-	/*sub-device device info */
-	char 						*subdev_product_id;
-	char 						*subdev_device_name;
+    char                        *product_id;
+    char                        *device_name;
+    /*sub-device device info */
+    char                        *subdev_product_id;
+    char                        *subdev_device_name;
 
 } GatewayParam;
 
@@ -50,9 +50,9 @@ typedef void (*GatewayEventHandleFun)(void *client, void *context, void *msg);
 
 /* The structure of gateway init param */
 typedef struct {
-    MQTTInitParams 		init_param; 	/* MQTT params */
-    void 			*event_context; /* the user context */
-    GatewayEventHandleFun 	event_handler; 	/* event handler for gateway user*/
+    MQTTInitParams      init_param;     /* MQTT params */
+    void            *event_context; /* the user context */
+    GatewayEventHandleFun   event_handler;  /* event handler for gateway user*/
 } GatewayInitParam;
 
 #define DEFAULT_GATEWAY_INIT_PARAMS { DEFAULT_MQTTINIT_PARAMS, NULL, NULL}
@@ -87,7 +87,7 @@ int IOT_Gateway_Destroy(void *client);
 int IOT_Gateway_Subdev_Online(void *client, GatewayParam* param);
 
 /**
- * @brief Make sub-device offline 
+ * @brief Make sub-device offline
  *
  * @param client    handle to gateway client
  * @param param     sub-device parameters
@@ -100,7 +100,7 @@ int IOT_Gateway_Subdev_Offline(void *client, GatewayParam* param);
 /**
  * @brief Publish gateway MQTT message
  *
- * @param client        handle to gateway client 
+ * @param client        handle to gateway client
  * @param topic_name    MQTT topic name
  * @param params        publish parameters
  *
@@ -112,7 +112,7 @@ int IOT_Gateway_Publish(void *client, char *topic_name, PublishParams *params);
 /**
  * @brief Subscribe gateway MQTT topic
  *
- * @param client        handle to gateway client 
+ * @param client        handle to gateway client
  * @param topic_filter  MQTT topic filter
  * @param params subscribe parameters
  *
@@ -124,8 +124,8 @@ int IOT_Gateway_Subscribe(void *client, char *topic_filter, SubscribeParams *par
 /**
  * @brief unsubscribe gateway MQTT topic
  *
- * @param client        handle to gateway client 
- * @param topic_filter  MQTT topic filter 
+ * @param client        handle to gateway client
+ * @param topic_filter  MQTT topic filter
  *
  * @return packet id (>=0) when success, or err code (<0) for failure
  */

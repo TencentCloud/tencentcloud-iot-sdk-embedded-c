@@ -33,10 +33,10 @@ extern "C" {
 #define MAX_SIZE_OF_CLIENT_ID                                       (80)
 
 /* MAX size of product ID */
-#define MAX_SIZE_OF_PRODUCT_ID                                    	(10)
+#define MAX_SIZE_OF_PRODUCT_ID                                      (10)
 
 /* MAX size of product secret */
-#define MAX_SIZE_OF_PRODUCT_SECRET                                    	(32)
+#define MAX_SIZE_OF_PRODUCT_SECRET                                      (32)
 
 /* MAX size of device name */
 #define MAX_SIZE_OF_DEVICE_NAME                                     (48)
@@ -53,29 +53,29 @@ extern "C" {
 /**************** QCloud IoT C-SDK constants end *************************/
 
 typedef struct {
-	char	product_id[MAX_SIZE_OF_PRODUCT_ID + 1];
-	char 	device_name[MAX_SIZE_OF_DEVICE_NAME + 1];
-	char	client_id[MAX_SIZE_OF_CLIENT_ID + 1];
-	
+    char    product_id[MAX_SIZE_OF_PRODUCT_ID + 1];
+    char    device_name[MAX_SIZE_OF_DEVICE_NAME + 1];
+    char    client_id[MAX_SIZE_OF_CLIENT_ID + 1];
+
 #ifdef AUTH_MODE_CERT
-	char  	dev_cert_file_name[MAX_SIZE_OF_DEVICE_CERT_FILE_NAME + 1];
-	char 	dev_key_file_name[MAX_SIZE_OF_DEVICE_SECRET_FILE_NAME + 1];
+    char    dev_cert_file_name[MAX_SIZE_OF_DEVICE_CERT_FILE_NAME + 1];
+    char    dev_key_file_name[MAX_SIZE_OF_DEVICE_SECRET_FILE_NAME + 1];
 #else
-	char	device_secret[MAX_SIZE_OF_DEVICE_SECRET + 1];
+    char    device_secret[MAX_SIZE_OF_DEVICE_SECRET + 1];
 #endif
 
 #ifdef DEV_DYN_REG_ENABLED
-	char	product_secret[MAX_SIZE_OF_PRODUCT_SECRET + 1];
-#endif  	
+    char    product_secret[MAX_SIZE_OF_PRODUCT_SECRET + 1];
+#endif
 } DeviceInfo;
 
 #ifdef GATEWAY_ENABLED
 typedef struct {
-	DeviceInfo gw_info;
-	DeviceInfo *sub_dev_info;
-	unsigned int sub_dev_num;
+    DeviceInfo gw_info;
+    DeviceInfo *sub_dev_info;
+    unsigned int sub_dev_num;
 } GatewayDeviceInfo;
-#endif 
+#endif
 
 #include "qcloud_iot_export_variables.h"
 #include "qcloud_iot_export_coap.h"

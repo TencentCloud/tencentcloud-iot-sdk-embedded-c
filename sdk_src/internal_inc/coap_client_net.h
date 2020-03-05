@@ -23,11 +23,11 @@ extern "C" {
 #include <stdio.h>
 
 #include "network_interface.h"
-    
-    
+
+
 int qcloud_iot_coap_network_init(Network *pNetwork);
 
-    
+
 #ifdef __cplusplus
 }
 #endif

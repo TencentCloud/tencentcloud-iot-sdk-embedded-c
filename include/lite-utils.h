@@ -59,28 +59,28 @@
     } while(0)
 #endif
 
-char       	   *LITE_strdup(const char *src);
-char       	   *LITE_format_string(const char *fmt, ...);
-char       	   *LITE_format_nstring(const int len, const char *fmt, ...);
-void        	LITE_hexbuf_convert(unsigned char *digest, char *out, int buflen, int uppercase);
-void        	LITE_hexstr_convert(char *hexstr, uint8_t *out_buf, int len);
-void        	LITE_replace_substr(char orig[], char key[], char swap[]);
+char           *LITE_strdup(const char *src);
+char           *LITE_format_string(const char *fmt, ...);
+char           *LITE_format_nstring(const int len, const char *fmt, ...);
+void            LITE_hexbuf_convert(unsigned char *digest, char *out, int buflen, int uppercase);
+void            LITE_hexstr_convert(char *hexstr, uint8_t *out_buf, int len);
+void            LITE_replace_substr(char orig[], char key[], char swap[]);
 
 char           *LITE_json_value_of(char *key, char *src);
 list_head_t    *LITE_json_keys_of(char *src, char *prefix);
 void            LITE_json_keys_release(list_head_t *keylist);
-char 		   *LITE_json_string_value_strip_transfer(char *key, char *src);
+char           *LITE_json_string_value_strip_transfer(char *key, char *src);
 
 
-int 			LITE_get_int32(int32_t *value, char *src);
-int 			LITE_get_int16(int16_t *value, char *src);
-int 			LITE_get_int8(int8_t *value, char *src);
-int 			LITE_get_uint32(uint32_t *value, char *src);
-int 			LITE_get_uint16(uint16_t *value, char *src);
-int 			LITE_get_uint8(uint8_t *value, char *src);
-int 			LITE_get_float(float *value, char *src);
-int 			LITE_get_double(double *value, char *src);
-int 			LITE_get_boolean(bool *value, char *src);
+int             LITE_get_int32(int32_t *value, char *src);
+int             LITE_get_int16(int16_t *value, char *src);
+int             LITE_get_int8(int8_t *value, char *src);
+int             LITE_get_uint32(uint32_t *value, char *src);
+int             LITE_get_uint16(uint16_t *value, char *src);
+int             LITE_get_uint8(uint8_t *value, char *src);
+int             LITE_get_float(float *value, char *src);
+int             LITE_get_double(double *value, char *src);
+int             LITE_get_boolean(bool *value, char *src);
 
 typedef struct _json_key_t {
     char           *key;

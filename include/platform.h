@@ -20,14 +20,14 @@
 extern "C" {
 #endif
 
-#define PATH_MAX			4096
+#define PATH_MAX            4096
 
 #ifdef WIN32
 #include <Windows.h>
 #include <direct.h>
 #include <limits.h>
 typedef unsigned long ssize_t;
-#define getcwd(buffer,len)	_getcwd(buffer,len)
+#define getcwd(buffer,len)  _getcwd(buffer,len)
 #endif
 
 #if defined(__linux__) && defined(__GLIBC__)

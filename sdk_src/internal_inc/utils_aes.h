@@ -39,10 +39,10 @@ extern "C" {
 #define UTILS_AES_ENCRYPT     1 /**< AES encryption. */
 #define UTILS_AES_DECRYPT     0 /**< AES decryption. */
 
-#define UTILS_AES_BLOCK_LEN		16
-#define AES_KEY_BITS_128		128
-#define AES_KEY_BITS_192		192
-#define AES_KEY_BITS_256		256
+#define UTILS_AES_BLOCK_LEN     16
+#define AES_KEY_BITS_128        128
+#define AES_KEY_BITS_192        192
+#define AES_KEY_BITS_256        256
 
 
 /* Error codes in range 0x0020-0x0022 */
@@ -66,8 +66,7 @@ extern "C" {
 /**
  * \brief The AES context-type definition.
  */
-typedef struct utils_aes_context
-{
+typedef struct utils_aes_context {
     int nr;                     /*!< The number of rounds. */
     uint32_t *rk;               /*!< AES round keys. */
     uint32_t buf[68];           /*!< Unaligned data buffer. This buffer can
@@ -121,7 +120,7 @@ void utils_aes_free( utils_aes_context *ctx );
  * \return         #UTILS_ERR_AES_INVALID_KEY_LENGTH on failure.
  */
 int utils_aes_setkey_enc( utils_aes_context *ctx, const unsigned char *key,
-                    unsigned int keybits );
+                          unsigned int keybits );
 
 /**
  * \brief          This function sets the decryption key.
@@ -139,7 +138,7 @@ int utils_aes_setkey_enc( utils_aes_context *ctx, const unsigned char *key,
  * \return         #UTILS_ERR_AES_INVALID_KEY_LENGTH on failure.
  */
 int utils_aes_setkey_dec( utils_aes_context *ctx, const unsigned char *key,
-                    unsigned int keybits );
+                          unsigned int keybits );
 
 
 /**
@@ -166,9 +165,9 @@ int utils_aes_setkey_dec( utils_aes_context *ctx, const unsigned char *key,
  * \return         \c 0 on success.
  */
 int utils_aes_crypt_ecb( utils_aes_context *ctx,
-                    int mode,
-                    const unsigned char input[16],
-                    unsigned char output[16] );
+                         int mode,
+                         const unsigned char input[16],
+                         unsigned char output[16] );
 
 #if defined(UTILS_CIPHER_MODE_CBC)
 /**
@@ -213,11 +212,11 @@ int utils_aes_crypt_ecb( utils_aes_context *ctx,
  *                 on failure.
  */
 int utils_aes_crypt_cbc( utils_aes_context *ctx,
-                    int mode,
-                    size_t length,
-                    unsigned char iv[16],
-                    const unsigned char *input,
-                    unsigned char *output );
+                         int mode,
+                         size_t length,
+                         unsigned char iv[16],
+                         const unsigned char *input,
+                         unsigned char *output );
 #endif /* UTILS_CIPHER_MODE_CBC */
 
 
@@ -233,8 +232,8 @@ int utils_aes_crypt_cbc( utils_aes_context *ctx,
  * \return          \c 0 on success.
  */
 int utils_internal_aes_encrypt( utils_aes_context *ctx,
-                                  const unsigned char input[16],
-                                  unsigned char output[16] );
+                                const unsigned char input[16],
+                                unsigned char output[16] );
 
 /**
  * \brief           Internal AES block decryption function. This is only
@@ -248,8 +247,8 @@ int utils_internal_aes_encrypt( utils_aes_context *ctx,
  * \return          \c 0 on success.
  */
 int utils_internal_aes_decrypt( utils_aes_context *ctx,
-                                  const unsigned char input[16],
-                                  unsigned char output[16] );
+                                const unsigned char input[16],
+                                unsigned char output[16] );
 
 #if !defined(UTILS_DEPRECATED_REMOVED)
 #if defined(UTILS_DEPRECATED_WARNING)
@@ -268,8 +267,8 @@ int utils_internal_aes_decrypt( utils_aes_context *ctx,
  * \param output    Output (ciphertext) block.
  */
 UTILS_DEPRECATED void utils_aes_encrypt( utils_aes_context *ctx,
-                                             const unsigned char input[16],
-                                             unsigned char output[16] );
+        const unsigned char input[16],
+        unsigned char output[16] );
 
 /**
  * \brief           Deprecated internal AES block decryption function
@@ -282,8 +281,8 @@ UTILS_DEPRECATED void utils_aes_encrypt( utils_aes_context *ctx,
  * \param output    Output (plaintext) block.
  */
 UTILS_DEPRECATED void utils_aes_decrypt( utils_aes_context *ctx,
-                                             const unsigned char input[16],
-                                             unsigned char output[16] );
+        const unsigned char input[16],
+        unsigned char output[16] );
 
 #undef UTILS_DEPRECATED
 #endif /* !UTILS_DEPRECATED_REMOVED */
@@ -303,10 +302,10 @@ int utils_aes_self_test( int verbose );
 int aes_sample(int verbose);
 
 
-int utils_aes_cbc(uint8_t *pInData, uint32_t datalen, 
-									uint8_t *pOutData, uint32_t outBuffLen,
-									uint8_t mode, uint8_t *pKey, 
-									uint16_t keybits, uint8_t *iv);
+int utils_aes_cbc(uint8_t *pInData, uint32_t datalen,
+                  uint8_t *pOutData, uint32_t outBuffLen,
+                  uint8_t mode, uint8_t *pKey,
+                  uint16_t keybits, uint8_t *iv);
 
 
 

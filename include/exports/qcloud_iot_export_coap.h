@@ -36,19 +36,19 @@ typedef void (*OnRespCallback)(void *message, void *userContext);
  * CoAP EVENT TYPE
  */
 typedef enum {
-	COAP_EVENT_RECEIVE_ACK = 0,					// MSG ACK received
+    COAP_EVENT_RECEIVE_ACK = 0,                 // MSG ACK received
 
-	COAP_EVENT_RECEIVE_RESPCONTENT = 1,			// MSG response received
+    COAP_EVENT_RECEIVE_RESPCONTENT = 1,         // MSG response received
 
-	COAP_EVENT_UNAUTHORIZED = -1,				// Device auth failed or token expired
+    COAP_EVENT_UNAUTHORIZED = -1,               // Device auth failed or token expired
 
-	COAP_EVENT_FORBIDDEN = -2,					// CoAP URI invalid or without permission
+    COAP_EVENT_FORBIDDEN = -2,                  // CoAP URI invalid or without permission
 
-	COAP_EVENT_INTERNAL_SERVER_ERROR = -3,		// CoAP server error
+    COAP_EVENT_INTERNAL_SERVER_ERROR = -3,      // CoAP server error
 
-	COAP_EVENT_ACK_TIMEOUT = -4,				// MSG ACK timeout
+    COAP_EVENT_ACK_TIMEOUT = -4,                // MSG ACK timeout
 
-	COAP_EVENT_SEPRESP_TIMEOUT = -5,			// MSG response timeout
+    COAP_EVENT_SEPRESP_TIMEOUT = -5,            // MSG response timeout
 } CoAPEventType;
 
 typedef struct {
@@ -71,11 +71,11 @@ typedef struct {
  * @brief CoAP data structure when sending msg
  */
 typedef struct {
-    bool          				need_resp;			// Need response from peer (true), or not (false). Currently only false is supported
-    char        				*pay_load;     		// COAP msg payload
-    size_t     					pay_load_len;  		// COAP msg payload length
-    void						*user_context;		// user context for callback
-    OnRespCallback 				resp_callback;		// function callback when recv msg response, valid only when need_resp is true
+    bool                        need_resp;          // Need response from peer (true), or not (false). Currently only false is supported
+    char                        *pay_load;          // COAP msg payload
+    size_t                      pay_load_len;       // COAP msg payload length
+    void                        *user_context;      // user context for callback
+    OnRespCallback              resp_callback;      // function callback when recv msg response, valid only when need_resp is true
 } SendMsgParams;
 
 #define DEFAULT_SENDMSG_PARAMS {false, NULL, 0, NULL, NULL}
@@ -95,7 +95,7 @@ typedef struct {
     char                        *device_secret;                    // device secret
 #endif
 
-    uint32_t					command_timeout;		 // coap timeout value when waiting for ACK/response
+    uint32_t                    command_timeout;         // coap timeout value when waiting for ACK/response
 
     unsigned char               max_retry_count;         // CoAP max sending retry count
 
@@ -104,9 +104,9 @@ typedef struct {
 } CoAPInitParams;
 
 #ifdef AUTH_MODE_CERT
-	#define DEFAULT_COAPINIT_PARAMS { NULL, NULL, NULL, NULL, 2000, 5, {0}}
+#define DEFAULT_COAPINIT_PARAMS { NULL, NULL, NULL, NULL, 2000, 5, {0}}
 #else
-    #define DEFAULT_COAPINIT_PARAMS { NULL, NULL, NULL, 2000, 5, {0}}
+#define DEFAULT_COAPINIT_PARAMS { NULL, NULL, NULL, 2000, 5, {0}}
 #endif
 
 /**
@@ -138,9 +138,9 @@ int   IOT_COAP_Yield(void *pClient, uint32_t timeout_ms);
 /**
  * @brief Send/publish CoAP msg
  *
- * @param pClient 			COAPClient pointer
- * @param topicName 		CoAP URI (msg topic)
- * @param sendParams 		Tx msg parameters
+ * @param pClient           COAPClient pointer
+ * @param topicName         CoAP URI (msg topic)
+ * @param sendParams        Tx msg parameters
  * @return value > 0 for msg Id; value < 0 for failure
  */
 int   IOT_COAP_SendMessage(void *pClient, char *topicName, SendMsgParams *sendParams);
@@ -156,9 +156,9 @@ int   IOT_COAP_GetMessageId(void *pMessage);
 /**
  * @brief Get COAP Response payload
  *
- * @param pMessage 			COAP Response msg
- * @param payload 			msg payload
- * @param payloadLen 		msg payload length
+ * @param pMessage          COAP Response msg
+ * @param payload           msg payload
+ * @param payloadLen        msg payload length
  * @return QCLOUD_RET_SUCCESS when success, otherwise fail
  */
 int   IOT_COAP_GetMessagePayload(void *pMessage, char **payload, int *payloadLen);
@@ -167,7 +167,7 @@ int   IOT_COAP_GetMessagePayload(void *pMessage, char **payload, int *payloadLen
  * @brief Get COAP Response msg error code
  *
  * @param pMessage  COAP Response msg
- * @return 	COAPEventType converted from msg error code
+ * @return  COAPEventType converted from msg error code
  */
 int   IOT_COAP_GetMessageCode(void *pMessage);
 

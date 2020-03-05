@@ -105,10 +105,11 @@ static const char *iot_https_ca_crt = \
 #endif
 #endif
 
-const char *iot_ca_get() {
+const char *iot_ca_get()
+{
 #ifndef AUTH_WITH_NOTLS
 #if defined(AUTH_MODE_CERT) || defined(DEV_DYN_REG_ENABLED)
-	return iot_ca_crt;
+    return iot_ca_crt;
 #else
     return NULL;
 #endif
@@ -117,11 +118,12 @@ const char *iot_ca_get() {
 #endif
 }
 
-const char *iot_https_ca_get() {
+const char *iot_https_ca_get()
+{
 #ifndef AUTH_WITH_NOTLS
 
 #ifdef OTA_USE_HTTPS
-	return iot_https_ca_crt;
+    return iot_https_ca_crt;
 #else
     return NULL;
 #endif
