@@ -24,6 +24,7 @@ extern "C" {
 
 #ifdef WIN32
 #include <Windows.h>
+#include <process.h>
 #include <direct.h>
 #include <limits.h>
 typedef unsigned long ssize_t;

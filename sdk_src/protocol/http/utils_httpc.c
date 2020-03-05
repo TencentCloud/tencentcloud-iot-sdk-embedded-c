@@ -327,14 +327,15 @@ static int _http_client_recv(HTTPClient *client, char *buf, int min_len, int max
 
     int rc = 0;
     Timer timer;
+    size_t recv_size = 0;
 
     InitTimer(&timer);
     countdown_ms(&timer, (unsigned int)timeout_ms);
 
     *p_read_len = 0;
 
-    rc = client->network_stack.read(&client->network_stack, (unsigned char *)buf, max_len, (uint32_t)left_ms(&timer), (size_t *)p_read_len);
-
+    rc = client->network_stack.read(&client->network_stack, (unsigned char *)buf, max_len, (uint32_t)left_ms(&timer), &recv_size);
+    *p_read_len = (int)recv_size;
     if (rc == QCLOUD_ERR_SSL_NOTHING_TO_READ || rc == QCLOUD_ERR_TCP_NOTHING_TO_READ) {
         Log_d("HTTP read nothing and timeout");
         rc = QCLOUD_RET_SUCCESS;

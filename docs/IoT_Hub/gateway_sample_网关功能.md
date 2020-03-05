@@ -129,3 +129,20 @@ DBG|2019-09-16 14:35:35|mqtt_client_publish.c|qcloud_iot_mqtt_publish(329): publ
 INF|2019-09-16 14:35:35|gateway_sample.c|_event_handler(88): publish success, packet-id=27804
 INF|2019-09-16 14:35:35|gateway_sample.c|_message_handler(111): Receive Message With topicName:S3EUVBRJLB/test_device/data, payload:{"data":"test gateway"}
 ```
+
+## 三. 代码说明
+
+gateway_sample示例演示了网关代理一个子设备的情况，如果用户需要增加更多子设备，可以先在控制台添加子设备，然后在代码里面通过创建更多GatewayParam参数实例，并将GatewayParam参数传递给网关各个API，即可以实现网关代理多个子设备进行通讯。
+```
+    // one GatewayParam only support one sub-device
+    // use more GatewayParam to add more sub-device
+    GatewayParam gw_param1 = DEFAULT_GATEWAY_PARAMS;;
+    gw_param1.product_id = gw_dev_info.gw_info.product_id;
+    gw_param1.device_name = gw_dev_info.gw_info.device_name;
+
+    gw_param1.subdev_product_id = "SUB-PRODUCT1";
+    gw_param1.subdev_device_name = "SUB-DEVICE1";
+
+    IOT_Gateway_Subdev_Online(client, &gw_param1);
+```
+

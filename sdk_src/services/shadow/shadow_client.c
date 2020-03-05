@@ -181,6 +181,15 @@ End:
     return NULL;
 }
 
+void *IOT_Shadow_Get_Mqtt_Client(void *handle)
+{
+    POINTER_SANITY_CHECK(handle, NULL);
+
+    Qcloud_IoT_Shadow   *shadow = (Qcloud_IoT_Shadow *)handle;
+
+    return shadow->mqtt;
+}
+
 int IOT_Shadow_Publish(void *handle, char *topicName, PublishParams *pParams)
 {
     POINTER_SANITY_CHECK(handle, QCLOUD_ERR_INVAL);

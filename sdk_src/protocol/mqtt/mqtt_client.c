@@ -231,6 +231,14 @@ int IOT_MQTT_Unsubscribe(void *pClient, char *topicFilter)
     return qcloud_iot_mqtt_unsubscribe(mqtt_client, topicFilter);
 }
 
+bool IOT_MQTT_IsSubReady(void *pClient, char *topicFilter)
+{
+    Qcloud_IoT_Client   *mqtt_client = (Qcloud_IoT_Client *)pClient;
+
+    return qcloud_iot_mqtt_is_sub_ready(mqtt_client, topicFilter);
+
+}
+
 bool IOT_MQTT_IsConnected(void *pClient)
 {
     IOT_FUNC_ENTRY;

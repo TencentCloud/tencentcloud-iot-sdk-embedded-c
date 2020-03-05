@@ -101,6 +101,7 @@ typedef struct _JSONNode {
     char         *key;    // Key of this JSON node
     void         *data;   // Value of this JSON node
     JsonDataType type;    // Data type of this JSON node
+    bool         delta_arrived;
 } DeviceProperty;
 
 
@@ -172,6 +173,15 @@ typedef void (*OnPropRegCallback)(void *pClient, const char *pJsonValueBuffer, u
  * @return a valid Shadow client handle when success, or NULL otherwise
  */
 void* IOT_Shadow_Construct(ShadowInitParams *pParams);
+
+/**
+ * @brief Return the MQTT client dedicated to this shadow handle
+ *
+ * @param pClient       handle to shadow client
+ *
+ * @return a valid mqtt client handle when success, or NULL otherwise
+ */
+void *IOT_Shadow_Get_Mqtt_Client(void *handle);
 
 /**
  * @brief Publish MQTT message

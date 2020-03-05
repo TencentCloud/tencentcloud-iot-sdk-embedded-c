@@ -329,6 +329,16 @@ int qcloud_iot_mqtt_resubscribe(Qcloud_IoT_Client *pClient);
 int qcloud_iot_mqtt_unsubscribe(Qcloud_IoT_Client *pClient, char *topicFilter);
 
 /**
+ * @brief check if MQTT topic has been subscribed or not
+ *
+ * @param pClient       handle to MQTT client
+ * @param topicFilter   MQTT topic filter
+ *
+ * @return true when successfully subscribed, or false if not yet
+ */
+bool qcloud_iot_mqtt_is_sub_ready(Qcloud_IoT_Client *pClient, char *topicFilter);
+
+/**
  * @brief Check connection and keep alive state, read/handle MQTT message in synchronized way
  *
  * @param pClient    handle to MQTT client

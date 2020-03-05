@@ -249,6 +249,16 @@ int IOT_MQTT_Subscribe(void *pClient, char *topicFilter, SubscribeParams *pParam
 int IOT_MQTT_Unsubscribe(void *pClient, char *topicFilter);
 
 /**
+ * @brief check if MQTT topic has been subscribed or not
+ *
+ * @param pClient       handle to MQTT client
+ * @param topicFilter   MQTT topic filter
+ *
+ * @return true when successfully subscribed, or false if not yet
+ */
+bool IOT_MQTT_IsSubReady(void *pClient, char *topicFilter);
+
+/**
  * @brief Check if MQTT is connected
  *
  * @param pClient       handle to MQTT client

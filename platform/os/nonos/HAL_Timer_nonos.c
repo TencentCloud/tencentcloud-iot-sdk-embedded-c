@@ -47,7 +47,7 @@ char* HAL_Timer_current(void)
 
     time_sec = HAL_Timer_current_sec();
     memset(now_time_str, 0, 20);
-    snprintf(now_time_str, 20, "%d", time_sec);
+    snprintf(now_time_str, 20, "%ld", time_sec);
 
     return now_time_str;
 }

@@ -175,7 +175,7 @@ int HAL_AT_Uart_Send(void *data, uint32_t size)
 
     if (sg_at_uart.state == eOPENED) {
         while (leftlen > 0) {
-            ret = write(sg_at_uart.fd, data + size - leftlen, leftlen);
+            ret = write(sg_at_uart.fd, (char *)data + size - leftlen, leftlen);
             if (ret == -1) {
                 Log_e("write uart fd failed on error: %d.\r\n", errno);
                 ret = QCLOUD_ERR_FAILURE;

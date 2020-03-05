@@ -131,6 +131,15 @@ int IOT_Gateway_Subscribe(void *client, char *topic_filter, SubscribeParams *par
  */
 int IOT_Gateway_Unsubscribe(void *client, char *topic_filter);
 
+/**
+ * @brief check if MQTT topic has been subscribed or not
+ *
+ * @param pClient       handle to MQTT client
+ * @param topicFilter   MQTT topic filter
+ *
+ * @return true when successfully subscribed, or false if not yet
+ */
+int IOT_Gateway_IsSubReady(void *client, char *topic_filter);
 
 /**
  * @brief Check connection and keep alive state, read/handle MQTT message in synchronized way
@@ -142,6 +151,14 @@ int IOT_Gateway_Unsubscribe(void *client, char *topic_filter);
  */
 int IOT_Gateway_Yield(void *client, uint32_t timeout_ms);
 
+/**
+ * @brief Return the MQTT client dedicated to this gateway handle
+ *
+ * @param pClient       handle to gateway client
+ *
+ * @return a valid mqtt client handle when success, or NULL otherwise
+ */
+void *IOT_Gateway_Get_Mqtt_Client(void *handle);
 
 #ifdef __cplusplus
 }
