@@ -246,13 +246,31 @@ int IOT_Gateway_Subdev_Offline(void *client, GatewayParam* param)
     IOT_FUNC_EXIT_RC(QCLOUD_RET_SUCCESS);
 }
 
+void *IOT_Gateway_Get_Mqtt_Client(void *handle)
+{
+    POINTER_SANITY_CHECK(handle, NULL);
+
+    Gateway* gateway = (Gateway*)handle;
+
+    return gateway->mqtt;
+}
 
 int IOT_Gateway_Destroy(void *client)
 {
     Gateway* gateway = (Gateway*)client;
     POINTER_SANITY_CHECK(gateway, QCLOUD_ERR_INVAL);
 
-    return IOT_MQTT_Destroy(&gateway->mqtt);
+    SubdevSession* cur_session = gateway->session_list;
+    while (cur_session) {        
+        SubdevSession* session = cur_session;
+        cur_session = cur_session->next;
+        HAL_Free(session);
+    }
+
+    IOT_MQTT_Destroy(&gateway->mqtt);
+    HAL_Free(client);
+
+    IOT_FUNC_EXIT_RC(QCLOUD_RET_SUCCESS)
 }
 
 
@@ -279,6 +297,14 @@ int IOT_Gateway_Unsubscribe(void *client, char *topic_filter)
     POINTER_SANITY_CHECK(gateway, QCLOUD_ERR_INVAL);
 
     return IOT_MQTT_Unsubscribe(gateway->mqtt, topic_filter);
+}
+
+int IOT_Gateway_IsSubReady(void *client, char *topic_filter)
+{
+    Gateway* gateway = (Gateway*)client;
+    POINTER_SANITY_CHECK(gateway, QCLOUD_ERR_INVAL);
+
+    return IOT_MQTT_IsSubReady(gateway->mqtt, topic_filter);
 }
 
 

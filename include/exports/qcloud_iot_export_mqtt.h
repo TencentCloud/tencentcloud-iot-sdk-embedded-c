@@ -39,16 +39,16 @@ typedef enum _QoS {
  * @brief MQTT message parameter for pub/sub
  */
 typedef struct {
-    QoS         			qos;          // MQTT QoS level
-    uint8_t     			retained;     // RETAIN flag
-    uint8_t     			dup;          // DUP flag
-    uint16_t    			id;           // MQTT Id
+    QoS                     qos;          // MQTT QoS level
+    uint8_t                 retained;     // RETAIN flag
+    uint8_t                 dup;          // DUP flag
+    uint16_t                id;           // MQTT Id
 
-    const char  			*ptopic;      // MQTT topic
-    size_t      			topic_len;    // topic length
+    const char              *ptopic;      // MQTT topic
+    size_t                  topic_len;    // topic length
 
-    void        			*payload;     // MQTT msg payload
-    size_t      			payload_len;  // MQTT length of msg payload
+    void                    *payload;     // MQTT msg payload
+    size_t                  payload_len;  // MQTT length of msg payload
 } MQTTMessage;
 
 typedef MQTTMessage PublishParams;
@@ -119,7 +119,7 @@ typedef void (*OnSubEventHandler)(void *pClient, MQTTEventType event_type, void 
  */
 typedef struct {
     QoS                     qos;                    // MQTT QoS level
-    OnMessageHandler        on_message_handler;     // callback when message arrived 
+    OnMessageHandler        on_message_handler;     // callback when message arrived
     OnSubEventHandler       on_sub_event_handler;   // callback when event happened
     void                    *user_data;             // user context for callback
 } SubscribeParams;
@@ -157,23 +157,23 @@ typedef struct {
 
 /* The structure of MQTT init parameters */
 typedef struct {
-        /* device info */
-        char                        *product_id;             // product ID
-        char                        *device_name;            // device name
-    
+    /* device info */
+    char                        *product_id;             // product ID
+    char                        *device_name;            // device name
+
 #ifdef AUTH_MODE_CERT
-        char                        *cert_file;              // cert file path
-        char                        *key_file;               // key file path
+    char                        *cert_file;              // cert file path
+    char                        *key_file;               // key file path
 #else
-        char                        *device_secret;          // device secret
+    char                        *device_secret;          // device secret
 #endif
 
-    uint32_t					command_timeout;		    // timeout value (unit: ms) for MQTT connect/pub/sub/yield
-    uint32_t					keep_alive_interval_ms;	    // MQTT keep alive time interval in millisecond
+    uint32_t                    command_timeout;            // timeout value (unit: ms) for MQTT connect/pub/sub/yield
+    uint32_t                    keep_alive_interval_ms;     // MQTT keep alive time interval in millisecond
 
-    uint8_t         			clean_session;			    // flag of clean session, 1 clean, 0 not clean
+    uint8_t                     clean_session;              // flag of clean session, 1 clean, 0 not clean
 
-    uint8_t                   	auto_connect_enable;        // flag of auto reconnection, 1 is enable and recommended
+    uint8_t                     auto_connect_enable;        // flag of auto reconnection, 1 is enable and recommended
 
     MQTTEventHandler            event_handle;               // event callback
 
@@ -183,9 +183,9 @@ typedef struct {
  * Default MQTT init parameters
  */
 #ifdef AUTH_MODE_CERT
-	#define DEFAULT_MQTTINIT_PARAMS { NULL, NULL, NULL, NULL, 5000, 240 * 1000, 1, 1, {0}}
+#define DEFAULT_MQTTINIT_PARAMS { NULL, NULL, NULL, NULL, 5000, 240 * 1000, 1, 1, {0}}
 #else
-    #define DEFAULT_MQTTINIT_PARAMS { NULL, NULL, NULL, 5000, 240 * 1000, 1, 1, {0}}
+#define DEFAULT_MQTTINIT_PARAMS { NULL, NULL, NULL, 5000, 240 * 1000, 1, 1, {0}}
 #endif
 
 /**
@@ -219,7 +219,7 @@ int IOT_MQTT_Yield(void *pClient, uint32_t timeout_ms);
 /**
  * @brief Publish MQTT message
  *
- * @param pClient       handle to MQTT client 
+ * @param pClient       handle to MQTT client
  * @param topicName     MQTT topic name
  * @param pParams       publish parameters
  *
@@ -230,7 +230,7 @@ int IOT_MQTT_Publish(void *pClient, char *topicName, PublishParams *pParams);
 /**
  * @brief Subscribe MQTT topic
  *
- * @param pClient       handle to MQTT client 
+ * @param pClient       handle to MQTT client
  * @param topicFilter   MQTT topic filter
  * @param pParams       subscribe parameters
  *
@@ -241,7 +241,7 @@ int IOT_MQTT_Subscribe(void *pClient, char *topicFilter, SubscribeParams *pParam
 /**
  * @brief Unsubscribe MQTT topic
  *
- * @param pClient       handle to MQTT client 
+ * @param pClient       handle to MQTT client
  * @param topicFilter   MQTT topic filter
  *
  * @return packet id (>=0) when success, or err code (<0) for failure
@@ -249,9 +249,19 @@ int IOT_MQTT_Subscribe(void *pClient, char *topicFilter, SubscribeParams *pParam
 int IOT_MQTT_Unsubscribe(void *pClient, char *topicFilter);
 
 /**
+ * @brief check if MQTT topic has been subscribed or not
+ *
+ * @param pClient       handle to MQTT client
+ * @param topicFilter   MQTT topic filter
+ *
+ * @return true when successfully subscribed, or false if not yet
+ */
+bool IOT_MQTT_IsSubReady(void *pClient, char *topicFilter);
+
+/**
  * @brief Check if MQTT is connected
  *
- * @param pClient       handle to MQTT client 
+ * @param pClient       handle to MQTT client
  * @return true= connected, false = unconnected
  */
 bool IOT_MQTT_IsConnected(void *pClient);

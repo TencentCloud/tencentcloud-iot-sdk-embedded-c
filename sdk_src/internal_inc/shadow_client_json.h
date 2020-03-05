@@ -28,27 +28,27 @@ extern "C" {
 #include "qcloud_iot_export.h"
 #include "qcloud_iot_import.h"
 
-#define VERSION_FIELD          		"version"
-#define TYPE_FIELD	         		"type"
-#define CLIENT_TOKEN_FIELD     		"clientToken"
-#define RESULT_FIELD	       		"result"
+#define VERSION_FIELD               "version"
+#define TYPE_FIELD                  "type"
+#define CLIENT_TOKEN_FIELD          "clientToken"
+#define RESULT_FIELD                "result"
 
-#define OPERATION_DELTA        		"delta"
-#define OPERATION_GET				"get"
-#define OPERATION_UPDATE			"update"
+#define OPERATION_DELTA             "delta"
+#define OPERATION_GET               "get"
+#define OPERATION_UPDATE            "update"
 
-#define PAYLOAD_STATE				"payload.state"
-#define PAYLOAD_VERSION				"payload.version"
-#define PAYLOAD_STATE_DELTA			"payload.state.delta"
+#define PAYLOAD_STATE               "payload.state"
+#define PAYLOAD_VERSION             "payload.version"
+#define PAYLOAD_STATE_DELTA         "payload.state.delta"
 
-#define REPLY_CODE					"code"
-#define REPLY_STATUS				"status"
+#define REPLY_CODE                  "code"
+#define REPLY_STATUS                "status"
 
 
 /**
  * add a JSON node to JSON string
  *
- * @param jsonBuffer   	JSON string buffer
+ * @param jsonBuffer    JSON string buffer
  * @param sizeOfBuffer  size of buffer
  * @param pKey          key of JSON node
  * @param pData         value of JSON node
@@ -60,7 +60,7 @@ int put_json_node(char *jsonBuffer, size_t sizeOfBuffer, const char *pKey, void 
 /**
  * add a event JSON node to JSON string
  *
- * @param jsonBuffer   	JSON string buffer
+ * @param jsonBuffer    JSON string buffer
  * @param sizeOfBuffer  size of buffer
  * @param pKey          key of JSON node
  * @param pData         value of JSON node
@@ -101,7 +101,7 @@ bool parse_client_token(char *pJsonDoc, char **pClientToken);
  * @brief parse field of status from JSON string
  *
  * @param pJsonDoc       source JSON string
- * @param pStatus   	 pointer to field of status
+ * @param pStatus        pointer to field of status
  * @return               true for success
  */
 bool parse_status_return(char *pJsonDoc, char **pStatus);
@@ -110,7 +110,7 @@ bool parse_status_return(char *pJsonDoc, char **pStatus);
  * @brief parse field of code from JSON string
  *
  * @param pJsonDoc       source JSON string
- * @param pCode   		 pointer to field of Code
+ * @param pCode          pointer to field of Code
  * @return               true for success
  */
 bool parse_code_return(char *pJsonDoc, int32_t *pCode);
@@ -138,7 +138,7 @@ bool parse_shadow_state(char *pJsonDoc, char **pState);
  * @brief parse field of type from JSON string
  *
  * @param pJsonDoc       source JSON string
- * @param pType    		 pointer to field of tyde
+ * @param pType          pointer to field of tyde
  * @return               true for success
  */
 bool parse_shadow_operation_type(char *pJsonDoc, char **pType);
@@ -156,7 +156,7 @@ bool parse_shadow_operation_result_code(char *pJsonDoc, int16_t *pResultCode);
  * @brief parse field of delta from JSON string
  *
  * @param pJsonDoc       source JSON string
- * @param pDelta    	 pointer to field of delta
+ * @param pDelta         pointer to field of delta
  * @return               true for success
  */
 bool parse_shadow_operation_delta(char *pJsonDoc, char **pDelta);

@@ -35,7 +35,7 @@ typedef enum {
     IOT_OTA_ERR_FETCH_TIMEOUT = -8,
     IOT_OTA_ERR_NOMEM = -9,
     IOT_OTA_ERR_OSC_FAILED = -10,
-    IOT_OTA_ERR_REPORT_VERSION = -11, 
+    IOT_OTA_ERR_REPORT_VERSION = -11,
     IOT_OTA_ERR_NONE = 0
 
 } IOT_OTA_Error_Code;
@@ -148,6 +148,8 @@ int IOT_OTA_StartDownload(void *handle, uint32_t offset, uint32_t size);
  */
 void IOT_OTA_UpdateClientMd5(void *handle, char * buff, uint32_t size);
 
+int IOT_OTA_ResetClientMD5(void *handle);
+
 /**
  * @brief Report local firmware version to server
  *        NOTE: do this report before real download
@@ -214,7 +216,7 @@ int IOT_OTA_IsFetchFinish(void *handle);
  * @brief Download firmware from HTTP server and save to buffer
  *
  * @param handle:       OTA module handle
- * @param buf:          buffer to store firmware 
+ * @param buf:          buffer to store firmware
  * @param buf_len:      length of buffer
  * @param timeout_s:    timeout value in second
  *

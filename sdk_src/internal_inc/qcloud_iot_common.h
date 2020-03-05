@@ -33,8 +33,8 @@
 #define COAP_SERVER_PORT                        5684
 
 /* server domain for dynamic registering device */
-#define  DYN_REG_SERVER_URL     	            "gateway.tencentdevices.com" 
-#define  DYN_REG_SERVER_PORT   		            80
+#define  DYN_REG_SERVER_URL                     "gateway.tencentdevices.com"
+#define  DYN_REG_SERVER_PORT                    80
 #define  DYN_REG_SERVER_PORT_TLS                443
 
 /* URL for doing log upload */

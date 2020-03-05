@@ -27,11 +27,11 @@ typedef struct {
 } iot_md5_context;
 
 
- /**
- * @brief init MD5 context
- *
- * @param ctx   MD5 context
- */
+/**
+* @brief init MD5 context
+*
+* @param ctx   MD5 context
+*/
 void utils_md5_init(iot_md5_context *ctx);
 
 /**

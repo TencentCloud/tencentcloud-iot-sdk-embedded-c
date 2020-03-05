@@ -36,7 +36,8 @@ typedef struct  {
     char                    topic_upgrade[OTA_MAX_TOPIC_LEN];       //OTA MQTT Topic
     OnOTAMessageCallback    msg_callback;
 
-    void *context;
+    void                    *context;
+    bool                    topic_ready;
 } OTA_MQTT_Struct_t;
 
 /* Generate topic name according to @OTATopicType, @productId, @deviceName */
@@ -107,6 +108,39 @@ static void _otamqtt_upgrage_cb(void *pClient, MQTTMessage *message, void *pcont
     }
 }
 
+static void _otamqtt_event_callback(void *pclient, MQTTEventType event_type, void *user_data)
+{
+    OTA_MQTT_Struct_t *h_osc = (OTA_MQTT_Struct_t *)user_data;
+
+    switch (event_type) {
+        case MQTT_EVENT_SUBCRIBE_SUCCESS:
+            Log_d("OTA topic subscribe success");
+            h_osc->topic_ready  = true;
+            break;
+
+        case MQTT_EVENT_SUBCRIBE_TIMEOUT:
+            Log_i("OTA topic subscribe timeout");
+            h_osc->topic_ready = false;
+            break;
+
+        case MQTT_EVENT_SUBCRIBE_NACK:
+            Log_i("OTA topic subscribe NACK");
+            h_osc->topic_ready = false;
+            break;
+        case MQTT_EVENT_UNSUBSCRIBE:
+            Log_i("OTA topic has been unsubscribed");
+            h_osc->topic_ready = false;;
+            break;
+        case MQTT_EVENT_CLIENT_DESTROY:
+            Log_i("mqtt client has been destroyed");
+            h_osc->topic_ready = false;;
+            break;
+        default:
+            return;
+    }
+}
+
+
 void *qcloud_osc_init(const char *productId, const char *deviceName, void *channel, OnOTAMessageCallback callback, void *context)
 {
     int ret;
@@ -128,12 +162,25 @@ void *qcloud_osc_init(const char *productId, const char *deviceName, void *chann
 
     SubscribeParams sub_params = DEFAULT_SUB_PARAMS;
     sub_params.on_message_handler = _otamqtt_upgrage_cb;
+    sub_params.on_sub_event_handler = _otamqtt_event_callback;
     sub_params.qos = QOS1;
     sub_params.user_data = h_osc;
 
     ret = IOT_MQTT_Subscribe(channel, h_osc->topic_upgrade, &sub_params);
     if (ret < 0) {
         Log_e("ota mqtt subscribe failed!");
+        goto do_exit;
+    }
+
+    int wait_cnt = 10;
+    while (!h_osc->topic_ready && (wait_cnt > 0)) {
+        // wait for subscription result
+        IOT_MQTT_Yield(channel, 200);        
+        wait_cnt--;
+    }
+
+    if (wait_cnt == 0) {
+        Log_e("ota mqtt subscribe timeout!");
         goto do_exit;
     }
 

@@ -41,7 +41,7 @@ typedef struct {
     char        *header;
     char        *auth_user;
     char        *auth_password;
-    Network     network_stack;      
+    Network     network_stack;
 } HTTPClient;
 
 typedef struct {
@@ -64,13 +64,13 @@ typedef struct {
  * @param port          server port
  * @param ca_crt_dir    ca path
  * @param method        type of request
- * @param client_data   http data 
+ * @param client_data   http data
  * @return              QCLOUD_RET_SUCCESS for success, or err code for failure
  */
 int qcloud_http_client_common(HTTPClient *client, const char *url, int port, const char *ca_crt, HttpMethod method, HTTPClientData *client_data);
 
 int qcloud_http_recv_data(HTTPClient *client, uint32_t timeout_ms, HTTPClientData *client_data);
-    
+
 int qcloud_http_client_connect(HTTPClient *client, const char *url, int port, const char *ca_crt);
 
 void qcloud_http_client_close(HTTPClient *client);

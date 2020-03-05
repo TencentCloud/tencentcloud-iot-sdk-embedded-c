@@ -46,13 +46,13 @@ extern "C" {
  */
 typedef struct _RequestParam {
 
-    Method               	method;              	// method type: GET, UPDATE, DELETE
+    Method                  method;                 // method type: GET, UPDATE, DELETE
 
-    uint32_t             	timeout_sec;         	// request timeout in second
+    uint32_t                timeout_sec;            // request timeout in second
 
-    OnRequestCallback    	request_callback;    	// request callback
+    OnRequestCallback       request_callback;       // request callback
 
-    void                 	*user_context;          // user context for callback
+    void                    *user_context;          // user context for callback
 
 } RequestParams;
 
@@ -63,9 +63,9 @@ typedef struct _RequestParam {
  */
 typedef struct {
 
-    void *property;							
+    void *property;
 
-    OnPropRegCallback callback;      
+    OnPropRegCallback callback;
 
 } PropertyHandler;
 
@@ -80,7 +80,7 @@ typedef struct _ShadowInnerData {
 typedef struct _Shadow {
     void *mqtt;
     void *mutex;
-	eShadowType shadow_type;
+    eShadowType shadow_type;
     MQTTEventHandler event_handle;
     ShadowInnerData inner_data;
 } Qcloud_IoT_Shadow;
@@ -91,7 +91,7 @@ void qcloud_iot_shadow_reset(void *pClient);
 
 /**
  * @brief handle the expired requests in list
- * 
+ *
  * @param pShadow   shadow client
  */
 void handle_expired_request(Qcloud_IoT_Shadow *pShadow);
@@ -100,10 +100,10 @@ void handle_expired_request(Qcloud_IoT_Shadow *pShadow);
  * @brief Entry of all shadow JSON request
  *
  * @param pShadow       shadow client
- * @param pParams  		request param
- * @param pJsonDoc 		JSON buffer
- * @param sizeOfBuffer 	size of buffer
- * @return         		QCLOUD_RET_SUCCESS for success, or err code for failure
+ * @param pParams       request param
+ * @param pJsonDoc      JSON buffer
+ * @param sizeOfBuffer  size of buffer
+ * @return              QCLOUD_RET_SUCCESS for success, or err code for failure
  */
 int do_shadow_request(Qcloud_IoT_Shadow *pShadow, RequestParams *pParams, char *pJsonDoc, size_t sizeOfBuffer);
 
@@ -111,7 +111,7 @@ int do_shadow_request(Qcloud_IoT_Shadow *pShadow, RequestParams *pParams, char *
  * @brief subscribe shadow topic $shadow/operation/result
  *
  * @param pShadow       shadow client
- * @return         		QCLOUD_RET_SUCCESS for success, or err code for failure
+ * @return              QCLOUD_RET_SUCCESS for success, or err code for failure
  */
 int subscribe_operation_result_to_cloud(Qcloud_IoT_Shadow *pShadow);
 

@@ -8,6 +8,9 @@
 ## 设备影子
 请参考**shadow_sample_设备影子.md**文档，介绍设备影子功能，并结合 SDK 的**shadow_sample**展示影子的数据流和功能
 
+## 固件升级
+请参考**ota_sample_固件升级.md**文档，介绍固件升级功能，并结合 SDK 的**ota_mqtt_sample**展示固件升级的流程和功能
+
 ## 网关功能 
 请参考**gateway_sample_网关功能.md**文档，介绍如何在腾讯IoT Hub控制台申请网关设备并绑定子设备, 并结合本 SDK 的**gateway_sample**快速体验网关设备通过 MQTT 协议连接到腾讯云IoT Hub, 代理子设备上下线，发送和接收消息。
 

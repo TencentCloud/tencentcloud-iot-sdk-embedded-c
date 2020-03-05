@@ -47,6 +47,11 @@
 
 随后将会创建出 productID/\${deviceName}/data 的 Topic，在产品页面的权限列表中可以查看该产品的所有权限。
 
+#### 5. 创建消息转发规则
+消息在设备间的转发需要通过规则引擎进行，具体用法请参考[规则引擎](https://cloud.tencent.com/document/product/634/14446)
+
+需要注意的是同一个设备，如果想进行自发自收，也需要创建转发规则，对于本示例，可以参考下图设立转发规则（需要将图片中productID以及deviceName部分替换为上面创建的设备信息）
+![](https://main.qcloudimg.com/raw/5cdda90be21256386bcd786268f72e6f.png)
 
 ## 二. 编译运行示例程序
 

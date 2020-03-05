@@ -63,6 +63,7 @@ sdk_src为SDK的核心逻辑及协议相关代码，一般不需要修改，其�
 | FEATURE_LOG_UPLOAD_ENABLED       | ON/OFF        | 日志上报开关                                                 |
 | FEATURE_DEBUG_DEV_INFO_USED      | ON/OFF        | 设备信息获取来源开关                                         |
 | FEATURE_SYSTEM_COMM_ENABLED      | ON/OFF        | 获取后台时间开关                                             |
+| FEATURE_OTA_USE_HTTPS            | ON/OFF        | 是否使用HTTPS下载固件                                        |
 | FEATURE_AT_TCP_ENABLED           | ON/OFF        | AT模组TCP功能开关                                            |
 | FEATURE_AT_UART_RECV_IRQ         | ON/OFF        | AT模组中断接受功能开关                                       |
 | FEATURE_AT_OS_USED               | ON/OFF        | AT模组多线程功能开关                                         |

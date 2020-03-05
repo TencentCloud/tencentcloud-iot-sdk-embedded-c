@@ -220,6 +220,31 @@ int qcloud_iot_mqtt_resubscribe(Qcloud_IoT_Client *pClient)
     IOT_FUNC_EXIT_RC(QCLOUD_RET_SUCCESS);
 }
 
+bool qcloud_iot_mqtt_is_sub_ready(Qcloud_IoT_Client *pClient, char *topicFilter)
+{
+    IOT_FUNC_ENTRY;
+    POINTER_SANITY_CHECK(pClient, false);
+    STRING_PTR_SANITY_CHECK(topicFilter, false);
+
+    size_t topicLen = strlen(topicFilter);
+    if (topicLen > MAX_SIZE_OF_CLOUD_TOPIC) {
+        return false;
+    }
+    
+    int i = 0;
+    HAL_MutexLock(pClient->lock_generic);
+    for (i = 0; i < MAX_MESSAGE_HANDLERS; ++i) {
+        if ((pClient->sub_handles[i].topic_filter != NULL && !strcmp(pClient->sub_handles[i].topic_filter, topicFilter))
+            || strstr(topicFilter, "/#") != NULL || strstr(topicFilter, "/+") != NULL) {
+            HAL_MutexUnlock(pClient->lock_generic);
+            return true;
+        }
+    }
+    HAL_MutexUnlock(pClient->lock_generic);
+    return false;
+}
+
+
 #ifdef __cplusplus
 }
 #endif

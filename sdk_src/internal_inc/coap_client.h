@@ -32,67 +32,67 @@ extern "C" {
 #include "utils_timer.h"
 
 /* COAP protocol version  */
-#define COAP_MSG_VER                           						(0x01)
+#define COAP_MSG_VER                                                (0x01)
 
 /* COAP init token */
-#define COAP_MSG_INIT_TOKEN     									(0x01020304)
+#define COAP_MSG_INIT_TOKEN                                         (0x01020304)
 
 /* Minimal command timeout of CoAP ACK/RESP */
-#define MIN_COMMAND_TIMEOUT         								(500)
+#define MIN_COMMAND_TIMEOUT                                         (500)
 
 /* Maximal command timeout of CoAP ACK/RESP */
-#define MAX_COMMAND_TIMEOUT         								(5000)
+#define MAX_COMMAND_TIMEOUT                                         (5000)
 
 /* Max size of conn Id */
 #define COAP_MAX_CONN_ID_LEN                                        (6)
 
 /* Max size of Message id */
-#define COAP_MSG_MAX_MSG_ID                    						((1 << 16) - 1)
+#define COAP_MSG_MAX_MSG_ID                                         ((1 << 16) - 1)
 
 /* Max size of Topic length */
-#define URI_PATH_MAX_LEN           									(128)
+#define URI_PATH_MAX_LEN                                            (128)
 
 /* CoAP auth success */
-#define COAP_TRUE    												(1)
+#define COAP_TRUE                                                   (1)
 
 /* CoAP auth fail */
-#define COAP_FALSE   												(0)
+#define COAP_FALSE                                                  (0)
 
 /* unique CoAP auth URI */
-#define COAP_AUTH_URI												("txauth9w0BAQsFA")
+#define COAP_AUTH_URI                                               ("txauth9w0BAQsFA")
 
 /* Max size of token */
-#define COAP_MSG_MAX_TOKEN_LEN                 						(8)
+#define COAP_MSG_MAX_TOKEN_LEN                                      (8)
 
 /* COAP Max code class */
-#define COAP_MSG_MAX_CODE_CLASS                						(7)
+#define COAP_MSG_MAX_CODE_CLASS                                     (7)
 
 /* COAP Max code detail */
-#define COAP_MSG_MAX_CODE_DETAIL               						(31)
+#define COAP_MSG_MAX_CODE_DETAIL                                    (31)
 
 /* Get field of Option num */
-#define COAP_MSG_OPTION_NUM(option)                					((option)->option_num)
+#define COAP_MSG_OPTION_NUM(option)                                 ((option)->option_num)
 
 /* Get field of Next Option */
-#define COAP_MSG_OP_NEXT(option)               						((option)->next)
+#define COAP_MSG_OP_NEXT(option)                                    ((option)->next)
 
 /* If COAP msg is empty */
-#define COAP_MSG_IS_EMPTY(message)                 					(((message)->code_class == 0) && ((message)->code_detail == 0))
+#define COAP_MSG_IS_EMPTY(message)                                  (((message)->code_class == 0) && ((message)->code_detail == 0))
 
 /* If COAP msg is empty ACK */
-#define COAP_MSG_IS_EMPTY_ACK(message)                 					(((message)->code_class == 2) && ((message)->code_detail == 3))
+#define COAP_MSG_IS_EMPTY_ACK(message)                                  (((message)->code_class == 2) && ((message)->code_detail == 3))
 
 /* If COAP msg is RESP */
-#define COAP_MSG_IS_EMPTY_RSP(message)                 					(((message)->code_class == 2) && ((message)->code_detail == 5))
+#define COAP_MSG_IS_EMPTY_RSP(message)                                  (((message)->code_class == 2) && ((message)->code_detail == 5))
 
 /**
  *  @brief COAP msg type
  */
 typedef enum {
-    COAP_MSG_REQ = 0,                                                           
-    COAP_MSG_SUCCESS = 2,                                                       
-    COAP_MSG_CLIENT_ERR = 4,                                                    
-    COAP_MSG_SERVER_ERR = 5,                                                    
+    COAP_MSG_REQ = 0,
+    COAP_MSG_SUCCESS = 2,
+    COAP_MSG_CLIENT_ERR = 4,
+    COAP_MSG_SERVER_ERR = 5,
     COAP_MSG_SDKINTERNAL_ERR = 6,
 } CoAPMessageClass;
 
@@ -103,40 +103,40 @@ typedef enum {
     COAP_MSG_GET = 1,
     COAP_MSG_POST = 2,
     COAP_MSG_PUT = 3,
-    COAP_MSG_DELETE =4
+    COAP_MSG_DELETE = 4
 } CoAPRequestMethod;
 
 typedef enum {
-	/* CoAP Success Response code detail */
-	COAP_MSG_CODE_201_CREATED                    = 01,  /* Mapping to CoAP codeClass.codeDetail 2.01 */
-	COAP_MSG_CODE_202_DELETED                    = 02,  /* Mapping to CoAP codeClass.codeDetail 2.02 */
-	COAP_MSG_CODE_203_VALID                      = 03,  /* Mapping to CoAP codeClass.codeDetail 2.03 */
-	COAP_MSG_CODE_204_CHANGED                    = 04,  /* Mapping to CoAP codeClass.codeDetail 2.04 */
-	COAP_MSG_CODE_205_CONTENT                    = 05,  /* Mapping to CoAP codeClass.codeDetail 2.05 */
-	COAP_MSG_CODE_231_CONTINUE                   = 31,  /* Mapping to CoAP codeClass.codeDetail 2.31 */
+    /* CoAP Success Response code detail */
+    COAP_MSG_CODE_201_CREATED                    = 01,  /* Mapping to CoAP codeClass.codeDetail 2.01 */
+    COAP_MSG_CODE_202_DELETED                    = 02,  /* Mapping to CoAP codeClass.codeDetail 2.02 */
+    COAP_MSG_CODE_203_VALID                      = 03,  /* Mapping to CoAP codeClass.codeDetail 2.03 */
+    COAP_MSG_CODE_204_CHANGED                    = 04,  /* Mapping to CoAP codeClass.codeDetail 2.04 */
+    COAP_MSG_CODE_205_CONTENT                    = 05,  /* Mapping to CoAP codeClass.codeDetail 2.05 */
+    COAP_MSG_CODE_231_CONTINUE                   = 31,  /* Mapping to CoAP codeClass.codeDetail 2.31 */
 
-	/* CoAP Client Error Response code detail */
-	COAP_MSG_CODE_400_BAD_REQUEST                = 00,  /* Mapping to CoAP codeClass.codeDetail 4.00 */
-	COAP_MSG_CODE_401_UNAUTHORIZED               = 01,  /* Mapping to CoAP codeClass.codeDetail 4.01 */
-	COAP_MSG_CODE_402_BAD_OPTION                 = 02,  /* Mapping to CoAP codeClass.codeDetail 4.02 */
-	COAP_MSG_CODE_403_FORBIDDEN                  = 03,  /* Mapping to CoAP codeClass.codeDetail 4.03 */
-	COAP_MSG_CODE_404_NOT_FOUND                  = 04,  /* Mapping to CoAP codeClass.codeDetail 4.04 */
-	COAP_MSG_CODE_405_METHOD_NOT_ALLOWED         = 05,  /* Mapping to CoAP codeClass.codeDetail 4.05 */
-	COAP_MSG_CODE_406_NOT_ACCEPTABLE             = 06,  /* Mapping to CoAP codeClass.codeDetail 4.06 */
-	COAP_MSG_CODE_408_REQUEST_ENTITY_INCOMPLETE  = 8,   /* Mapping to CoAP codeClass.codeDetail 4.08 */
-	COAP_MSG_CODE_412_PRECONDITION_FAILED        = 12,  /* Mapping to CoAP codeClass.codeDetail 4.12 */
-	COAP_MSG_CODE_413_REQUEST_ENTITY_TOO_LARGE   = 13,  /* Mapping to CoAP codeClass.codeDetail 4.13 */
-	COAP_MSG_CODE_415_UNSUPPORTED_CONTENT_FORMAT = 15,  /* Mapping to CoAP codeClass.codeDetail 4.15 */
+    /* CoAP Client Error Response code detail */
+    COAP_MSG_CODE_400_BAD_REQUEST                = 00,  /* Mapping to CoAP codeClass.codeDetail 4.00 */
+    COAP_MSG_CODE_401_UNAUTHORIZED               = 01,  /* Mapping to CoAP codeClass.codeDetail 4.01 */
+    COAP_MSG_CODE_402_BAD_OPTION                 = 02,  /* Mapping to CoAP codeClass.codeDetail 4.02 */
+    COAP_MSG_CODE_403_FORBIDDEN                  = 03,  /* Mapping to CoAP codeClass.codeDetail 4.03 */
+    COAP_MSG_CODE_404_NOT_FOUND                  = 04,  /* Mapping to CoAP codeClass.codeDetail 4.04 */
+    COAP_MSG_CODE_405_METHOD_NOT_ALLOWED         = 05,  /* Mapping to CoAP codeClass.codeDetail 4.05 */
+    COAP_MSG_CODE_406_NOT_ACCEPTABLE             = 06,  /* Mapping to CoAP codeClass.codeDetail 4.06 */
+    COAP_MSG_CODE_408_REQUEST_ENTITY_INCOMPLETE  = 8,   /* Mapping to CoAP codeClass.codeDetail 4.08 */
+    COAP_MSG_CODE_412_PRECONDITION_FAILED        = 12,  /* Mapping to CoAP codeClass.codeDetail 4.12 */
+    COAP_MSG_CODE_413_REQUEST_ENTITY_TOO_LARGE   = 13,  /* Mapping to CoAP codeClass.codeDetail 4.13 */
+    COAP_MSG_CODE_415_UNSUPPORTED_CONTENT_FORMAT = 15,  /* Mapping to CoAP codeClass.codeDetail 4.15 */
 
-	/* CoAP Server Error Response code detail */
-	COAP_MSG_CODE_500_INTERNAL_SERVER_ERROR      = 00,  /* Mapping to CoAP codeClass.codeDetail 5.00 */
-	COAP_MSG_CODE_501_NOT_IMPLEMENTED            = 01,  /* Mapping to CoAP codeClass.codeDetail 5.01 */
-	COAP_MSG_CODE_502_BAD_GATEWAY                = 02,  /* Mapping to CoAP codeClass.codeDetail 5.02 */
-	COAP_MSG_CODE_503_SERVICE_UNAVAILABLE        = 03,  /* Mapping to CoAP codeClass.codeDetail 5.03 */
-	COAP_MSG_CODE_504_GATEWAY_TIMEOUT            = 04,  /* Mapping to CoAP codeClass.codeDetail 5.04 */
-	COAP_MSG_CODE_505_PROXYING_NOT_SUPPORTED     = 05,  /* Mapping to CoAP codeClass.codeDetail 5.05 */
+    /* CoAP Server Error Response code detail */
+    COAP_MSG_CODE_500_INTERNAL_SERVER_ERROR      = 00,  /* Mapping to CoAP codeClass.codeDetail 5.00 */
+    COAP_MSG_CODE_501_NOT_IMPLEMENTED            = 01,  /* Mapping to CoAP codeClass.codeDetail 5.01 */
+    COAP_MSG_CODE_502_BAD_GATEWAY                = 02,  /* Mapping to CoAP codeClass.codeDetail 5.02 */
+    COAP_MSG_CODE_503_SERVICE_UNAVAILABLE        = 03,  /* Mapping to CoAP codeClass.codeDetail 5.03 */
+    COAP_MSG_CODE_504_GATEWAY_TIMEOUT            = 04,  /* Mapping to CoAP codeClass.codeDetail 5.04 */
+    COAP_MSG_CODE_505_PROXYING_NOT_SUPPORTED     = 05,  /* Mapping to CoAP codeClass.codeDetail 5.05 */
 
-	COAP_MSG_CODE_600_TIMEOUT					 = 00,  /* Mapping to self define CoAP codeClass.codeDetail 6.00 */
+    COAP_MSG_CODE_600_TIMEOUT                    = 00,  /* Mapping to self define CoAP codeClass.codeDetail 6.00 */
 } CoAPRespCodeDetail;
 
 /**
@@ -162,61 +162,59 @@ typedef enum {
     COAP_MSG_PROXY_SCHEME = 39,                                                 // Proxy-Scheme option number
     COAP_MSG_SIZE1 = 60,                                                        // Size1 option number
 
-    COAP_MSG_AUTH_TOKEN = 61,													// auth token option number
-    COAP_MSG_NEED_RESP = 62,													// CoAP need content response
+    COAP_MSG_AUTH_TOKEN = 61,                                                   // auth token option number
+    COAP_MSG_NEED_RESP = 62,                                                    // CoAP need content response
 } CoAPMsgOptionNum;
 
 /* CoAP QCloud IoT Client structure */
 typedef struct Client {
-	char									is_authed;											// CoAP Client auth or not
-    char					 	            conn_id[COAP_MAX_CONN_ID_LEN];						// conn id for a CoAP connection
+    char                                    is_authed;                                          // CoAP Client auth or not
+    char                                    conn_id[COAP_MAX_CONN_ID_LEN];                      // conn id for a CoAP connection
 
-	unsigned int         					message_token;										// msg token
+    unsigned int                            message_token;                                      // msg token
 
-	char                					*auth_token;										// auth token
-	int                  					auth_token_len;
+    char                                    *auth_token;                                        // auth token
+    int                                     auth_token_len;
 
-    uint16_t                 				next_msg_id;                                		// COAP msg id 
+    uint16_t                                next_msg_id;                                        // COAP msg id
 
-    size_t                   				send_buf_size;                                		// size of write buffer
-    size_t                   				read_buf_size;                                 		// size of read buffer
+    size_t                                  send_buf_size;                                      // size of write buffer
+    size_t                                  read_buf_size;                                      // size of read buffer
 
-    unsigned char							send_buf[COAP_SENDMSG_MAX_BUFLEN];
-    unsigned char							recv_buf[COAP_RECVMSG_MAX_BUFLEN];
+    unsigned char                           send_buf[COAP_SENDMSG_MAX_BUFLEN];
+    unsigned char                           recv_buf[COAP_RECVMSG_MAX_BUFLEN];
 
-    void                     				*lock_send_buf;                          			// mutex/lock for write buffer
-    void                     				*lock_list_wait_ack;                                // mutex/lock for wait ack list
+    void                                    *lock_send_buf;                                     // mutex/lock for write buffer
+    void                                    *lock_list_wait_ack;                                // mutex/lock for wait ack list
 
-    Network                  				network_stack;										// MQTT network stack
+    Network                                 network_stack;                                      // MQTT network stack
 
-    uint32_t                 				command_timeout_ms;                                	// CoAP command timeout, unit:ms
+    uint32_t                                command_timeout_ms;                                 // CoAP command timeout, unit:ms
 
-    List*									message_list;										// msg list
+    List*                                   message_list;                                       // msg list
 
-    unsigned char               			max_retry_count;         							// Max retry count 
+    unsigned char                           max_retry_count;                                    // Max retry count
 
-    CoAPEventHandler            			event_handle;            							// event callback
+    CoAPEventHandler                        event_handle;                                       // event callback
 
 } CoAPClient;
 
 /**
  *  @brief CoAP Option
  */
-typedef struct coap_msg_op
-{
-    unsigned short							option_num;                                         // Option number
-    unsigned 								val_len;                                            // Option length
-    char 									*val;                                               // Pointer to a buffer containing the option value
-    struct coap_msg_op 						*next;                                              // Pointer to the next option structure in the list
+typedef struct coap_msg_op {
+    unsigned short                          option_num;                                         // Option number
+    unsigned                                val_len;                                            // Option length
+    char                                    *val;                                               // Pointer to a buffer containing the option value
+    struct coap_msg_op                      *next;                                              // Pointer to the next option structure in the list
 } CoAPMsgOption;
 
 /**
  *  @brief CoAP Option list
  */
-typedef struct
-{
-	CoAPMsgOption 							*first;                                             // Pointer to the first option structure in the list
-	CoAPMsgOption 							*last;                                              // Pointer to the last option structure in the list
+typedef struct {
+    CoAPMsgOption                           *first;                                             // Pointer to the first option structure in the list
+    CoAPMsgOption                           *last;                                              // Pointer to the last option structure in the list
 } CoAPMsgOptionList;
 
 /**
@@ -228,17 +226,17 @@ typedef enum {
 } CoAPNodeState;
 
 typedef struct {
-    CoAPNodeState           				node_state;
-	void                    				*user_context;
-	unsigned short           				msg_id;
-	char                     				acked;
-	unsigned char            				token_len;
-	unsigned char            				token[COAP_MSG_MAX_TOKEN_LEN];
-	unsigned char            				retrans_count;
-	Timer           						start_time;
-	unsigned char           				*message;
-	unsigned int             				msglen;
-	OnRespCallback       	 				handler;
+    CoAPNodeState                           node_state;
+    void                                    *user_context;
+    unsigned short                          msg_id;
+    char                                    acked;
+    unsigned char                           token_len;
+    unsigned char                           token[COAP_MSG_MAX_TOKEN_LEN];
+    unsigned char                           retrans_count;
+    Timer                                   start_time;
+    unsigned char                           *message;
+    unsigned int                            msglen;
+    OnRespCallback                          handler;
 } CoAPMsgSendInfo;
 
 /**
@@ -254,26 +252,25 @@ typedef enum {
 /**
  *  @brief CoAP message structure
  */
-typedef struct
-{
-    unsigned 								version;                                            // CoAP protocol version
-    CoAPMsgType 							type;                                               // msg type
+typedef struct {
+    unsigned                                version;                                            // CoAP protocol version
+    CoAPMsgType                             type;                                               // msg type
 
-    unsigned 								code_class;                                         // Code class
-    unsigned 								code_detail;                                        // Code detail
+    unsigned                                code_class;                                         // Code class
+    unsigned                                code_detail;                                        // Code detail
 
-    unsigned short 							msg_id;                                             // msg id
+    unsigned short                          msg_id;                                             // msg id
 
-    char 									*pay_load;                                          // msg payload
-    size_t 									pay_load_len;                                       // length of payload
+    char                                    *pay_load;                                          // msg payload
+    size_t                                  pay_load_len;                                       // length of payload
 
-    char 									token[COAP_MSG_MAX_TOKEN_LEN];                      // msg token
-    unsigned 								token_len;                                          // length of token
+    char                                    token[COAP_MSG_MAX_TOKEN_LEN];                      // msg token
+    unsigned                                token_len;                                          // length of token
 
-    CoAPMsgOptionList 						op_list;                                            // Option list
+    CoAPMsgOptionList                       op_list;                                            // Option list
 
-    OnRespCallback							handler;											// CoAP Response msg callback
-    void									*user_context;										// user context
+    OnRespCallback                          handler;                                            // CoAP Response msg callback
+    void                                    *user_context;                                      // user context
 } CoAPMessage;
 
 #define DEFAULT_COAP_MESSAGE {COAP_MSG_VER, COAP_MSG_CON, COAP_MSG_REQ, COAP_MSG_POST, 0, NULL, 0, {0}, 0, {0}, NULL, NULL}
@@ -367,7 +364,7 @@ int coap_message_option_add(CoAPMessage *message, unsigned num, unsigned len, co
  * @brief set msg callback
  *
  * @param message CoAP msg
- * @param callback 
+ * @param callback
  * @return QCLOUD_RET_SUCCESS for success, or err code for failure
  */
 int coap_message_callback_set(CoAPMessage *message, OnRespCallback callback);
@@ -376,7 +373,7 @@ int coap_message_callback_set(CoAPMessage *message, OnRespCallback callback);
  * @brief set user context
  *
  * @param message CoAP msg
- * @param userContext 
+ * @param userContext
  * @return QCLOUD_RET_SUCCESS for success, or err code for failure
  */
 int coap_message_context_set(CoAPMessage *message, void *userContext);

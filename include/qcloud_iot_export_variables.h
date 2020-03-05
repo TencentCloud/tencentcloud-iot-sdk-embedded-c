@@ -20,7 +20,7 @@
  * Below variables are dependant on user situation (network status/device memory/application context)
  * Adjust the default value to meet your requirement
  */
- 
+
 /* default MQTT/CoAP timeout value when connect/pub/sub (unit: ms) */
 #define QCLOUD_IOT_MQTT_COMMAND_TIMEOUT                             (5 * 1000)
 
@@ -50,14 +50,14 @@
 
 /* log print/upload related variables */
 /* MAX size of log buffer for one log item including header and content */
-#define MAX_LOG_MSG_LEN 			(511)
+#define MAX_LOG_MSG_LEN             (511)
 
 #if defined(__linux__)
-	#undef  MAX_LOG_MSG_LEN
-	#define MAX_LOG_MSG_LEN         (1023)
+#undef  MAX_LOG_MSG_LEN
+#define MAX_LOG_MSG_LEN         (1023)
 #endif
 
-/* 
+/*
  * Log upload related params, which will affect the size of device memory/disk consumption
  * the default value can be changed for different user situation
  */

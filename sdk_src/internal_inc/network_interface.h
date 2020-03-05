@@ -48,7 +48,7 @@ typedef struct Network Network;
  */
 struct Network {
     int (*init)(Network *);
-    
+
     int (*connect)(Network *);
 
     int (*read)(Network *, unsigned char *, size_t, uint32_t, size_t *);
@@ -59,10 +59,10 @@ struct Network {
 
     int (*is_connected)(Network *);
 
-    // connetion handle: 
+    // connetion handle:
     // for non-AT: 0 = not connected, non-zero = connected
     // for AT: 0 = valid connection, MAX_UNSINGED_INT = invalid
-    uintptr_t handle;   
+    uintptr_t handle;
 
 #ifndef AUTH_WITH_NOTLS
     SSLConnectParams ssl_connect_params;
@@ -76,7 +76,7 @@ struct Network {
 /*
  * Init network stack
  */
-int 	network_init(Network *pNetwork);
+int     network_init(Network *pNetwork);
 
 /* return the handle */
 int     is_network_connected(Network *pNetwork);
@@ -86,18 +86,18 @@ int     is_network_connected(Network *pNetwork);
 
 #define AT_NO_CONNECTED_FD 0xffffffff
 
-int 	network_at_tcp_read(Network *pNetwork, unsigned char *data, size_t datalen, uint32_t timeout_ms, size_t *read_len);
-int 	network_at_tcp_write(Network *pNetwork, unsigned char *data, size_t datalen, uint32_t timeout_ms, size_t *written_len);
-void 	network_at_tcp_disconnect(Network *pNetwork);
-int 	network_at_tcp_connect(Network *pNetwork);
-int 	network_at_tcp_init(Network *pNetwork);
+int     network_at_tcp_read(Network *pNetwork, unsigned char *data, size_t datalen, uint32_t timeout_ms, size_t *read_len);
+int     network_at_tcp_write(Network *pNetwork, unsigned char *data, size_t datalen, uint32_t timeout_ms, size_t *written_len);
+void    network_at_tcp_disconnect(Network *pNetwork);
+int     network_at_tcp_connect(Network *pNetwork);
+int     network_at_tcp_init(Network *pNetwork);
 
-#else 
-int 	network_tcp_read(Network *pNetwork, unsigned char *data, size_t datalen, uint32_t timeout_ms, size_t *read_len);
-int 	network_tcp_write(Network *pNetwork, unsigned char *data, size_t datalen, uint32_t timeout_ms, size_t *written_len);
-void 	network_tcp_disconnect(Network *pNetwork);
-int 	network_tcp_connect(Network *pNetwork);
-int 	network_tcp_init(Network *pNetwork);
+#else
+int     network_tcp_read(Network *pNetwork, unsigned char *data, size_t datalen, uint32_t timeout_ms, size_t *read_len);
+int     network_tcp_write(Network *pNetwork, unsigned char *data, size_t datalen, uint32_t timeout_ms, size_t *written_len);
+void    network_tcp_disconnect(Network *pNetwork);
+int     network_tcp_connect(Network *pNetwork);
+int     network_tcp_init(Network *pNetwork);
 #endif
 
 #ifndef AUTH_WITH_NOTLS
@@ -110,11 +110,11 @@ int     network_tls_init(Network *pNetwork);
 
 #ifdef COAP_COMM_ENABLED
 #ifdef AUTH_WITH_NOTLS
-int 	network_udp_read(Network *pNetwork, unsigned char *data, size_t datalen, uint32_t timeout_ms, size_t *read_len);
-int 	network_udp_write(Network *pNetwork, unsigned char *data, size_t datalen, uint32_t timeout_ms, size_t *written_len);
-void 	network_udp_disconnect(Network *pNetwork);
-int 	network_udp_connect(Network *pNetwork);
-int 	network_udp_init(Network *pNetwork);
+int     network_udp_read(Network *pNetwork, unsigned char *data, size_t datalen, uint32_t timeout_ms, size_t *read_len);
+int     network_udp_write(Network *pNetwork, unsigned char *data, size_t datalen, uint32_t timeout_ms, size_t *written_len);
+void    network_udp_disconnect(Network *pNetwork);
+int     network_udp_connect(Network *pNetwork);
+int     network_udp_init(Network *pNetwork);
 #else
 int     network_dtls_read(Network *pNetwork, unsigned char *data, size_t datalen, uint32_t timeout_ms, size_t *read_len);
 int     network_dtls_write(Network *pNetwork, unsigned char *data, size_t datalen, uint32_t timeout_ms, size_t *written_len);

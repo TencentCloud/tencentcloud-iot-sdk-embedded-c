@@ -34,7 +34,7 @@ typedef enum {
     QCLOUD_RET_MQTT_RECONNECTED                              = 1,       // Reconnected with MQTT server successfully
 
     QCLOUD_RET_SUCCESS                                       = 0,       // Successful return
-    
+
     QCLOUD_ERR_FAILURE                                       = -1001,   // Generic failure return
     QCLOUD_ERR_INVAL                                         = -1002,   // Invalid parameter
     QCLOUD_ERR_DEV_INFO                                      = -1003,   // Fail to get device info
@@ -76,7 +76,7 @@ typedef enum {
     QCLOUD_ERR_JSON_BUFFER_TOO_SMALL                         = -134,    // JSON parsing buffer not enough
     QCLOUD_ERR_JSON                                          = -135,    // JSON generation error
     QCLOUD_ERR_MAX_JSON_TOKEN                                = -136,    // JSON token out of range
-    
+
     QCLOUD_ERR_MAX_APPENDING_REQUEST                         = -137,    // appending request out of range
     QCLOUD_ERR_MAX_TOPIC_LENGTH                              = -138,    // Topic length oversize
 
@@ -85,7 +85,7 @@ typedef enum {
     QCLOUD_ERR_COAP_INTERNAL                                 = -152,    // COAP interval error
     QCLOUD_ERR_COAP_BADMSG                                   = -153,    // COAP bad msg
     QCLOUD_ERR_DTLS_PEER_CLOSE_NOTIFY                        = -160,    // DTLS connection is closed
-    
+
     QCLOUD_ERR_SHADOW_PROPERTY_EXIST                         = -201,    // Shadow property already exist
     QCLOUD_ERR_SHADOW_NOT_PROPERTY_EXIST                     = -202,    // Shadow property not exist
     QCLOUD_ERR_SHADOW_UPDATE_TIMEOUT                         = -203,    // Shadow update timeout
@@ -101,7 +101,7 @@ typedef enum {
 
     QCLOUD_ERR_TCP_SOCKET_FAILED                             = -601,    // TLS TCP socket connect fail
     QCLOUD_ERR_TCP_UNKNOWN_HOST                              = -602,    // TCP unknown host (DNS fail)
-    QCLOUD_ERR_TCP_CONNECT                                   = -603,    // TCP/UDP socket connect fail 
+    QCLOUD_ERR_TCP_CONNECT                                   = -603,    // TCP/UDP socket connect fail
     QCLOUD_ERR_TCP_READ_TIMEOUT                              = -604,    // TCP read timeout
     QCLOUD_ERR_TCP_WRITE_TIMEOUT                             = -605,    // TCP write timeout
     QCLOUD_ERR_TCP_READ_FAIL                                 = -606,    // TCP read error

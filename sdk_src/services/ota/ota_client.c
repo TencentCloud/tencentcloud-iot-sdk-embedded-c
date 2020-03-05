@@ -128,6 +128,12 @@ End:
 #undef OTA_JSON_TYPE_VALUE_LENGTH
 }
 
+static void IOT_OTA_ResetStatus(void *handle)
+{
+   OTA_Struct_t *h_ota = (OTA_Struct_t *) handle;
+   h_ota->state = IOT_OTAS_INITED;
+}
+
 static int IOT_OTA_ReportProgress(void *handle, IOT_OTA_Progress_Code progress, IOT_OTAReportType reportType)
 {
 #define MSG_REPORT_LEN  (256)
@@ -148,7 +154,7 @@ static int IOT_OTA_ReportProgress(void *handle, IOT_OTA_Progress_Code progress, 
     }
 
     if (!_ota_check_progress(progress)) {
-        Log_e("progress is a invalid parameter");
+        Log_e("progress is a invalid parameter: %d", progress);
         h_ota->err = IOT_OTA_ERR_INVALID_PARAM;
         return QCLOUD_ERR_FAILURE;
     }
@@ -230,6 +236,8 @@ static int IOT_OTA_ReportUpgradeResult(void *handle, const char *version, IOT_OT
         goto do_exit;
     }
 
+    IOT_OTA_ResetStatus(h_ota);
+    
 do_exit:
     if (NULL != msg_upgrade) {
         HAL_Free(msg_upgrade);
@@ -336,7 +344,8 @@ int IOT_OTA_StartDownload(void *handle, uint32_t offset, uint32_t size)
     OTA_Struct_t *h_ota = (OTA_Struct_t *) handle;
     int Ret;
 
-    h_ota->size_fetched += offset;
+    Log_d("to download FW from offset: %u, size: %u", offset, size);
+    h_ota->size_fetched = offset;
     h_ota->ch_fetch = ofc_Init(h_ota->purl, offset, size);
     if (NULL == h_ota->ch_fetch) {
         Log_e("Initialize fetch module failed");
@@ -360,6 +369,20 @@ void IOT_OTA_UpdateClientMd5(void *handle, char * buff, uint32_t size)
     qcloud_otalib_md5_update(h_ota->md5, buff, size);
 }
 
+
+/*support continuous transmission of breakpoints*/
+int IOT_OTA_ResetClientMD5(void *handle)
+{
+    OTA_Struct_t *h_ota = (OTA_Struct_t *) handle;
+    
+    qcloud_otalib_md5_deinit(h_ota->md5);
+    h_ota->md5 = qcloud_otalib_md5_init();
+    if (NULL == h_ota->md5) {
+        return QCLOUD_ERR_FAILURE;
+    }
+
+    return QCLOUD_RET_SUCCESS;
+}
 
 
 int IOT_OTA_ReportVersion(void *handle, const char *version)
@@ -385,6 +408,8 @@ int IOT_OTA_ReportVersion(void *handle, const char *version)
         h_ota->err = IOT_OTA_ERR_INVALID_STATE;
         return QCLOUD_ERR_FAILURE;
     }
+
+    IOT_OTA_ResetStatus(h_ota);
 
     if (NULL == (msg_informed = HAL_Malloc(MSG_INFORM_LEN))) {
         Log_e("allocate for msg_informed failed");
@@ -610,7 +635,7 @@ int IOT_OTA_Ioctl(void *handle, IOT_OTA_CmdType type, void *buf, size_t buf_len)
             } else {
                 char md5_str[33];
                 qcloud_otalib_md5_finalize(h_ota->md5, md5_str);
-                Log_d("origin=%s, now=%s", h_ota->md5sum, md5_str);
+                Log_i("FW MD5 check: origin=%s, now=%s", h_ota->md5sum, md5_str);
                 if (0 == strcmp(h_ota->md5sum, md5_str)) {
                     *((uint32_t *)buf) = 1;
                 } else {

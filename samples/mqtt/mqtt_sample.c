@@ -32,7 +32,6 @@ static char sg_key_file[PATH_MAX + 1];       // full path of device key file
 
 static DeviceInfo sg_devInfo;
 static int sg_count = 0;
-static int sg_sub_packet_id = -1;
 
 
 // user's log print callback
@@ -70,17 +69,14 @@ static void _mqtt_event_handler(void *pclient, void *handle_context, MQTTEventMs
             break;
         case MQTT_EVENT_SUBCRIBE_SUCCESS:
             Log_i("subscribe success, packet-id=%u", (unsigned int)packet_id);
-            sg_sub_packet_id = packet_id;
             break;
 
         case MQTT_EVENT_SUBCRIBE_TIMEOUT:
             Log_i("subscribe wait ack timeout, packet-id=%u", (unsigned int)packet_id);
-            sg_sub_packet_id = packet_id;
             break;
 
         case MQTT_EVENT_SUBCRIBE_NACK:
             Log_i("subscribe nack, packet-id=%u", (unsigned int)packet_id);
-            sg_sub_packet_id = packet_id;
             break;
 
         case MQTT_EVENT_UNSUBCRIBE_SUCCESS:
@@ -164,15 +160,18 @@ static int _setup_connect_init_params(MQTTInitParams* initParams)
 // publish MQTT msg
 static int _publish_test_msg(void *client, char *topic_keyword, QoS qos)
 {
-    char topicName[128] = {0};
-    sprintf(topicName, "%s/%s/%s", sg_devInfo.product_id, sg_devInfo.device_name, topic_keyword);
+    char topic_name[128] = {0};
+    int size = HAL_Snprintf(topic_name, sizeof(topic_name), "%s/%s/%s", sg_devInfo.product_id, sg_devInfo.device_name, topic_keyword);
+    if (size < 0 || size > sizeof(topic_name) - 1) {
+        Log_e("topic content length not enough! content size:%d  buf size:%d", size, (int)sizeof(topic_name));
+        return QCLOUD_ERR_FAILURE;
+    }
 
     PublishParams pub_params = DEFAULT_PUB_PARAMS;
     pub_params.qos = qos;
-
     char topic_content[MAX_SIZE_OF_TOPIC_CONTENT + 1] = {0};
 
-    int size = HAL_Snprintf(topic_content, sizeof(topic_content), "{\"action\": \"publish_test\", \"count\": \"%d\"}", sg_count++);
+    size = HAL_Snprintf(topic_content, sizeof(topic_content), "{\"action\": \"publish_test\", \"count\": \"%d\"}", sg_count++);
     if (size < 0 || size > sizeof(topic_content) - 1) {
         Log_e("payload content length not enough! content size:%d  buf size:%d", size, (int)sizeof(topic_content));
         return -3;
@@ -181,7 +180,7 @@ static int _publish_test_msg(void *client, char *topic_keyword, QoS qos)
     pub_params.payload = topic_content;
     pub_params.payload_len = strlen(topic_content);
 
-    return IOT_MQTT_Publish(client, topicName, &pub_params);
+    return IOT_MQTT_Publish(client, topic_name, &pub_params);
 }
 
 // callback when MQTT msg arrives
@@ -196,11 +195,10 @@ static void on_message_callback(void *pClient, MQTTMessage *message, void *userD
 }
 
 // subscrib MQTT topic
-static int _subscribe_topic(void *client, char *topic_keyword, QoS qos)
+static int _subscribe_topic_wait_result(void *client, char *topic_keyword, QoS qos)
 {
-    static char topic_name[128] = {0};
+    char topic_name[128] = {0};
     int size = HAL_Snprintf(topic_name, sizeof(topic_name), "%s/%s/%s", sg_devInfo.product_id, sg_devInfo.device_name, topic_keyword);
-
     if (size < 0 || size > sizeof(topic_name) - 1) {
         Log_e("topic content length not enough! content size:%d  buf size:%d", size, (int)sizeof(topic_name));
         return QCLOUD_ERR_FAILURE;
@@ -208,7 +206,29 @@ static int _subscribe_topic(void *client, char *topic_keyword, QoS qos)
     SubscribeParams sub_params = DEFAULT_SUB_PARAMS;
     sub_params.qos = qos;
     sub_params.on_message_handler = on_message_callback;
-    return IOT_MQTT_Subscribe(client, topic_name, &sub_params);
+    int rc = IOT_MQTT_Subscribe(client, topic_name, &sub_params);
+    if (rc < 0) {
+        Log_e("IOT_MQTT_Subscribe fail.");
+        return rc;
+    }
+
+    int wait_cnt = 10;
+    while (!IOT_MQTT_IsSubReady(client, topic_name) && (wait_cnt > 0)) {
+        // wait for subscription result
+        rc = IOT_MQTT_Yield(client, 1000);
+        if (rc) {
+            Log_e("MQTT error: %d", rc);
+            return rc;
+        }
+        wait_cnt--;
+    }
+
+    if (wait_cnt > 0) {
+        return QCLOUD_RET_SUCCESS;
+    } else {
+        Log_e("wait for subscribe result timeout!");
+        return QCLOUD_ERR_FAILURE;
+    }
 }
 
 #ifdef LOG_UPLOAD
@@ -316,7 +336,7 @@ int main(int argc, char **argv)
 #endif
 
     //subscribe normal topics here
-    rc = _subscribe_topic(client, "data", QOS0);
+    rc = _subscribe_topic_wait_result(client, "data", QOS0);
     if (rc < 0) {
         Log_e("Client Subscribe Topic Failed: %d", rc);
         IOT_Log_Upload(true);
@@ -328,11 +348,9 @@ int main(int argc, char **argv)
 
     do {
 
-        if (sg_sub_packet_id > 0) {
-            rc = _publish_test_msg(client, "data", QOS1);
-            if (rc < 0) {
-                Log_e("client publish topic failed :%d.", rc);
-            }
+        rc = _publish_test_msg(client, "data", QOS1);
+        if (rc < 0) {
+            Log_e("client publish topic failed :%d.", rc);
         }
 
         rc = IOT_MQTT_Yield(client, 500);

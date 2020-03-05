@@ -13,7 +13,7 @@
  *
  */
 
-  
+
 #ifndef __AT_UART_HAL_H__
 #define __AT_UART_HAL_H__
 
@@ -21,13 +21,13 @@
  * UART data width
  */
 typedef enum {
-	BAUDRATE_2400 	= 2400,
-	BAUDRATE_4800 	= 4800,
-	BAUDRATE_9600 	= 9600,
-	BAUDRATE_19200 	= 19200,
+    BAUDRATE_2400   = 2400,
+    BAUDRATE_4800   = 4800,
+    BAUDRATE_9600   = 9600,
+    BAUDRATE_19200  = 19200,
     BAUDRATE_115200 = 115200,
     BAUDRATE_921600 = 921600,
-	BAUDRATE_DEFAULT = 115200	
+    BAUDRATE_DEFAULT = 115200
 } hal_uart_baudr_t;
 
 /*
@@ -81,7 +81,7 @@ typedef enum {
  * UART state
  */
 typedef enum {
-	eUNUSED = 0,
+    eUNUSED = 0,
     eOPENED = 1,
     eCLOSED = 2,
 } hal_uart_state_t;
@@ -95,17 +95,17 @@ typedef struct {
     hal_uart_parity_t       parity;
     hal_uart_stop_bits_t    stop_bits;
     hal_uart_flow_control_t flow_control;
-    hal_uart_mode_t         mode;	
+    hal_uart_mode_t         mode;
 } uart_config_t;
 
 typedef struct {
 #ifdef __linux__
-	int           		 fd;   	  		/* uart fd */
+    int                  fd;            /* uart fd */
 #else
-	void				 *uart_handle;	/* uart handle,like stm32 UART_HandleTypeDef */
+    void                 *uart_handle;  /* uart handle,like stm32 UART_HandleTypeDef */
 #endif
     hal_uart_state_t     state;   /* uart state */
-    uart_config_t		 config;  /* uart config */  
+    uart_config_t        config;  /* uart config */
 } uart_dev_t;
 
 #ifdef __cplusplus

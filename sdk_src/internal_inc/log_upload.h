@@ -19,7 +19,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-    
+
 #include "qcloud_iot_export_log.h"
 
 
@@ -27,16 +27,16 @@ extern "C" {
  * @brief init the log upload functions
  *
  * @param init_params
- * @return QCLOUD_RET_SUCCESS when success 
+ * @return QCLOUD_RET_SUCCESS when success
  */
 int init_log_uploader(LogUploadInitParams *init_params);
 
-/** 
+/**
  * @brief free log buffer and finish the log upload functions
  */
 void fini_log_uploader(void);
 
-/** 
+/**
  * @brief check if log uploader is init or not
  */
 bool is_log_uploader_init(void);
@@ -53,7 +53,7 @@ int append_to_upload_buffer(const char *log_content, size_t log_size);
 /**
  * @brief clear current upload buffer
  *
- * @return 
+ * @return
  */
 void clear_upload_buffer(void);
 
@@ -92,11 +92,11 @@ int qcloud_get_log_level(void* client, int *log_level);
  * @brief subscribe to upload log_level topic
  *
  * @param client
- * @return QCLOUD_RET_SUCCESS when success 
+ * @return QCLOUD_RET_SUCCESS when success
  */
 int qcloud_log_topic_subscribe(void *client);
 
-    
+
 #ifdef __cplusplus
 }
 #endif

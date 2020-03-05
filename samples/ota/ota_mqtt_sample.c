@@ -22,23 +22,49 @@
 #include "lite-utils.h"
 
 
+#define FW_RUNNING_VERSION          "1.0.0"
+
+#define KEY_VER                     "version"
+#define KEY_SIZE                    "downloaded_size"
+
+#define FW_VERSION_MAX_LEN          32
+#define FW_FILE_PATH_MAX_LEN        128
+#define OTA_BUF_LEN                 5000
+#define FW_INFO_FILE_DATA_LEN       128
+
 #ifdef AUTH_MODE_CERT
 static char sg_cert_file[PATH_MAX + 1];      // full path of device cert file
 static char sg_key_file[PATH_MAX + 1];       // full path of device key file
 #endif
 
+static DeviceInfo sg_device_info = {0};
 
-static DeviceInfo sg_devInfo;
+typedef struct OTAContextData {
+    void            *ota_handle;
+    void            *mqtt_client;
+    char            fw_file_path[FW_FILE_PATH_MAX_LEN];
+    char            fw_info_file_path[FW_FILE_PATH_MAX_LEN];
+
+    // remote_version means version for the FW in the cloud and to be downloaded
+    char            remote_version[FW_VERSION_MAX_LEN];
+    uint32_t        fw_file_size;
+
+    // for resuming download
+    /* local_version means downloading but not running */
+    char            local_version[FW_VERSION_MAX_LEN];
+    int             downloaded_size;
+
+    // to make sure report is acked
+    bool report_pub_ack;
+    int report_packet_id;
+    
+} OTAContextData;
 
 
-#define OTA_BUF_LEN (5000)
-
-static bool sg_pub_ack = false;
-static int sg_packet_id = 0;
-
-static void event_handler(void *pclient, void *handle_context, MQTTEventMsg *msg)
+static void _event_handler(void *pclient, void *handle_context, MQTTEventMsg *msg)
 {
     uintptr_t packet_id = (uintptr_t)msg->msg;
+    OTAContextData *ota_ctx = (OTAContextData *)handle_context;
 
     switch (msg->event_type) {
         case MQTT_EVENT_UNDEF:
@@ -67,8 +93,8 @@ static void event_handler(void *pclient, void *handle_context, MQTTEventMsg *msg
 
         case MQTT_EVENT_PUBLISH_SUCCESS:
             Log_i("publish success, packet-id=%u", (unsigned int)packet_id);
-            if (sg_packet_id == packet_id)
-                sg_pub_ack = true;
+            if (ota_ctx->report_packet_id == packet_id)
+                ota_ctx->report_pub_ack = true;
             break;
 
         case MQTT_EVENT_PUBLISH_TIMEOUT:
@@ -84,95 +110,131 @@ static void event_handler(void *pclient, void *handle_context, MQTTEventMsg *msg
     }
 }
 
-/* demo of firmware info management in device side for resuming download from break point */
-#define VERSION_FILE_PATH   "./local_fw_info.json"
-#define KEY_VER             "version"
-#define KEY_MD5             "md5"
-#define KEY_SIZE            "downloadSize"
-#define KEY_STATE           "state"
-#define KEY_PREVER          "running_version"
-static char * get_local_fw_version(char **ver, char **md5, char **size)
+
+static int _setup_connect_init_params(MQTTInitParams* initParams, void *ota_ctx, DeviceInfo *device_info)
 {
-#define INFO_FILE_MAX_LEN   256
+    initParams->product_id = device_info->product_id;
+    initParams->device_name = device_info->device_name;
 
-    FILE *fp;
-    int len;
-    int rlen;
-    char *preVer;
-    char *reportVer = NULL;
+#ifdef AUTH_MODE_CERT
+    char certs_dir[PATH_MAX + 1] = "certs";
+    char current_path[PATH_MAX + 1];
+    char *cwd = getcwd(current_path, sizeof(current_path));
 
-    fp = fopen(VERSION_FILE_PATH, "r");
-    if (NULL == fp) {
-        Log_e("open file %s failed", VERSION_FILE_PATH);
-        goto exit;
+    if (cwd == NULL) {
+        Log_e("getcwd return NULL");
+        return QCLOUD_ERR_FAILURE;
     }
 
-    fseek(fp, 0L, SEEK_END);
-    len = ftell(fp);
-    if (len > INFO_FILE_MAX_LEN) {
-        Log_e("%s is too big, pls check", VERSION_FILE_PATH);
-        goto exit;
-    }
+#ifdef WIN32
+    sprintf(sg_cert_file, "%s\\%s\\%s", current_path, certs_dir, device_info->ev_cert_file_name);
+    sprintf(sg_key_file, "%s\\%s\\%s", current_path, certs_dir, device_info->dev_key_file_name);
+#else
+    sprintf(sg_cert_file, "%s/%s/%s", current_path, certs_dir, device_info->dev_cert_file_name);
+    sprintf(sg_key_file, "%s/%s/%s", current_path, certs_dir, device_info->dev_key_file_name);
+#endif
 
-    char *JsonDoc = (char *)HAL_Malloc(len + 10);
-    if (NULL == JsonDoc) {
-        Log_e("malloc buffer for json file read fail");
-        goto exit;
-    }
+    initParams->cert_file = sg_cert_file;
+    initParams->key_file = sg_key_file;
 
-    rewind(fp);
-    rlen = fread(JsonDoc, 1, len, fp);
+#else
+    initParams->device_secret = device_info->device_secret;
+#endif
 
-    if (len != rlen) {
-        Log_e("read data len (%d) less than needed (%d), %s", rlen, len, JsonDoc);
-    }
+    initParams->command_timeout = QCLOUD_IOT_MQTT_COMMAND_TIMEOUT;
+    initParams->keep_alive_interval_ms = QCLOUD_IOT_MQTT_KEEP_ALIVE_INTERNAL;
 
-    *ver = LITE_json_value_of(KEY_VER, JsonDoc);
-    *md5 = LITE_json_value_of(KEY_MD5, JsonDoc);
-    *size = LITE_json_value_of(KEY_SIZE, JsonDoc);
-    preVer  = LITE_json_value_of(KEY_PREVER, JsonDoc);
+    initParams->auto_connect_enable = 1;
+    initParams->event_handle.h_fp = _event_handler;
+    initParams->event_handle.context = ota_ctx;
 
-    if ((NULL != *ver) && (NULL != preVer) && (0 == strcmp(*ver, preVer))) {
-        reportVer = *ver;
-        HAL_Free(preVer);
-    } else {
-        reportVer = preVer;
-    }
-
-exit:
-
-    if (NULL != fp) {
-        fclose(fp);
-    }
-
-    return reportVer;
-#undef INFO_FILE_MAX_LEN
+    return QCLOUD_RET_SUCCESS;
 }
 
-/* update local firmware info for resuming download from break point */
-static int update_local_fw_info(const char *version, const char *preVer, const char *md5, uint32_t downloadedSize)
+static void _wait_for_pub_ack(OTAContextData *ota_ctx, int packet_id)
 {
-#define INFO_FILE_MAX_LEN   256
+    int wait_cnt = 10;
+    ota_ctx->report_pub_ack = false;
+    ota_ctx->report_packet_id = packet_id;
 
+    while (!ota_ctx->report_pub_ack) {
+        HAL_SleepMs(500);
+        IOT_MQTT_Yield(ota_ctx->mqtt_client, 500);
+        if (wait_cnt-- == 0) {
+            Log_e("wait report pub ack timeout!");
+            break;
+        }            
+    }
+    ota_ctx->report_pub_ack = false;
+    return ;
+}
+
+/**********************************************************************************
+ * OTA file operations START
+ * these are platform-dependant functions
+ * POSIX FILE is used in this sample code 
+ **********************************************************************************/ 
+// calculate left MD5 for resuming download from break point
+static int _cal_exist_fw_md5(OTAContextData *ota_ctx)
+{
+    char buff[OTA_BUF_LEN];
+    size_t rlen, total_read = 0;
+    int ret = QCLOUD_RET_SUCCESS;
+
+    ret = IOT_OTA_ResetClientMD5(ota_ctx->ota_handle);
+    if (ret) {
+        Log_e("reset MD5 failed: %d", ret);
+        return QCLOUD_ERR_FAILURE;
+    }
+    
+    FILE *fp = fopen(ota_ctx->fw_file_path, "ab+");
+    if (NULL == fp) {
+        Log_e("open file %s failed", ota_ctx->fw_file_path);
+        return QCLOUD_ERR_FAILURE;
+    }
+
+    //rewind(fp);
+    size_t size = ota_ctx->downloaded_size;
+    
+    while ((size > 0) && (!feof(fp))) {
+        rlen = (size > OTA_BUF_LEN) ? OTA_BUF_LEN : size;
+        if (rlen != fread(buff, 1, rlen, fp)) {
+            Log_e("read data len not expected");
+            ret = QCLOUD_ERR_FAILURE;
+            break;
+        }
+        IOT_OTA_UpdateClientMd5(ota_ctx->ota_handle, buff, rlen);
+        size -= rlen;
+        total_read += rlen;
+    }
+
+    fclose(fp);
+    Log_d("total read: %d", total_read);
+    return ret;
+}
+
+
+/* update local firmware info for resuming download from break point */
+static int _update_local_fw_info(OTAContextData *ota_ctx)
+{
     FILE *fp;
     int wlen;
     int ret = QCLOUD_RET_SUCCESS;
-    char dataBuff[INFO_FILE_MAX_LEN];
+    char data_buf[FW_INFO_FILE_DATA_LEN];
 
-    memset(dataBuff, 0, INFO_FILE_MAX_LEN);
-    HAL_Snprintf(dataBuff, INFO_FILE_MAX_LEN, "{\"%s\":\"%s\", \"%s\":\"%s\",\"%s\":%d,\"%s\":\"%s\"}", \
-                 KEY_VER, version, KEY_MD5, md5, KEY_SIZE, downloadedSize, \
-                 KEY_PREVER, (NULL == preVer) ? "1.0.0" : preVer);
+    memset(data_buf, 0, sizeof(data_buf));
+    HAL_Snprintf(data_buf, sizeof(data_buf), "{\"%s\":\"%s\", \"%s\":%d}", \
+                 KEY_VER, ota_ctx->remote_version, KEY_SIZE, ota_ctx->downloaded_size);
 
-    fp = fopen(VERSION_FILE_PATH, "w");
+    fp = fopen(ota_ctx->fw_info_file_path, "w");
     if (NULL == fp) {
-        Log_e("open file %s failed", VERSION_FILE_PATH);
+        Log_e("open file %s failed", ota_ctx->fw_info_file_path);
         ret = QCLOUD_ERR_FAILURE;
         goto exit;
     }
 
-    wlen = fwrite(dataBuff, 1, strlen(dataBuff), fp);
-    if (wlen != strlen(dataBuff)) {
+    wlen = fwrite(data_buf, 1, strlen(data_buf), fp);
+    if (wlen != strlen(data_buf)) {
         Log_e("save version to file err");
         ret = QCLOUD_ERR_FAILURE;
     }
@@ -184,194 +246,184 @@ exit:
     }
 
     return ret;
-#undef INFO_FILE_MAX_LEN
 }
+
+
+static int _get_local_fw_info(char *file_name, char *local_version)
+{
+    int len;
+    int rlen;
+    char json_doc[FW_INFO_FILE_DATA_LEN] = {0};
+
+    FILE *fp = fopen(file_name, "r");
+    if (NULL == fp) {
+        Log_e("open file %s failed", file_name);
+        return 0;
+    }
+
+    fseek(fp, 0L, SEEK_END);
+    len = ftell(fp);
+    if (len > FW_INFO_FILE_DATA_LEN) {
+        Log_e("%s is too big, pls check", file_name);
+        fclose(fp);
+        return 0;
+    }
+
+    rewind(fp);
+    rlen = fread(json_doc, 1, len, fp);
+    if (len != rlen) {
+        Log_e("read data len (%d) less than needed (%d), %s", rlen, len, json_doc);
+        fclose(fp);
+        return 0;
+    }
+
+    char *version = LITE_json_value_of(KEY_VER, json_doc);
+    char *size = LITE_json_value_of(KEY_SIZE, json_doc);    
+
+    if((NULL == version)||(NULL == size)) {		
+        if (version) HAL_Free(version);        
+        if (size) HAL_Free(size);
+        fclose(fp);
+        return 0;
+	}
+
+    int local_size = atoi(size);    
+    HAL_Free(size);
+
+    if (local_size <= 0) {
+        Log_w("local info offset invalid: %d", local_size);
+        HAL_Free(version);
+        local_size = 0;
+    }
+
+    strncpy(local_version, version, FW_VERSION_MAX_LEN);
+    HAL_Free(version);
+    fclose(fp);
+    return local_size;
+
+}
+
 
 /* get local firmware offset for resuming download from break point */
-static int getFwOffset(void *h_ota, char *local_ver, char *local_md5, char *local_size, uint32_t *offset, uint32_t *size_file)
+static int _update_fw_downloaded_size(OTAContextData *ota_ctx)
 {
-    char version[128], md5sum[33];
-    uint32_t local_len;
-    int Ret;
-
-    Ret = IOT_OTA_Ioctl(h_ota, IOT_OTAG_VERSION, version, 128);
-    Ret |= IOT_OTA_Ioctl(h_ota, IOT_OTAG_MD5SUM, md5sum, 33);
-    Ret |= IOT_OTA_Ioctl(h_ota, IOT_OTAG_FILE_SIZE, size_file, 4);
-
-    local_len = (NULL == local_size) ? 0 : atoi(local_size);
-
-
-    if ((NULL == local_ver) || (NULL == local_md5) || (NULL == local_size)) {
-        *offset = 0;
-    } else if ((0 != strcmp(local_ver, version)) || (0 != strcmp(local_md5, md5sum)) || (local_len > *size_file)) {
-        *offset = 0;
-    } else {
-        *offset = local_len;
+    int local_size = _get_local_fw_info(ota_ctx->fw_info_file_path, ota_ctx->local_version);
+    if (local_size == 0) {
+        ota_ctx->downloaded_size = 0;
+        return 0;
     }
 
-    return Ret;
+	if((0 != strcmp(ota_ctx->local_version, ota_ctx->remote_version))
+        ||(ota_ctx->downloaded_size > ota_ctx->fw_file_size)) {
+        ota_ctx->downloaded_size = 0;
+        return 0;
+	}
+
+    ota_ctx->downloaded_size = local_size;
+    Log_i("calc MD5 for resuming download from offset: %d", ota_ctx->downloaded_size);
+    int ret = _cal_exist_fw_md5(ota_ctx);        
+    if (ret) {
+        Log_e("regen OTA MD5 error: %d", ret);
+        remove(ota_ctx->fw_info_file_path);
+        ota_ctx->downloaded_size = 0;
+        return 0;
+    }    
+	Log_d("local MD5 update done!");    
+	return local_size;
 }
 
-/* calculate left MD5 for resuming download from break point */
-static int cal_exist_fw_md5(void *h_ota, FILE *fp, size_t size)
+static int _delete_fw_info_file(char *file_name)
 {
-#define BUFF_LEN 1024
-
-    char buff[BUFF_LEN];
-    size_t rlen;
-    int Ret = QCLOUD_RET_SUCCESS;
-
-    while ((size > 0) && (!feof(fp))) {
-        rlen = (size > BUFF_LEN) ? BUFF_LEN : size;
-        if (rlen != fread(buff, 1, rlen, fp)) {
-            Log_e("read data len not expected");
-            Ret = QCLOUD_ERR_FAILURE;
-            break;
-        }
-        IOT_OTA_UpdateClientMd5(h_ota, buff, rlen);
-        size -= rlen;
-    }
-    return Ret;
-#undef  BUFF_LEN
+    return remove(file_name);
 }
 
-static int _setup_connect_init_params(MQTTInitParams* initParams)
+static int _save_fw_data_to_file(char *file_name, uint32_t offset, char *buf, int len)
 {
-    int ret;
+    FILE *fp;
+    if(offset > 0) {
+		if (NULL == (fp = fopen(file_name, "ab+"))) {
+	        Log_e("open file failed");
+			return QCLOUD_ERR_FAILURE;
+	    }
+	} else {
+		if (NULL == (fp = fopen(file_name, "wb+"))) {
+	        Log_e("open file failed");
+			return QCLOUD_ERR_FAILURE;
+		}
+	}
 
-    ret = HAL_GetDevInfo((void *)&sg_devInfo);
-    if (QCLOUD_RET_SUCCESS != ret) {
-        return ret;
-    }
+    fseek(fp, offset, SEEK_SET);
 
-    initParams->device_name = sg_devInfo.device_name;
-    initParams->product_id = sg_devInfo.product_id;
-
-#ifdef AUTH_MODE_CERT
-    char certs_dir[PATH_MAX + 1] = "certs";
-    char current_path[PATH_MAX + 1];
-    char *cwd = getcwd(current_path, sizeof(current_path));
-    if (cwd == NULL) {
-        Log_e("getcwd return NULL");
+    if (1 != fwrite(buf, len, 1, fp)) {
+        Log_e("write data to file failed");
+        fclose(fp);
         return QCLOUD_ERR_FAILURE;
     }
-    sprintf(sg_cert_file, "%s/%s/%s", current_path, certs_dir, sg_devInfo.dev_cert_file_name);
-    sprintf(sg_key_file, "%s/%s/%s", current_path, certs_dir, sg_devInfo.dev_key_file_name);
+    fflush(fp);
+    fclose(fp);
 
-    initParams->cert_file = sg_cert_file;
-    initParams->key_file = sg_key_file;
-#else
-    initParams->device_secret = sg_devInfo.device_secret;
-#endif
-
-
-    initParams->command_timeout = QCLOUD_IOT_MQTT_COMMAND_TIMEOUT;
-    initParams->keep_alive_interval_ms = QCLOUD_IOT_MQTT_KEEP_ALIVE_INTERNAL;
-    initParams->auto_connect_enable = 1;
-    initParams->event_handle.h_fp = event_handler;
-
-    return QCLOUD_RET_SUCCESS;
+    return 0;
 }
 
-int main(int argc, char **argv)
+static char * _get_local_fw_running_version()
 {
-    IOT_Log_Set_Level(eLOG_DEBUG);
-    int rc;
-    uint32_t firmware_valid;
-    char version[128], md5sum[33];
-    uint32_t size_downloaded, size_file;
-    int len;
-    int ota_over = 0;
+    // asuming the version is inside the code and binary
+    // you can also get from a meta file
+    Log_i("FW running version: %s", FW_RUNNING_VERSION);
+    return FW_RUNNING_VERSION;
+}
+/**********************************************************************************
+ * OTA file operations END 
+ **********************************************************************************/
+
+// main OTA cycle
+bool process_ota(OTAContextData *ota_ctx)
+{
+    bool download_finished = false;
     bool upgrade_fetch_success = true;
     char buf_ota[OTA_BUF_LEN];
-    FILE *fp = NULL;
-    uint32_t offset = 0;
-
-
-    MQTTInitParams init_params = DEFAULT_MQTTINIT_PARAMS;
-    rc = _setup_connect_init_params(&init_params);
-    if (rc != QCLOUD_RET_SUCCESS) {
-        Log_e("init params err,rc=%d", rc);
-        return rc;
-    }
-
-    void *client = IOT_MQTT_Construct(&init_params);
-    if (client != NULL) {
-        Log_i("Cloud Device Construct Success");
-    } else {
-        Log_e("Cloud Device Construct Failed");
-        return QCLOUD_ERR_FAILURE;
-    }
-
-    void *h_ota = IOT_OTA_Init(sg_devInfo.product_id, sg_devInfo.device_name, client);
-    if (NULL == h_ota) {
-        Log_e("initialize OTA failed");
-        return QCLOUD_ERR_FAILURE;
-    }
-
-    IOT_MQTT_Yield(client, 1000);  //make sure subscribe success
-
-    char *local_ver = NULL, *local_md5 = NULL, *local_size = NULL, *reportVer = NULL;
-    reportVer = get_local_fw_version(&local_ver, &local_md5, &local_size);
-    Log_d("local_ver:%s local_md5:%s, local_size:%s", local_ver, local_md5, local_size);
+    int rc;
+    void *h_ota = ota_ctx->ota_handle;
 
     /* Must report version first */
-    if (0 > IOT_OTA_ReportVersion(h_ota, (NULL == reportVer) ? "1.0.0" : reportVer)) {
+    if (0 > IOT_OTA_ReportVersion(h_ota, _get_local_fw_running_version())) {
         Log_e("report OTA version failed");
-        goto exit;
+        return false;
     }
 
-    do {
+    do {        
+
+        IOT_MQTT_Yield(ota_ctx->mqtt_client, 200);
+        
         Log_i("wait for ota upgrade command...");
 
-        IOT_MQTT_Yield(client, 200);
-
+        // recv the upgrade cmd
         if (IOT_OTA_IsFetching(h_ota)) {
 
-            /*check pre-download finished or not*/
-            /*if version & MD5 is the same,then pre-download not finished,get breakpoint continue download.otherwise the version is new*/
-            rc = getFwOffset(h_ota, local_ver, local_md5, local_size, &offset, &size_file);
-            if (QCLOUD_RET_SUCCESS != rc) {
-                Log_e("get fw offset err,rc:%d", rc);
-                upgrade_fetch_success = false;
-                break;
-            }
+            IOT_OTA_Ioctl(h_ota, IOT_OTAG_FILE_SIZE, &ota_ctx->fw_file_size, 4);
+            IOT_OTA_Ioctl(h_ota, IOT_OTAG_VERSION, ota_ctx->remote_version, FW_VERSION_MAX_LEN);
+        
+            HAL_Snprintf(ota_ctx->fw_file_path, FW_FILE_PATH_MAX_LEN, "./FW_%s%s_%s.bin", sg_device_info.product_id, sg_device_info.device_name, ota_ctx->remote_version);
+            HAL_Snprintf(ota_ctx->fw_info_file_path, FW_FILE_PATH_MAX_LEN, "./FW_%s%s.json", sg_device_info.product_id, sg_device_info.device_name);
 
-            /*cal file md5*/
-            //Log_d("Get offset:%d(%x)", offset, offset);
-            if (offset > 0) {
-                if (NULL == (fp = fopen("ota.bin", "ab+"))) {
-                    Log_e("open file failed");
-                    upgrade_fetch_success = false;
-                    break;
-                }
-
-                if (QCLOUD_RET_SUCCESS != cal_exist_fw_md5(h_ota, fp, offset)) {
-                    Log_e("cal exist fw md5 failed");
-                    upgrade_fetch_success = false;
-                    break;
-                }
-            } else {
-                if (NULL == (fp = fopen("ota.bin", "wb+"))) {
-                    Log_e("open file failed");
-                    upgrade_fetch_success = false;
-                    break;
-                }
-            }
+            /* check if pre-downloading finished or not */
+            /* if local FW downloaded size (ota_ctx->downloaded_size) is not zero, it will do resuming download */
+            _update_fw_downloaded_size(ota_ctx);
 
             /*set offset and start http connect*/
-            fseek(fp, offset, SEEK_SET);
-            rc = IOT_OTA_StartDownload(h_ota, offset, size_file);
+            rc = IOT_OTA_StartDownload(h_ota, ota_ctx->downloaded_size, ota_ctx->fw_file_size);
             if (QCLOUD_RET_SUCCESS != rc) {
                 Log_e("OTA download start err,rc:%d", rc);
                 upgrade_fetch_success = false;
                 break;
             }
 
+            // download and save the fw
             do {
-                len = IOT_OTA_FetchYield(h_ota, buf_ota, OTA_BUF_LEN, 1);
+                int len = IOT_OTA_FetchYield(h_ota, buf_ota, OTA_BUF_LEN, 1);
                 if (len > 0) {
-                    if (1 != fwrite(buf_ota, len, 1, fp)) {
+                    rc = _save_fw_data_to_file(ota_ctx->fw_file_path, ota_ctx->downloaded_size, buf_ota, len);
+                    if (rc) {
                         Log_e("write data to file failed");
                         upgrade_fetch_success = false;
                         break;
@@ -381,127 +433,139 @@ int main(int argc, char **argv)
                     upgrade_fetch_success = false;
                     break;
                 }
-                fflush(fp);
 
                 /* get OTA information and update local info */
-                IOT_OTA_Ioctl(h_ota, IOT_OTAG_FETCHED_SIZE, &size_downloaded, 4);
-                IOT_OTA_Ioctl(h_ota, IOT_OTAG_FILE_SIZE, &size_file, 4);
-                IOT_OTA_Ioctl(h_ota, IOT_OTAG_MD5SUM, md5sum, 33);
-                IOT_OTA_Ioctl(h_ota, IOT_OTAG_VERSION, version, 128);
-                rc = update_local_fw_info(version, reportVer, md5sum, size_downloaded);
+                IOT_OTA_Ioctl(h_ota, IOT_OTAG_FETCHED_SIZE, &ota_ctx->downloaded_size, 4);
+                rc = _update_local_fw_info(ota_ctx);
                 if (QCLOUD_RET_SUCCESS != rc) {
                     Log_e("update local fw info err,rc:%d", rc);
                 }
 
-                IOT_MQTT_Yield(client, 100);
+                // quit ota process as something wrong with mqtt
+                rc = IOT_MQTT_Yield(ota_ctx->mqtt_client, 100);
+                if (rc != QCLOUD_RET_SUCCESS && rc != QCLOUD_RET_MQTT_RECONNECTED) {
+                    Log_e("MQTT error: %d", rc);
+                    return false;
+                }
 
             } while (!IOT_OTA_IsFetchFinish(h_ota));
 
-            fclose(fp);
-            fp = NULL;
-
             /* Must check MD5 match or not */
             if (upgrade_fetch_success) {
+                // download is finished, delete the fw info file
+                _delete_fw_info_file(ota_ctx->fw_info_file_path);
+
+                uint32_t firmware_valid;
                 IOT_OTA_Ioctl(h_ota, IOT_OTAG_CHECK_FIRMWARE, &firmware_valid, 4);
                 if (0 == firmware_valid) {
                     Log_e("The firmware is invalid");
-                    upgrade_fetch_success = false;
-                    rc = update_local_fw_info(NULL, reportVer, NULL, 0);
-                    if (QCLOUD_RET_SUCCESS != rc) {
-                        Log_e("update local fw info err,rc:%d", rc);
-                    }
+                    upgrade_fetch_success = false;                    
                 } else {
                     Log_i("The firmware is valid");
                     upgrade_fetch_success = true;
                 }
             }
 
-            ota_over = 1;
+            download_finished = true;
         }
 
-        HAL_SleepMs(2000);
-    } while (!ota_over);
-
-
-    if (upgrade_fetch_success) {
-        /* begin execute OTA files, should report upgrade begin */
-        sg_packet_id = IOT_OTA_ReportUpgradeBegin(h_ota);
-        if (0 > sg_packet_id) {
-            Log_e("report OTA begin failed error:%d", sg_packet_id);
-            return QCLOUD_ERR_FAILURE;
-        }
-        while (!sg_pub_ack) {
+        if (!download_finished)
             HAL_SleepMs(1000);
-            IOT_MQTT_Yield(client, 200);
-        }
-        sg_pub_ack = false;
+        
+    } while (!download_finished);
 
-        //* add your own upgrade logic here*//
-        //* fw_upgrade.....
+    //do some post-download stuff for your need
+    
+    // report result
+    int packet_id;
+    if (upgrade_fetch_success)
+        packet_id = IOT_OTA_ReportUpgradeSuccess(h_ota, NULL);
+    else 
+        packet_id = IOT_OTA_ReportUpgradeFail(h_ota, NULL);
+    _wait_for_pub_ack(ota_ctx, packet_id);
 
-        if (QCLOUD_RET_SUCCESS == rc) {
-            /* if upgrade success */
-            /* after execute OTA files, should report upgrade result */
-            sg_packet_id = IOT_OTA_ReportUpgradeSuccess(h_ota, NULL);
-            if (0 > sg_packet_id) {
-                Log_e("report OTA result failed error:%d", sg_packet_id);
-                return QCLOUD_ERR_FAILURE;
-            }
-            while (!sg_pub_ack) {
-                HAL_SleepMs(1000);
-                IOT_MQTT_Yield(client, 200);
-            }
-            rc = update_local_fw_info(version, version, md5sum, size_downloaded); // just for example, add your own logic
-            sg_pub_ack = false;
+    return upgrade_fetch_success;
+}
 
-        } else {
-            /* if upgrade fail */
-            sg_packet_id = IOT_OTA_ReportUpgradeFail(h_ota, NULL);
-            if (0 > sg_packet_id) {
-                Log_e("report OTA result failed error:%d", sg_packet_id);
-                return QCLOUD_ERR_FAILURE;
-            }
-            while (!sg_pub_ack) {
-                HAL_SleepMs(1000);
-                IOT_MQTT_Yield(client, 200);
-            }
-            rc = update_local_fw_info(NULL, reportVer, NULL, 0); // just for example, add your own logic
-            sg_pub_ack = false;
 
-        }
+int main(int argc, char **argv)
+{
+    int rc;
+    OTAContextData *ota_ctx = NULL;
+    void *mqtt_client = NULL;
+    void *h_ota = NULL;
+    
+    IOT_Log_Set_Level(eLOG_DEBUG);
+    ota_ctx = (OTAContextData *)HAL_Malloc(sizeof(OTAContextData));
+    if (ota_ctx == NULL) {
+        Log_e("malloc failed");
+        goto exit;
     }
+    memset(ota_ctx, 0, sizeof(OTAContextData));
+
+    rc = HAL_GetDevInfo((void *)&sg_device_info);
+    if (QCLOUD_RET_SUCCESS != rc) {
+        Log_e("get device info failed: %d", rc);
+        goto exit;
+    }
+    
+    // setup MQTT init params
+    MQTTInitParams init_params = DEFAULT_MQTTINIT_PARAMS;
+    rc = _setup_connect_init_params(&init_params, ota_ctx, &sg_device_info);
+    if (rc != QCLOUD_RET_SUCCESS) {
+        Log_e("init params err,rc=%d", rc);
+        return rc;
+    }
+
+    // create MQTT mqtt_client and connect to server 
+    mqtt_client = IOT_MQTT_Construct(&init_params);
+    if (mqtt_client != NULL) {
+        Log_i("Cloud Device Construct Success");
+    } else {
+        Log_e("Cloud Device Construct Failed");
+        return QCLOUD_ERR_FAILURE;
+    }
+
+    // init OTA handle
+    h_ota = IOT_OTA_Init(sg_device_info.product_id, sg_device_info.device_name, mqtt_client);
+    if (NULL == h_ota) {
+        Log_e("initialize OTA failed");
+        goto exit;
+    }
+
+    ota_ctx->ota_handle = h_ota;
+    ota_ctx->mqtt_client = mqtt_client;
+
+    bool ota_success;
+    do {
+        // mqtt should be ready first
+        rc = IOT_MQTT_Yield(mqtt_client, 500);
+        if (rc == QCLOUD_ERR_MQTT_ATTEMPTING_RECONNECT) {
+            HAL_SleepMs(1000);
+            continue;
+        } else if (rc != QCLOUD_RET_SUCCESS && rc != QCLOUD_RET_MQTT_RECONNECTED) {
+            Log_e("exit with error: %d", rc);
+            break;
+        }
+
+        // OTA process
+        ota_success = process_ota(ota_ctx);
+        if (!ota_success) {
+            Log_e("OTA failed! Do it again");
+            HAL_SleepMs(2000);
+        }
+    } while (!ota_success);
 
 exit:
 
-    if (NULL != fp) {
-        fclose(fp);
-        fp = NULL;
-    }
+    if (NULL != ota_ctx)
+        HAL_Free(ota_ctx);
+    
+    if (NULL != h_ota)
+        IOT_OTA_Destroy(h_ota);
 
-    if (NULL != local_ver) {
-        reportVer = (reportVer == local_ver) ? NULL : reportVer;
-        HAL_Free(local_ver);
-        local_ver = NULL;
-    }
-
-    if (NULL != local_md5) {
-        HAL_Free(local_md5);
-        local_md5 = NULL;
-    }
-
-    if (NULL != local_size) {
-        HAL_Free(local_size);
-        local_size = NULL;
-    }
-
-    if (NULL != reportVer) {
-        HAL_Free(reportVer);
-        reportVer = NULL;
-    }
-
-    IOT_OTA_Destroy(h_ota);
-
-    IOT_MQTT_Destroy(&client);
+    IOT_MQTT_Destroy(&mqtt_client);
 
     return 0;
 }
+
