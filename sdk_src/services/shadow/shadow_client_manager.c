@@ -64,7 +64,7 @@ static int _publish_operation_to_cloud(Qcloud_IoT_Shadow *pShadow, Method method
 
 static int _add_request_to_list(Qcloud_IoT_Shadow *pShadow, const char *pClientToken, RequestParams *pParams);
 
-static int _unsubscribe_operation_result_to_cloud(void *pClient);
+static int _unsubscribe_operation_result_to_cloud(Qcloud_IoT_Shadow *pShadow);
 
 static void _traverse_list(Qcloud_IoT_Shadow *pShadow, List *list, const char *pClientToken, const char *pType, TraverseHandle traverseHandle);
 
@@ -110,7 +110,7 @@ void qcloud_iot_shadow_reset(void *pClient)
         list_destroy(shadow_client->inner_data.property_handle_list);
     }
 
-    _unsubscribe_operation_result_to_cloud(shadow_client->mqtt);
+    _unsubscribe_operation_result_to_cloud(shadow_client);
 
     if (shadow_client->inner_data.request_list) {
         list_destroy(shadow_client->inner_data.request_list);
@@ -403,22 +403,17 @@ static int _set_shadow_json_type(char *pJsonDoc, size_t sizeOfBuffer, Method met
 /**
  * @brief unsubsribe topic: $shadow/operation/result/{ProductId}/{DeviceName}
  */
-static int _unsubscribe_operation_result_to_cloud(void* pClient)
+static int _unsubscribe_operation_result_to_cloud(Qcloud_IoT_Shadow *pShadow)
 {
     IOT_FUNC_ENTRY;
     int rc = QCLOUD_RET_SUCCESS;
 
-    char operation_result_topic[MAX_SIZE_OF_CLOUD_TOPIC] = {0};
-    int size = HAL_Snprintf(operation_result_topic, MAX_SIZE_OF_CLOUD_TOPIC, "$shadow/operation/result/%s/%s", iot_device_info_get()->product_id, iot_device_info_get()->device_name);
-
-    if (size < 0 || size > MAX_SIZE_OF_CLOUD_TOPIC - 1) {
-        Log_e("buf size < topic length!");
-        IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
-    }
-
-    IOT_MQTT_Unsubscribe(pClient, operation_result_topic);
+    if (pShadow->inner_data.result_topic == NULL)
+        IOT_FUNC_EXIT_RC(rc);
+    
+    rc = IOT_MQTT_Unsubscribe(pShadow->mqtt, pShadow->inner_data.result_topic);
     if (rc < 0) {
-        Log_e("unsubscribe topic: %s failed: %d.", operation_result_topic, rc);
+        Log_e("unsubscribe topic: %s failed: %d.", pShadow->inner_data.result_topic, rc);
     }
 
     IOT_FUNC_EXIT_RC(rc);

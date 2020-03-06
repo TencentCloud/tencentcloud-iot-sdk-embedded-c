@@ -157,7 +157,6 @@ void* IOT_Shadow_Construct(ShadowInitParams *pParams)
     rc = qcloud_iot_shadow_init(shadow_client);
     if (rc != QCLOUD_RET_SUCCESS) {
         IOT_Shadow_Destroy(shadow_client);
-        HAL_Free(shadow_client);
         goto End;
     }
 

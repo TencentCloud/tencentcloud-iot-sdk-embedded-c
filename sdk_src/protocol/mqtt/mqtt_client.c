@@ -153,6 +153,11 @@ int IOT_MQTT_Destroy(void **pClient)
     Qcloud_IoT_Client *mqtt_client = (Qcloud_IoT_Client *)(*pClient);
 
     int rc = qcloud_iot_mqtt_disconnect(mqtt_client);
+    // disconnect network stack by force
+    if (rc != QCLOUD_RET_SUCCESS) {
+        mqtt_client->network_stack.disconnect(&(mqtt_client->network_stack));
+        set_client_conn_state(mqtt_client, NOTCONNECTED);
+    }
 
     int i = 0;
     for (i = 0; i < MAX_MESSAGE_HANDLERS; ++i) {
