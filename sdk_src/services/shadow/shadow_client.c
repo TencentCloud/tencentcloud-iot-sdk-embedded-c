@@ -131,6 +131,7 @@ void* IOT_Shadow_Construct(ShadowInitParams *pParams)
     Qcloud_IoT_Shadow *shadow_client = NULL;
     if ((shadow_client = (Qcloud_IoT_Shadow *)HAL_Malloc(sizeof(Qcloud_IoT_Shadow))) == NULL) {
         Log_e("memory not enough to malloc ShadowClient");
+        return NULL;
     }
 
     MQTTInitParams mqtt_init_params;
@@ -155,7 +156,7 @@ void* IOT_Shadow_Construct(ShadowInitParams *pParams)
 
     rc = qcloud_iot_shadow_init(shadow_client);
     if (rc != QCLOUD_RET_SUCCESS) {
-        IOT_MQTT_Destroy(&(shadow_client->mqtt));
+        IOT_Shadow_Destroy(shadow_client);
         HAL_Free(shadow_client);
         goto End;
     }
