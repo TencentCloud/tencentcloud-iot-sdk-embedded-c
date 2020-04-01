@@ -128,13 +128,14 @@ void LITE_hexstr_convert(char *hexstr, uint8_t *out_buf, int in_len)
 {
     int             i = 0;
     uint8_t         ch0, ch1;
+    int             len = 0;
 
     if (in_len % 2 != 0) {
         Log_e("hexstr length (%d) is not even", in_len);
         return;
     }
-
-    while (i < in_len) {
+    len=in_len/2;
+    while (i < len) {
         ch0 = _hexval_of_char((char)hexstr[2 * i]);
         ch1 = _hexval_of_char((char)hexstr[2 * i + 1]);
         out_buf[i] = (ch0 << 4 | ch1);
