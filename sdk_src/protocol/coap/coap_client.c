@@ -298,8 +298,8 @@ int qcloud_iot_coap_init(CoAPClient *pClient, CoAPInitParams *pParams)
         qcloud_iot_utils_base64decode(sg_psk_str, sizeof( sg_psk_str ), &len, (unsigned char *)pParams->device_secret, src_len );
         pClient->network_stack.ssl_connect_params.psk = (char *)sg_psk_str;
         pClient->network_stack.ssl_connect_params.psk_length = len;
-        pClient->network_stack.ssl_connect_params.ca_crt = iot_ca_get();
-        pClient->network_stack.ssl_connect_params.ca_crt_len = strlen(pClient->network_stack.ssl_connect_params.ca_crt);
+        pClient->network_stack.ssl_connect_params.ca_crt = NULL;
+        pClient->network_stack.ssl_connect_params.ca_crt_len = 0;
     } else {
         Log_e("psk is empty!");
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_INVAL);
