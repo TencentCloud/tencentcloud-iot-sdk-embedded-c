@@ -17,7 +17,7 @@
 extern "C" {
 #endif
 
-#include <memory.h>
+#include <string.h>
 
 #include "qcloud_iot_export.h"
 #include "qcloud_iot_import.h"
