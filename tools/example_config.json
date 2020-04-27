@@ -56,9 +56,9 @@
         },
         {
             "id":"brightness",
-            "name":"颜色",
+            "name":"亮度",
             "required":false,
-            "desc":"灯光颜色",
+            "desc":"灯光亮度",
             "mode":"rw",
             "define":{
                 "type":"int",
