@@ -1,6 +1,6 @@
 /*
  * Tencent is pleased to support the open source community by making IoT Hub available.
- * Copyright (C) 2016 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2018-2020 THL A29 Limited, a Tencent company. All rights reserved.
 
  * Licensed under the MIT License (the "License"); you may not use this file except in
  * compliance with the License. You may obtain a copy of the License at
@@ -17,17 +17,13 @@
 extern "C" {
 #endif
 
-#include "qcloud_iot_export_log.h"
-
 #include <string.h>
 
-#include "qcloud_iot_import.h"
 #include "log_upload.h"
+#include "qcloud_iot_export_log.h"
+#include "qcloud_iot_import.h"
 
-
-static char *level_str[] = {
-    "DIS", "ERR", "WRN", "INF", "DBG"
-};
+static char *level_str[] = {"DIS", "ERR", "WRN", "INF", "DBG"};
 
 static LogMessageHandler sg_log_message_handler = NULL;
 
@@ -60,7 +56,7 @@ void IOT_Log_Set_Level(LOG_LEVEL logLevel)
     g_log_print_level = logLevel;
 }
 
-LOG_LEVEL IOT_Log_Get_Level()
+LOG_LEVEL IOT_Log_Get_Level(void)
 {
     return g_log_print_level;
 }
@@ -75,7 +71,7 @@ void IOT_Log_Set_Upload_Level(LOG_LEVEL logLevel)
     g_log_upload_level = logLevel;
 }
 
-LOG_LEVEL IOT_Log_Get_Upload_Level()
+LOG_LEVEL IOT_Log_Get_Upload_Level(void)
 {
     return g_log_upload_level;
 }
@@ -95,7 +91,7 @@ void IOT_Log_Fini_Uploader(void)
     fini_log_uploader();
     return;
 #else
-    return ;
+    return;
 #endif
 }
 
@@ -117,16 +113,18 @@ void IOT_Log_Gen(const char *file, const char *func, const int line, const int l
     /* format log content */
     const char *file_name = _get_filename(file);
 
-    char sg_text_buf[MAX_LOG_MSG_LEN + 1];
-    char        *tmp_buf = sg_text_buf;
-    char        *o = tmp_buf;
+    char  sg_text_buf[MAX_LOG_MSG_LEN + 1];
+    char *tmp_buf = sg_text_buf;
+    char *o       = tmp_buf;
     memset(tmp_buf, 0, sizeof(sg_text_buf));
+    char time_str[TIME_FORMAT_STR_LEN] = {0};
 
-    o += HAL_Snprintf(o, sizeof(sg_text_buf), "%s|%s|%s|%s(%d): ", level_str[level], HAL_Timer_current(), file_name, func, line);
+    o += HAL_Snprintf(o, sizeof(sg_text_buf), "%s|%s|%s|%s(%d): ", level_str[level], HAL_Timer_current(time_str),
+                      file_name, func, line);
 
-    va_list     ap;
+    va_list ap;
     va_start(ap, fmt);
-    o += vsnprintf(o, MAX_LOG_MSG_LEN - 2 - strlen(tmp_buf), fmt, ap);
+    HAL_Vsnprintf(o, MAX_LOG_MSG_LEN - 2 - strlen(tmp_buf), fmt, ap);
     va_end(ap);
 
     strcat(tmp_buf, "\r\n");

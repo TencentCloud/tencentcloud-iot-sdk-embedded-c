@@ -20,10 +20,10 @@ PLATFORM_AT_DEV					= esp8266
 FEATURE_MQTT_COMM_ENABLED               = y
 
 # 是否打开设备影子的总开关
-FEATURE_MQTT_DEVICE_SHADOW				= y
+FEATURE_MQTT_DEVICE_SHADOW              = y
 
 # 是否打开CoAP通道的总开关
-FEATURE_COAP_COMM_ENABLED               = y
+FEATURE_COAP_COMM_ENABLED               = n
 
 # 是否打开MQTT通道网关功能
 FEATURE_GATEWAY_ENABLED                 = y
@@ -49,23 +49,23 @@ FEATURE_LOG_UPLOAD_ENABLED              = n
 # 是否打开获取iot后台时间功能
 FEATURE_SYSTEM_COMM_ENABLED             = y
 
-# 是否编译Linux多线程测试例程
-FEATURE_MULTITHREAD_TEST_ENABLED        = y
-
-# 是否打开代码中获取设备信息功能，OFF时将从device_info.json中读取设备信息
-FEATURE_DEBUG_DEV_INFO_USED             = n
-
-# 是否使用AT方式实现TCP通信
-FEATURE_AT_TCP_ENABLED					= n	
-
-# 是否打开AT模组中断接收功能
-FEATURE_AT_UART_RECV_IRQ                = y
-
-# 是否打开AT模组多线程功能
-FEATURE_AT_OS_USED                      = y
-
-# 是否打开AT模组调试功能
-FEATURE_AT_DEBUG                        = y
+# 是否打开多线程功能支持
+FEATURE_MULTITHREAD_ENABLED             = y
 
 # 是否使用HTTPS下载固件
 FEATURE_OTA_USE_HTTPS                   = y
+
+# 是否打开代码中获取设备信息功能，设为n时将从device_info.json中读取设备信息
+FEATURE_DEBUG_DEV_INFO_USED             = n
+
+# 是否使用AT方式实现TCP通信
+FEATURE_AT_TCP_ENABLED                  = n	
+
+# 是否打开AT模组中断接收功能
+FEATURE_AT_UART_RECV_IRQ                = n
+
+# 是否打开AT模组多线程功能
+FEATURE_AT_OS_USED                      = n
+
+# 是否打开AT模组调试功能
+FEATURE_AT_DEBUG                        = n

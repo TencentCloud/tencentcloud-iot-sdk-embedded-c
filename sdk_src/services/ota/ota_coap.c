@@ -1,6 +1,6 @@
 /*
  * Tencent is pleased to support the open source community by making IoT Hub available.
- * Copyright (C) 2016 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2018-2020 THL A29 Limited, a Tencent company. All rights reserved.
 
  * Licensed under the MIT License (the "License"); you may not use this file except in
  * compliance with the License. You may obtain a copy of the License at
@@ -22,24 +22,24 @@ extern "C" {
 
 #ifndef OTA_MQTT_CHANNEL
 
-#include "ota_client.h"
-
 #include <string.h>
 
-typedef struct  {
-    void                    *coap;
+#include "ota_client.h"
 
-    const char              *product_id;
-    const char              *device_name;
+typedef struct {
+    void *coap;
 
-    char                    topic_upgrade[OTA_MAX_TOPIC_LEN];
+    const char *product_id;
+    const char *device_name;
 
-    OnOTAMessageCallback    msg_callback;
+    char topic_upgrade[OTA_MAX_TOPIC_LEN];
+
+    OnOTAMessageCallback msg_callback;
 
     void *context;
 } OTA_CoAP_Struct_t;
 
-static void _otacoap_upgrage_cb(void* coap_message, void *pcontext)
+static void _otacoap_upgrage_cb(void *coap_message, void *pcontext)
 {
     int ret_code = IOT_COAP_GetMessageCode(coap_message);
 
@@ -49,20 +49,19 @@ static void _otacoap_upgrage_cb(void* coap_message, void *pcontext)
             break;
         case COAP_EVENT_RECEIVE_RESPCONTENT: {
             Log_i("received OTA message respconetent.");
-            char* payload = NULL;
-            int payload_len = 0;
-            int ret = -1;
-            ret = IOT_COAP_GetMessagePayload(coap_message, &payload, &payload_len);
+            char *payload     = NULL;
+            int   payload_len = 0;
+            int   ret         = -1;
+            ret               = IOT_COAP_GetMessagePayload(coap_message, &payload, &payload_len);
             if (ret == QCLOUD_RET_SUCCESS) {
-                OTA_CoAP_Struct_t *handle = (OTA_CoAP_Struct_t *) pcontext;
+                OTA_CoAP_Struct_t *handle = (OTA_CoAP_Struct_t *)pcontext;
                 if (NULL != handle->msg_callback) {
                     handle->msg_callback(handle->context, payload, payload_len);
                 }
             } else {
                 Log_e("message received response, content error.");
             }
-        }
-        break;
+        } break;
         case COAP_EVENT_UNAUTHORIZED:
             Log_e("coap client auth token expired or invalid, msgid: %d", IOT_COAP_GetMessageId(coap_message));
             break;
@@ -86,7 +85,8 @@ static void _otacoap_upgrage_cb(void* coap_message, void *pcontext)
 /* Generate topic name according to @OTATopicType, @productId, @deviceName */
 /* and then copy to @buf. */
 /* 0, successful; -1, failed */
-static int _otacoap_gen_topic_name(char *buf, size_t bufLen, const char *OTATopicType, const char *productId, const char *deviceName)
+static int _otacoap_gen_topic_name(char *buf, size_t bufLen, const char *OTATopicType, const char *productId,
+                                   const char *deviceName)
 {
     IOT_FUNC_ENTRY;
 
@@ -94,7 +94,8 @@ static int _otacoap_gen_topic_name(char *buf, size_t bufLen, const char *OTATopi
 
     ret = HAL_Snprintf(buf, bufLen, "$ota/%s/%s/%s", OTATopicType, productId, deviceName);
 
-    if (ret >= bufLen) IOT_FUNC_EXIT_RC(IOT_OTA_ERR_FAIL);
+    if (ret >= bufLen)
+        IOT_FUNC_EXIT_RC(IOT_OTA_ERR_FAIL);
 
     if (ret < 0) {
         Log_e("HAL_Snprintf failed");
@@ -109,15 +110,15 @@ static int _otacoap_publish(OTA_CoAP_Struct_t *handle, const char *topicType, co
 {
     IOT_FUNC_ENTRY;
 
-    int ret;
+    int  ret;
     char topic_name[OTA_MAX_TOPIC_LEN];
 
     SendMsgParams send_params = DEFAULT_SENDMSG_PARAMS;
-    send_params.pay_load = (void *)msg;
-    send_params.pay_load_len = strlen(msg);
+    send_params.pay_load      = (void *)msg;
+    send_params.pay_load_len  = strlen(msg);
     send_params.resp_callback = _otacoap_upgrage_cb;
-    send_params.need_resp = needResp;
-    send_params.user_context = handle;
+    send_params.need_resp     = needResp;
+    send_params.user_context  = handle;
 
     /* inform OTA to topic: "/ota/device/progress/$(product_id)/$(device_name)" */
     ret = _otacoap_gen_topic_name(topic_name, OTA_MAX_TOPIC_LEN, topicType, handle->product_id, handle->device_name);
@@ -135,7 +136,8 @@ static int _otacoap_publish(OTA_CoAP_Struct_t *handle, const char *topicType, co
     IOT_FUNC_EXIT_RC(ret);
 }
 
-void *qcloud_osc_init(const char *productId, const char *deviceName, void *channel, OnOTAMessageCallback callback, void *context)
+void *qcloud_osc_init(const char *productId, const char *deviceName, void *channel, OnOTAMessageCallback callback,
+                      void *context)
 {
     OTA_CoAP_Struct_t *h_osc = NULL;
 
@@ -146,11 +148,11 @@ void *qcloud_osc_init(const char *productId, const char *deviceName, void *chann
 
     memset(h_osc, 0, sizeof(OTA_CoAP_Struct_t));
 
-    h_osc->coap = channel;
-    h_osc->product_id = productId;
-    h_osc->device_name = deviceName;
+    h_osc->coap         = channel;
+    h_osc->product_id   = productId;
+    h_osc->device_name  = deviceName;
     h_osc->msg_callback = callback;
-    h_osc->context = context;
+    h_osc->context      = context;
 
     return h_osc;
 

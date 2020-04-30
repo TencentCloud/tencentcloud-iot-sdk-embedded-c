@@ -1,6 +1,6 @@
 /*
  * Tencent is pleased to support the open source community by making IoT Hub available.
- * Copyright (C) 2016 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2018-2020 THL A29 Limited, a Tencent company. All rights reserved.
 
  * Licensed under the MIT License (the "License"); you may not use this file except in
  * compliance with the License. You may obtain a copy of the License at
@@ -17,16 +17,14 @@
 extern "C" {
 #endif
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdint.h>
 #include <time.h>
 
+#include "coap_client.h"
 #include "qcloud_iot_export.h"
 #include "qcloud_iot_import.h"
-
-#include "coap_client.h"
-
 #include "utils_param_check.h"
 
 /**
@@ -51,12 +49,12 @@ static void _coap_msg_op_list_destroy(CoAPMsgOptionList *list)
 {
     IOT_FUNC_ENTRY
 
-    CoAPMsgOption *prev = NULL;
+    CoAPMsgOption *prev   = NULL;
     CoAPMsgOption *option = NULL;
 
     option = list->first;
     while (option != NULL) {
-        prev = option;
+        prev   = option;
         option = option->next;
         _coap_msg_op_delete(prev);
     }
@@ -72,7 +70,8 @@ uint16_t get_next_coap_msg_id(CoAPClient *pClient)
     POINTER_SANITY_CHECK(pClient, QCLOUD_ERR_INVAL);
 
     unsigned int id = 0;
-    id = pClient->next_msg_id = (uint16_t) ((COAP_MSG_MAX_MSG_ID == pClient->next_msg_id) ? 1 : (pClient->next_msg_id + 1));
+    id              = pClient->next_msg_id =
+        (uint16_t)((COAP_MSG_MAX_MSG_ID == pClient->next_msg_id) ? 1 : (pClient->next_msg_id + 1));
 
     IOT_FUNC_EXIT_RC(id)
 }
@@ -80,10 +79,10 @@ uint16_t get_next_coap_msg_id(CoAPClient *pClient)
 unsigned int get_coap_message_token(CoAPClient *client, char *tokenData)
 {
     unsigned int value = client->message_token;
-    tokenData[0] = ((value & 0x00FF) >> 0);
-    tokenData[1] = ((value & 0xFF00) >> 8);
-    tokenData[2] = ((value & 0xFF0000) >> 16);
-    tokenData[3] = ((value & 0xFF000000) >> 24);
+    tokenData[0]       = ((value & 0x00FF) >> 0);
+    tokenData[1]       = ((value & 0xFF00) >> 8);
+    tokenData[2]       = ((value & 0xFF0000) >> 16);
+    tokenData[3]       = ((value & 0xFF000000) >> 24);
     client->message_token++;
     return sizeof(unsigned int);
 }
@@ -92,10 +91,7 @@ int coap_message_type_set(CoAPMessage *message, unsigned type)
 {
     IOT_FUNC_ENTRY
 
-    if ((type != COAP_MSG_CON)
-        && (type != COAP_MSG_NON)
-        && (type != COAP_MSG_ACK)
-        && (type != COAP_MSG_RST)) {
+    if ((type != COAP_MSG_CON) && (type != COAP_MSG_NON) && (type != COAP_MSG_ACK) && (type != COAP_MSG_RST)) {
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_INVAL)
     }
     message->type = type;
@@ -113,7 +109,7 @@ int coap_message_code_set(CoAPMessage *message, unsigned code_class, unsigned co
     if (code_detail > COAP_MSG_MAX_CODE_DETAIL) {
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_INVAL)
     }
-    message->code_class = code_class;
+    message->code_class  = code_class;
     message->code_detail = code_detail;
 
     IOT_FUNC_EXIT_RC(QCLOUD_RET_SUCCESS)
@@ -166,9 +162,9 @@ int coap_message_option_add(CoAPMessage *message, unsigned num, unsigned len, co
 {
     IOT_FUNC_ENTRY
 
-    CoAPMsgOption *prev = NULL;
-    CoAPMsgOption *option = NULL;
-    CoAPMsgOptionList *list = &message->op_list;
+    CoAPMsgOption *    prev   = NULL;
+    CoAPMsgOption *    option = NULL;
+    CoAPMsgOptionList *list   = &message->op_list;
 
     if ((option = qcloud_iot_coap_option_init(num, len, val)) == NULL) {
         Log_e("allocate new option failed.");
@@ -178,14 +174,14 @@ int coap_message_option_add(CoAPMessage *message, unsigned num, unsigned len, co
     if (list->first == NULL) {
         /* empty list */
         list->first = option;
-        list->last = option;
+        list->last  = option;
         IOT_FUNC_EXIT_RC(QCLOUD_RET_SUCCESS)
     }
 
     if (option->option_num < list->first->option_num) {
         /* start of the list */
         option->next = list->first;
-        list->first = option;
+        list->first  = option;
         IOT_FUNC_EXIT_RC(QCLOUD_RET_SUCCESS)
     }
 
@@ -194,7 +190,7 @@ int coap_message_option_add(CoAPMessage *message, unsigned num, unsigned len, co
         /* middle of the list */
         if ((prev->option_num <= option->option_num) && (option->option_num < prev->next->option_num)) {
             option->next = prev->next;
-            prev->next = option;
+            prev->next   = option;
             IOT_FUNC_EXIT_RC(QCLOUD_RET_SUCCESS)
         }
         prev = prev->next;
@@ -202,7 +198,7 @@ int coap_message_option_add(CoAPMessage *message, unsigned num, unsigned len, co
 
     /* end of the list */
     list->last->next = option;
-    list->last = option;
+    list->last       = option;
 
     IOT_FUNC_EXIT_RC(QCLOUD_RET_SUCCESS)
 }
@@ -225,21 +221,21 @@ int coap_message_context_set(CoAPMessage *message, void *userContext)
     IOT_FUNC_EXIT_RC(QCLOUD_RET_SUCCESS)
 }
 
-CoAPMsgOption * qcloud_iot_coap_option_init(unsigned num, unsigned len, const char *val)
+CoAPMsgOption *qcloud_iot_coap_option_init(unsigned num, unsigned len, const char *val)
 {
     IOT_FUNC_ENTRY
 
     CoAPMsgOption *option = NULL;
 
-    option = (CoAPMsgOption *) HAL_Malloc (sizeof(CoAPMsgOption));
+    option = (CoAPMsgOption *)HAL_Malloc(sizeof(CoAPMsgOption));
     if (option == NULL) {
         Log_e("no space to malloc option");
         return NULL;
     }
 
     option->option_num = num;
-    option->val_len = len;
-    option->val = (char *) HAL_Malloc (len);
+    option->val_len    = len;
+    option->val        = (char *)HAL_Malloc(len);
     if (option->val == NULL) {
         HAL_Free(option);
         option = NULL;
@@ -268,7 +264,7 @@ void coap_message_destroy(CoAPMessage *message)
     IOT_FUNC_EXIT
 }
 
-void coap_msg_dump(CoAPMessage* msg)
+void coap_msg_dump(CoAPMessage *msg)
 {
     Log_i("msg->version      = %u", msg->version);
     Log_i("msg->type         = %d", msg->type);
@@ -282,7 +278,6 @@ void coap_msg_dump(CoAPMessage* msg)
     Log_i("msg->token: %s", msg->token);
     return;
 }
-
 
 #ifdef __cplusplus
 }

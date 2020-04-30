@@ -1,6 +1,6 @@
 /*
  * Tencent is pleased to support the open source community by making IoT Hub available.
- * Copyright (C) 2016 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2018-2020 THL A29 Limited, a Tencent company. All rights reserved.
 
  * Licensed under the MIT License (the "License"); you may not use this file except in
  * compliance with the License. You may obtain a copy of the License at
@@ -22,28 +22,29 @@ extern "C" {
 
 #ifdef OTA_MQTT_CHANNEL
 
-#include "ota_client.h"
-
 #include <string.h>
 
+#include "ota_client.h"
+
 /* OSC, OTA signal channel */
-typedef struct  {
-    void                    *mqtt;                                  //MQTT cient
+typedef struct {
+    void *mqtt;  // MQTT cient
 
-    const char              *product_id;
-    const char              *device_name;
+    const char *product_id;
+    const char *device_name;
 
-    char                    topic_upgrade[OTA_MAX_TOPIC_LEN];       //OTA MQTT Topic
-    OnOTAMessageCallback    msg_callback;
+    char                 topic_upgrade[OTA_MAX_TOPIC_LEN];  // OTA MQTT Topic
+    OnOTAMessageCallback msg_callback;
 
-    void                    *context;
-    bool                    topic_ready;
+    void *context;
+    bool  topic_ready;
 } OTA_MQTT_Struct_t;
 
 /* Generate topic name according to @OTATopicType, @productId, @deviceName */
 /* and then copy to @buf. */
 /* 0, successful; -1, failed */
-static int _otamqtt_gen_topic_name(char *buf, size_t bufLen, const char *OTATopicType, const char *productId, const char *deviceName)
+static int _otamqtt_gen_topic_name(char *buf, size_t bufLen, const char *OTATopicType, const char *productId,
+                                   const char *deviceName)
 {
     IOT_FUNC_ENTRY;
 
@@ -51,7 +52,8 @@ static int _otamqtt_gen_topic_name(char *buf, size_t bufLen, const char *OTATopi
 
     ret = HAL_Snprintf(buf, bufLen, "$ota/%s/%s/%s", OTATopicType, productId, deviceName);
 
-    if (ret >= bufLen) IOT_FUNC_EXIT_RC(IOT_OTA_ERR_FAIL);
+    if (ret >= bufLen)
+        IOT_FUNC_EXIT_RC(IOT_OTA_ERR_FAIL);
 
     if (ret < 0) {
         Log_e("HAL_Snprintf failed");
@@ -66,8 +68,8 @@ static int _otamqtt_publish(OTA_MQTT_Struct_t *handle, const char *topicType, in
 {
     IOT_FUNC_ENTRY;
 
-    int ret;
-    char topic_name[OTA_MAX_TOPIC_LEN];
+    int           ret;
+    char          topic_name[OTA_MAX_TOPIC_LEN];
     PublishParams pub_params = DEFAULT_PUB_PARAMS;
 
     if (0 == qos) {
@@ -75,7 +77,7 @@ static int _otamqtt_publish(OTA_MQTT_Struct_t *handle, const char *topicType, in
     } else {
         pub_params.qos = QOS1;
     }
-    pub_params.payload = (void *)msg;
+    pub_params.payload     = (void *)msg;
     pub_params.payload_len = strlen(msg);
 
     /* inform OTA to topic: "/ota/device/progress/$(product_id)/$(device_name)" */
@@ -98,7 +100,7 @@ static int _otamqtt_publish(OTA_MQTT_Struct_t *handle, const char *topicType, in
 /* Parse firmware info (version/URL/file size/MD5) from JSON text */
 static void _otamqtt_upgrage_cb(void *pClient, MQTTMessage *message, void *pcontext)
 {
-    OTA_MQTT_Struct_t *handle = (OTA_MQTT_Struct_t *) pcontext;
+    OTA_MQTT_Struct_t *handle = (OTA_MQTT_Struct_t *)pcontext;
 
     Log_d("topic=%.*s", message->topic_len, message->ptopic);
     Log_i("len=%u, topic_msg=%.*s", message->payload_len, message->payload_len, (char *)message->payload);
@@ -115,7 +117,7 @@ static void _otamqtt_event_callback(void *pclient, MQTTEventType event_type, voi
     switch (event_type) {
         case MQTT_EVENT_SUBCRIBE_SUCCESS:
             Log_d("OTA topic subscribe success");
-            h_osc->topic_ready  = true;
+            h_osc->topic_ready = true;
             break;
 
         case MQTT_EVENT_SUBCRIBE_TIMEOUT:
@@ -129,21 +131,23 @@ static void _otamqtt_event_callback(void *pclient, MQTTEventType event_type, voi
             break;
         case MQTT_EVENT_UNSUBSCRIBE:
             Log_i("OTA topic has been unsubscribed");
-            h_osc->topic_ready = false;;
+            h_osc->topic_ready = false;
+            ;
             break;
         case MQTT_EVENT_CLIENT_DESTROY:
             Log_i("mqtt client has been destroyed");
-            h_osc->topic_ready = false;;
+            h_osc->topic_ready = false;
+            ;
             break;
         default:
             return;
     }
 }
 
-
-void *qcloud_osc_init(const char *productId, const char *deviceName, void *channel, OnOTAMessageCallback callback, void *context)
+void *qcloud_osc_init(const char *productId, const char *deviceName, void *channel, OnOTAMessageCallback callback,
+                      void *context)
 {
-    int ret;
+    int                ret;
     OTA_MQTT_Struct_t *h_osc = NULL;
 
     if (NULL == (h_osc = HAL_Malloc(sizeof(OTA_MQTT_Struct_t)))) {
@@ -160,11 +164,11 @@ void *qcloud_osc_init(const char *productId, const char *deviceName, void *chann
         goto do_exit;
     }
 
-    SubscribeParams sub_params = DEFAULT_SUB_PARAMS;
-    sub_params.on_message_handler = _otamqtt_upgrage_cb;
+    SubscribeParams sub_params      = DEFAULT_SUB_PARAMS;
+    sub_params.on_message_handler   = _otamqtt_upgrage_cb;
     sub_params.on_sub_event_handler = _otamqtt_event_callback;
-    sub_params.qos = QOS1;
-    sub_params.user_data = h_osc;
+    sub_params.qos                  = QOS1;
+    sub_params.user_data            = h_osc;
 
     ret = IOT_MQTT_Subscribe(channel, h_osc->topic_upgrade, &sub_params);
     if (ret < 0) {
@@ -175,7 +179,7 @@ void *qcloud_osc_init(const char *productId, const char *deviceName, void *chann
     int wait_cnt = 10;
     while (!h_osc->topic_ready && (wait_cnt > 0)) {
         // wait for subscription result
-        IOT_MQTT_Yield(channel, 200);        
+        IOT_MQTT_Yield(channel, 200);
         wait_cnt--;
     }
 
@@ -184,11 +188,11 @@ void *qcloud_osc_init(const char *productId, const char *deviceName, void *chann
         goto do_exit;
     }
 
-    h_osc->mqtt = channel;
-    h_osc->product_id = productId;
-    h_osc->device_name = deviceName;
+    h_osc->mqtt         = channel;
+    h_osc->product_id   = productId;
+    h_osc->device_name  = deviceName;
     h_osc->msg_callback = callback;
-    h_osc->context = context;
+    h_osc->context      = context;
 
     return h_osc;
 
@@ -205,6 +209,8 @@ int qcloud_osc_deinit(void *handle)
     IOT_FUNC_ENTRY;
 
     if (NULL != handle) {
+        OTA_MQTT_Struct_t *h_osc = (OTA_MQTT_Struct_t *)handle;
+        IOT_MQTT_Unsubscribe(h_osc->mqtt, h_osc->topic_upgrade);
         HAL_Free(handle);
     }
 

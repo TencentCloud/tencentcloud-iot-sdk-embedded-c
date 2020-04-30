@@ -23,11 +23,11 @@ extern "C" {
 #include "mqtt_client.h"
 
 /**
-  * Determines the length of the MQTT subscribe packet that would be produced using the supplied parameters
-  * @param count the number of topic filter strings in topicFilters
-  * @param topicFilters the array of topic filter strings to be used in the publish
-  * @return the length of buffer needed to contain the serialized version of the packet
-  */
+ * Determines the length of the MQTT subscribe packet that would be produced using the supplied parameters
+ * @param count the number of topic filter strings in topicFilters
+ * @param topicFilters the array of topic filter strings to be used in the publish
+ * @return the length of buffer needed to contain the serialized version of the packet
+ */
 static uint32_t _get_subscribe_packet_rem_len(uint32_t count, char **topicFilters)
 {
     size_t i;
@@ -37,35 +37,37 @@ static uint32_t _get_subscribe_packet_rem_len(uint32_t count, char **topicFilter
         len += 2 + strlen(*topicFilters + i) + 1; /* length + topic + req_qos */
     }
 
-    return (uint32_t) len;
+    return (uint32_t)len;
 }
 
 /**
-  * Serializes the supplied subscribe data into the supplied buffer, ready for sending
-  * @param buf the buffer into which the packet will be serialized
-  * @param buf_len the length in bytes of the supplied bufferr
-  * @param dup integer - the MQTT dup flag
-  * @param packet_id integer - the MQTT packet identifier
-  * @param count - number of members in the topicFilters and reqQos arrays
-  * @param topicFilters - array of topic filter names
-  * @param requestedQoSs - array of requested QoS
-  * @return the length of the serialized data.  <= 0 indicates error
-  */
-static int _serialize_subscribe_packet(unsigned char *buf, size_t buf_len, uint8_t dup, uint16_t packet_id, uint32_t count,
-                                       char **topicFilters, QoS *requestedQoSs, uint32_t *serialized_len)
+ * Serializes the supplied subscribe data into the supplied buffer, ready for sending
+ * @param buf the buffer into which the packet will be serialized
+ * @param buf_len the length in bytes of the supplied bufferr
+ * @param dup integer - the MQTT dup flag
+ * @param packet_id integer - the MQTT packet identifier
+ * @param count - number of members in the topicFilters and reqQos arrays
+ * @param topicFilters - array of topic filter names
+ * @param requestedQoSs - array of requested QoS
+ * @return the length of the serialized data.  <= 0 indicates error
+ */
+static int _serialize_subscribe_packet(unsigned char *buf, size_t buf_len, uint8_t dup, uint16_t packet_id,
+                                       uint32_t count, char **topicFilters, QoS *requestedQoSs,
+                                       uint32_t *serialized_len)
 {
     IOT_FUNC_ENTRY;
 
     POINTER_SANITY_CHECK(buf, QCLOUD_ERR_INVAL);
     POINTER_SANITY_CHECK(serialized_len, QCLOUD_ERR_INVAL);
 
-    unsigned char *ptr = buf;
-    unsigned char header = 0;
-    uint32_t rem_len = 0;
-    uint32_t i = 0;
-    int rc;
+    unsigned char *ptr     = buf;
+    unsigned char  header  = 0;
+    uint32_t       rem_len = 0;
+    uint32_t       i       = 0;
+    int            rc;
 
-    // remaining length of SUBSCRIBE packet = packet type(2 byte) + count * (remaining length(2 byte) + topicLen + qos(1 byte))
+    // remaining length of SUBSCRIBE packet = packet type(2 byte) + count * (remaining length(2 byte) + topicLen + qos(1
+    // byte))
     rem_len = _get_subscribe_packet_rem_len(count, topicFilters);
     if (get_mqtt_packet_len(rem_len) > buf_len) {
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_BUF_TOO_SHORT);
@@ -84,17 +86,16 @@ static int _serialize_subscribe_packet(unsigned char *buf, size_t buf_len, uint8
     // payload
     for (i = 0; i < count; ++i) {
         mqtt_write_utf8_string(&ptr, *topicFilters + i);
-        mqtt_write_char(&ptr, (unsigned char) requestedQoSs[i]);
+        mqtt_write_char(&ptr, (unsigned char)requestedQoSs[i]);
     }
 
-    *serialized_len = (uint32_t) (ptr - buf);
+    *serialized_len = (uint32_t)(ptr - buf);
 
     IOT_FUNC_EXIT_RC(QCLOUD_RET_SUCCESS);
 }
 
 int qcloud_iot_mqtt_subscribe(Qcloud_IoT_Client *pClient, char *topicFilter, SubscribeParams *pParams)
 {
-
     IOT_FUNC_ENTRY;
     int rc;
 
@@ -103,8 +104,8 @@ int qcloud_iot_mqtt_subscribe(Qcloud_IoT_Client *pClient, char *topicFilter, Sub
     // POINTER_SANITY_CHECK(pParams->on_message_handler, QCLOUD_ERR_INVAL);
     STRING_PTR_SANITY_CHECK(topicFilter, QCLOUD_ERR_INVAL);
 
-    Timer timer;
-    uint32_t len = 0;
+    Timer    timer;
+    uint32_t len       = 0;
     uint16_t packet_id = 0;
 
     ListNode *node = NULL;
@@ -150,10 +151,10 @@ int qcloud_iot_mqtt_subscribe(Qcloud_IoT_Client *pClient, char *topicFilter, Sub
 
     /* add node into sub ack wait list */
     SubTopicHandle sub_handle;
-    sub_handle.topic_filter = topic_filter_stored;
-    sub_handle.message_handler = pParams->on_message_handler;
+    sub_handle.topic_filter      = topic_filter_stored;
+    sub_handle.message_handler   = pParams->on_message_handler;
     sub_handle.sub_event_handler = pParams->on_sub_event_handler;
-    sub_handle.qos = pParams->qos;
+    sub_handle.qos               = pParams->qos;
     sub_handle.handler_user_data = pParams->user_data;
 
     rc = push_sub_info_to(pClient, len, (unsigned int)packet_id, SUBSCRIBE, &sub_handle, &node);
@@ -188,8 +189,8 @@ int qcloud_iot_mqtt_resubscribe(Qcloud_IoT_Client *pClient)
 
     POINTER_SANITY_CHECK(pClient, QCLOUD_ERR_INVAL);
 
-    uint32_t itr = 0;
-    char *topic = NULL;
+    uint32_t        itr   = 0;
+    char *          topic = NULL;
     SubscribeParams temp_param;
 
     if (NULL == pClient) {
@@ -201,14 +202,14 @@ int qcloud_iot_mqtt_resubscribe(Qcloud_IoT_Client *pClient)
     }
 
     for (itr = 0; itr < MAX_MESSAGE_HANDLERS; itr++) {
-        topic = (char *) pClient->sub_handles[itr].topic_filter;
+        topic = (char *)pClient->sub_handles[itr].topic_filter;
         if (topic == NULL) {
             continue;
         }
-        temp_param.on_message_handler = pClient->sub_handles[itr].message_handler;
+        temp_param.on_message_handler   = pClient->sub_handles[itr].message_handler;
         temp_param.on_sub_event_handler = pClient->sub_handles[itr].sub_event_handler;
-        temp_param.qos = pClient->sub_handles[itr].qos;
-        temp_param.user_data = pClient->sub_handles[itr].handler_user_data;
+        temp_param.qos                  = pClient->sub_handles[itr].qos;
+        temp_param.user_data            = pClient->sub_handles[itr].handler_user_data;
 
         rc = qcloud_iot_mqtt_subscribe(pClient, topic, &temp_param);
         if (rc < 0) {
@@ -230,12 +231,13 @@ bool qcloud_iot_mqtt_is_sub_ready(Qcloud_IoT_Client *pClient, char *topicFilter)
     if (topicLen > MAX_SIZE_OF_CLOUD_TOPIC) {
         return false;
     }
-    
+
     int i = 0;
     HAL_MutexLock(pClient->lock_generic);
     for (i = 0; i < MAX_MESSAGE_HANDLERS; ++i) {
-        if ((pClient->sub_handles[i].topic_filter != NULL && !strcmp(pClient->sub_handles[i].topic_filter, topicFilter))
-            || strstr(topicFilter, "/#") != NULL || strstr(topicFilter, "/+") != NULL) {
+        if ((pClient->sub_handles[i].topic_filter != NULL &&
+             !strcmp(pClient->sub_handles[i].topic_filter, topicFilter)) ||
+            strstr(topicFilter, "/#") != NULL || strstr(topicFilter, "/+") != NULL) {
             HAL_MutexUnlock(pClient->lock_generic);
             return true;
         }
@@ -243,7 +245,6 @@ bool qcloud_iot_mqtt_is_sub_ready(Qcloud_IoT_Client *pClient, char *topicFilter)
     HAL_MutexUnlock(pClient->lock_generic);
     return false;
 }
-
 
 #ifdef __cplusplus
 }

@@ -1,6 +1,6 @@
 /*
  * Tencent is pleased to support the open source community by making IoT Hub available.
- * Copyright (C) 2016 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2018-2020 THL A29 Limited, a Tencent company. All rights reserved.
 
  * Licensed under the MIT License (the "License"); you may not use this file except in
  * compliance with the License. You may obtain a copy of the License at
@@ -30,7 +30,8 @@ extern "C" {
  * @param callback  callback when property changes
  * @return          QCLOUD_RET_SUCCESS for success, or err code for failure
  */
-int shadow_common_register_property_on_delta(Qcloud_IoT_Shadow *pShadow, DeviceProperty *pProperty, OnPropRegCallback callback);
+int shadow_common_register_property_on_delta(Qcloud_IoT_Shadow *pShadow, DeviceProperty *pProperty,
+                                             OnPropRegCallback callback);
 
 /**
  * @brief remove a device property
@@ -50,9 +51,8 @@ int shadow_common_remove_property(Qcloud_IoT_Shadow *pshadow, DeviceProperty *pP
  */
 int shadow_common_check_property_existence(Qcloud_IoT_Shadow *pshadow, DeviceProperty *pProperty);
 
-
 #ifdef __cplusplus
 }
 #endif
 
-#endif //IOT_SHADOW_CLIENT_COMMON_H_
+#endif  // IOT_SHADOW_CLIENT_COMMON_H_

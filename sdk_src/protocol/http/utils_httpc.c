@@ -1,6 +1,6 @@
 /*
  * Tencent is pleased to support the open source community by making IoT Hub available.
- * Copyright (C) 2016 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2018-2020 THL A29 Limited, a Tencent company. All rights reserved.
 
  * Licensed under the MIT License (the "License"); you may not use this file except in
  * compliance with the License. You may obtain a copy of the License at
@@ -17,42 +17,38 @@
 extern "C" {
 #endif
 
+#include "utils_httpc.h"
 
-
-#include <string.h>
 #include <ctype.h>
 #include <string.h>
 
-#include "qcloud_iot_import.h"
-#include "qcloud_iot_export.h"
-#include "qcloud_iot_common.h"
-
 #include "qcloud_iot_ca.h"
-#include "utils_httpc.h"
+#include "qcloud_iot_common.h"
+#include "qcloud_iot_export.h"
+#include "qcloud_iot_import.h"
 #include "utils_timer.h"
 
-#define HTTP_CLIENT_MIN(x,y) (((x)<(y))?(x):(y))
-#define HTTP_CLIENT_MAX(x,y) (((x)>(y))?(x):(y))
+#define HTTP_CLIENT_MIN(x, y) (((x) < (y)) ? (x) : (y))
+#define HTTP_CLIENT_MAX(x, y) (((x) > (y)) ? (x) : (y))
 
-#define HTTP_CLIENT_AUTHB_SIZE     128
+#define HTTP_CLIENT_AUTHB_SIZE 128
 
-#define HTTP_CLIENT_CHUNK_SIZE     1024
-#define HTTP_CLIENT_SEND_BUF_SIZE  1024
+#define HTTP_CLIENT_CHUNK_SIZE    1024
+#define HTTP_CLIENT_SEND_BUF_SIZE 1024
 
-#define HTTP_CLIENT_MAX_HOST_LEN   64
-#define HTTP_CLIENT_MAX_URL_LEN    1024
+#define HTTP_CLIENT_MAX_HOST_LEN 64
+#define HTTP_CLIENT_MAX_URL_LEN  1024
 
-#define HTTP_RETRIEVE_MORE_DATA   (1)
+#define HTTP_RETRIEVE_MORE_DATA (1)
 
 #if defined(MBEDTLS_DEBUG_C)
 #define DEBUG_LEVEL 2
 #endif
 
-
 static void _http_client_base64enc(char *out, const char *in)
 {
     const char code[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
-    int i = 0, x = 0, l = 0;
+    int        i = 0, x = 0, l = 0;
 
     for (; *in; in++) {
         x = x << 8 | *in;
@@ -70,12 +66,12 @@ static void _http_client_base64enc(char *out, const char *in)
     out[i] = '\0';
 }
 
-static int _http_client_parse_url(const char *url, char *scheme, uint32_t max_scheme_len, char *host, uint32_t maxhost_len,
-                                  int *port, char *path, uint32_t max_path_len)
+static int _http_client_parse_url(const char *url, char *scheme, uint32_t max_scheme_len, char *host,
+                                  uint32_t maxhost_len, int *port, char *path, uint32_t max_path_len)
 {
-    char *scheme_ptr = (char *) url;
-    char *host_ptr = (char *) strstr(url, "://");
-    uint32_t host_len = 0;
+    char *   scheme_ptr = (char *)url;
+    char *   host_ptr   = (char *)strstr(url, "://");
+    uint32_t host_len   = 0;
     uint32_t path_len;
 
     char *path_ptr;
@@ -142,9 +138,9 @@ static int _http_client_parse_url(const char *url, char *scheme, uint32_t max_sc
 
 static int _http_client_parse_host(const char *url, char *host, uint32_t host_max_len)
 {
-    const char *host_ptr = (const char *) strstr(url, "://");
-    uint32_t host_len = 0;
-    char *path_ptr;
+    const char *host_ptr = (const char *)strstr(url, "://");
+    uint32_t    host_len = 0;
+    char *      path_ptr;
 
     if (host_ptr == NULL) {
         Log_e("Could not find host");
@@ -153,7 +149,7 @@ static int _http_client_parse_host(const char *url, char *host, uint32_t host_ma
     host_ptr += 3;
 
     uint32_t pro_len = 0;
-    pro_len = host_ptr - url;
+    pro_len          = host_ptr - url;
 
     path_ptr = strchr(host_ptr, '/');
     if (path_ptr != NULL)
@@ -170,7 +166,6 @@ static int _http_client_parse_host(const char *url, char *host, uint32_t host_ma
 
     return QCLOUD_RET_SUCCESS;
 }
-
 
 static int _http_client_get_info(HTTPClient *client, unsigned char *send_buf, int *send_idx, char *buf, uint32_t len)
 {
@@ -195,7 +190,8 @@ static int _http_client_get_info(HTTPClient *client, unsigned char *send_buf, in
 
         if (idx == HTTP_CLIENT_SEND_BUF_SIZE) {
             size_t byte_written_len = 0;
-            rc = client->network_stack.write(&(client->network_stack), send_buf, HTTP_CLIENT_SEND_BUF_SIZE, 5000, &byte_written_len);
+            rc = client->network_stack.write(&(client->network_stack), send_buf, HTTP_CLIENT_SEND_BUF_SIZE, 5000,
+                                             &byte_written_len);
             if (byte_written_len) {
                 return (byte_written_len);
             }
@@ -216,25 +212,28 @@ static int _http_client_send_auth(HTTPClient *client, unsigned char *send_buf, i
 
     _http_client_base64enc(b_auth, base64buff);
     b_auth[strlen(b_auth) + 1] = '\0';
-    b_auth[strlen(b_auth)] = '\n';
+    b_auth[strlen(b_auth)]     = '\n';
 
     _http_client_get_info(client, send_buf, send_idx, b_auth, 0);
 
     return QCLOUD_RET_SUCCESS;
 }
 
-
 static int _http_client_send_header(HTTPClient *client, const char *url, HttpMethod method, HTTPClientData *client_data)
 {
-    char scheme[8] = { 0 };
-    char host[HTTP_CLIENT_MAX_HOST_LEN] = { 0 };
-    char path[HTTP_CLIENT_MAX_URL_LEN] = { 0 };
-    int len;
-    unsigned char send_buf[HTTP_CLIENT_SEND_BUF_SIZE] = { 0 };
-    char buf[HTTP_CLIENT_SEND_BUF_SIZE] = { 0 };
-    char *meth = (method == HTTP_GET) ? "GET" : (method == HTTP_POST) ? "POST" :
-                 (method == HTTP_PUT) ? "PUT" : (method == HTTP_DELETE) ? "DELETE" :
-                 (method == HTTP_HEAD) ? "HEAD" : "";
+    char          scheme[8]                      = {0};
+    char          host[HTTP_CLIENT_MAX_HOST_LEN] = {0};
+    char          path[HTTP_CLIENT_MAX_URL_LEN]  = {0};
+    int           len;
+    unsigned char send_buf[HTTP_CLIENT_SEND_BUF_SIZE] = {0};
+    char          buf[HTTP_CLIENT_SEND_BUF_SIZE]      = {0};
+    char *        meth                                = (method == HTTP_GET)
+                     ? "GET"
+                     : (method == HTTP_POST)
+                           ? "POST"
+                           : (method == HTTP_PUT)
+                                 ? "PUT"
+                                 : (method == HTTP_DELETE) ? "DELETE" : (method == HTTP_HEAD) ? "HEAD" : "";
     int rc;
     int port;
 
@@ -245,9 +244,7 @@ static int _http_client_send_header(HTTPClient *client, const char *url, HttpMet
     }
 
     if (strcmp(scheme, "http") == 0) {
-
     } else if (strcmp(scheme, "https") == 0) {
-
     }
 
     memset(send_buf, 0, HTTP_CLIENT_SEND_BUF_SIZE);
@@ -265,7 +262,7 @@ static int _http_client_send_header(HTTPClient *client, const char *url, HttpMet
     }
 
     if (client->header) {
-        _http_client_get_info(client, send_buf, &len, (char *) client->header, strlen(client->header));
+        _http_client_get_info(client, send_buf, &len, (char *)client->header, strlen(client->header));
     }
 
     if (client_data->post_buf != NULL) {
@@ -280,12 +277,12 @@ static int _http_client_send_header(HTTPClient *client, const char *url, HttpMet
 
     _http_client_get_info(client, send_buf, &len, "\r\n", 0);
 
-    //Log_d("REQUEST:\n%s", send_buf);
+    // Log_d("REQUEST:\n%s", send_buf);
 
     size_t written_len = 0;
-    rc = client->network_stack.write(&client->network_stack, send_buf, len, 5000, &written_len);
+    rc                 = client->network_stack.write(&client->network_stack, send_buf, len, 5000, &written_len);
     if (written_len > 0) {
-        //Log_d("Written %lu bytes", written_len);
+        // Log_d("Written %lu bytes", written_len);
     } else if (written_len == 0) {
         Log_e("written_len == 0,Connection was closed by server");
         return QCLOUD_ERR_HTTP_CLOSED; /* Connection was closed by server */
@@ -297,16 +294,16 @@ static int _http_client_send_header(HTTPClient *client, const char *url, HttpMet
     return QCLOUD_RET_SUCCESS;
 }
 
-
 static int _http_client_send_userdata(HTTPClient *client, HTTPClientData *client_data)
 {
     if (client_data->post_buf && client_data->post_buf_len) {
-        //Log_d("client_data->post_buf: %s", client_data->post_buf);
+        // Log_d("client_data->post_buf: %s", client_data->post_buf);
         {
             size_t written_len = 0;
-            int rc = client->network_stack.write(&client->network_stack, (unsigned char *)client_data->post_buf, client_data->post_buf_len, 5000,  &written_len);
+            int    rc = client->network_stack.write(&client->network_stack, (unsigned char *)client_data->post_buf,
+                                                 client_data->post_buf_len, 5000, &written_len);
             if (written_len > 0) {
-                //Log_d("Written %d bytes", written_len);
+                // Log_d("Written %d bytes", written_len);
             } else if (written_len == 0) {
                 Log_e("written_len == 0,Connection was closed by server");
                 return QCLOUD_ERR_HTTP_CLOSED;
@@ -320,13 +317,13 @@ static int _http_client_send_userdata(HTTPClient *client, HTTPClientData *client
     return QCLOUD_RET_SUCCESS;
 }
 
-
-static int _http_client_recv(HTTPClient *client, char *buf, int min_len, int max_len, int *p_read_len, uint32_t timeout_ms, HTTPClientData *client_data)
+static int _http_client_recv(HTTPClient *client, char *buf, int min_len, int max_len, int *p_read_len,
+                             uint32_t timeout_ms, HTTPClientData *client_data)
 {
     IOT_FUNC_ENTRY;
 
-    int rc = 0;
-    Timer timer;
+    int    rc = 0;
+    Timer  timer;
     size_t recv_size = 0;
 
     InitTimer(&timer);
@@ -334,7 +331,8 @@ static int _http_client_recv(HTTPClient *client, char *buf, int min_len, int max
 
     *p_read_len = 0;
 
-    rc = client->network_stack.read(&client->network_stack, (unsigned char *)buf, max_len, (uint32_t)left_ms(&timer), &recv_size);
+    rc = client->network_stack.read(&client->network_stack, (unsigned char *)buf, max_len, (uint32_t)left_ms(&timer),
+                                    &recv_size);
     *p_read_len = (int)recv_size;
     if (rc == QCLOUD_ERR_SSL_NOTHING_TO_READ || rc == QCLOUD_ERR_TCP_NOTHING_TO_READ) {
         Log_d("HTTP read nothing and timeout");
@@ -353,17 +351,18 @@ static int _http_client_recv(HTTPClient *client, char *buf, int min_len, int max
         IOT_FUNC_EXIT_RC(rc);
     }
 
+    // IOT_FUNC_EXIT_RC(rc);
     IOT_FUNC_EXIT_RC(QCLOUD_RET_SUCCESS);
 }
 
 static int _http_client_retrieve_content(HTTPClient *client, char *data, int len, uint32_t timeout_ms,
-        HTTPClientData *client_data)
+                                         HTTPClientData *client_data)
 {
     IOT_FUNC_ENTRY;
 
-    int count = 0;
-    int templen = 0;
-    int crlf_pos;
+    int   count   = 0;
+    int   templen = 0;
+    int   crlf_pos;
     Timer timer;
 
     InitTimer(&timer);
@@ -385,10 +384,10 @@ static int _http_client_retrieve_content(HTTPClient *client, char *data, int len
             }
 
             max_len = HTTP_CLIENT_MIN(HTTP_CLIENT_CHUNK_SIZE - 1, client_data->response_buf_len - 1 - count);
-            rc = _http_client_recv(client, data, 1, max_len, &len, (uint32_t)left_ms(&timer), client_data);
+            rc      = _http_client_recv(client, data, 1, max_len, &len, (uint32_t)left_ms(&timer), client_data);
 
             /* Receive data */
-            //Log_d("data len: %d %d", len, count);
+            // Log_d("data len: %d %d", len, count);
 
             if (rc != QCLOUD_RET_SUCCESS) {
                 IOT_FUNC_EXIT_RC(rc);
@@ -412,10 +411,10 @@ static int _http_client_retrieve_content(HTTPClient *client, char *data, int len
         if (client_data->is_chunked && client_data->retrieve_len <= 0) {
             /* Read chunk header */
             bool foundCrlf;
-            int n;
+            int  n;
             do {
                 foundCrlf = IOT_FALSE;
-                crlf_pos = 0;
+                crlf_pos  = 0;
                 data[len] = 0;
                 if (len >= 2) {
                     for (; crlf_pos < len - 2; crlf_pos++) {
@@ -429,13 +428,8 @@ static int _http_client_retrieve_content(HTTPClient *client, char *data, int len
                     /* Try to read more */
                     if (len < HTTP_CLIENT_CHUNK_SIZE) {
                         int new_trf_len, rc;
-                        rc = _http_client_recv(client,
-                                               data + len,
-                                               0,
-                                               HTTP_CLIENT_CHUNK_SIZE - len - 1,
-                                               &new_trf_len,
-                                               left_ms(&timer),
-                                               client_data);
+                        rc = _http_client_recv(client, data + len, 0, HTTP_CLIENT_CHUNK_SIZE - len - 1, &new_trf_len,
+                                               left_ms(&timer), client_data);
                         len += new_trf_len;
                         if (rc != QCLOUD_RET_SUCCESS) {
                             IOT_FUNC_EXIT_RC(rc);
@@ -450,8 +444,8 @@ static int _http_client_retrieve_content(HTTPClient *client, char *data, int len
             data[crlf_pos] = '\0';
 
             // n = sscanf(data, "%x", &readLen);/* chunk length */
-            readLen = strtoul(data, NULL, 16);
-            n = (0 == readLen) ? 0 : 1;
+            readLen                   = strtoul(data, NULL, 16);
+            n                         = (0 == readLen) ? 0 : 1;
             client_data->retrieve_len = readLen;
             client_data->response_content_len += client_data->retrieve_len;
             if (readLen == 0) {
@@ -489,7 +483,7 @@ static int _http_client_retrieve_content(HTTPClient *client, char *data, int len
                 Log_d("memmove %d %d %d\n", readLen, len, client_data->retrieve_len);
                 memmove(data, &data[readLen], len - readLen); /* chunk case, read between two chunks */
                 len -= readLen;
-                readLen = 0;
+                readLen                   = 0;
                 client_data->retrieve_len = 0;
             } else {
                 readLen -= len;
@@ -498,8 +492,8 @@ static int _http_client_retrieve_content(HTTPClient *client, char *data, int len
             if (readLen) {
                 int rc;
                 int max_len = HTTP_CLIENT_MIN(HTTP_CLIENT_CHUNK_SIZE - 1, client_data->response_buf_len - 1 - count);
-                max_len = HTTP_CLIENT_MIN(max_len, readLen);
-                rc = _http_client_recv(client, data, 1, max_len, &len, left_ms(&timer), client_data);
+                max_len     = HTTP_CLIENT_MIN(max_len, readLen);
+                rc          = _http_client_recv(client, data, 1, max_len, &len, left_ms(&timer), client_data);
                 if (rc != QCLOUD_RET_SUCCESS) {
                     IOT_FUNC_EXIT_RC(rc);
                 }
@@ -516,7 +510,7 @@ static int _http_client_retrieve_content(HTTPClient *client, char *data, int len
                 /* Read missing chars to find end of chunk */
                 rc = _http_client_recv(client, data + len, 2 - len, HTTP_CLIENT_CHUNK_SIZE - len - 1, &new_trf_len,
                                        left_ms(&timer), client_data);
-                if ((rc != QCLOUD_RET_SUCCESS ) || (0 == left_ms(&timer))) {
+                if ((rc != QCLOUD_RET_SUCCESS) || (0 == left_ms(&timer))) {
                     IOT_FUNC_EXIT_RC(rc);
                 }
                 len += new_trf_len;
@@ -529,23 +523,21 @@ static int _http_client_retrieve_content(HTTPClient *client, char *data, int len
             memmove(data, &data[2], len - 2); /* remove the \r\n */
             len -= 2;
         } else {
-            //Log_d("no more (content-length)");
+            // Log_d("no more (content-length)");
             client_data->is_more = IOT_FALSE;
             break;
         }
-
     }
 
     IOT_FUNC_EXIT_RC(QCLOUD_RET_SUCCESS);
 }
-
 
 static int _http_client_response_parse(HTTPClient *client, char *data, int len, uint32_t timeout_ms,
                                        HTTPClientData *client_data)
 {
     IOT_FUNC_ENTRY;
 
-    int crlf_pos;
+    int   crlf_pos;
     Timer timer;
     char *tmp_ptr, *ptr_body_end;
 
@@ -560,7 +552,7 @@ static int _http_client_response_parse(HTTPClient *client, char *data, int len, 
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_HTTP_UNRESOLVED_DNS);
     }
 
-    crlf_pos = crlf_ptr - data;
+    crlf_pos       = crlf_ptr - data;
     data[crlf_pos] = '\0';
 
 #if 0
@@ -582,7 +574,7 @@ static int _http_client_response_parse(HTTPClient *client, char *data, int len, 
             IOT_FUNC_EXIT_RC(QCLOUD_ERR_HTTP_NOT_FOUND);
     }
 
-    //Log_d("Reading headers : %s", data);
+    // Log_d("Reading headers : %s", data);
 
     // remove null character
     memmove(data, &data[crlf_pos + 2], len - (crlf_pos + 2) + 1);
@@ -592,7 +584,8 @@ static int _http_client_response_parse(HTTPClient *client, char *data, int len, 
 
     if (NULL == (ptr_body_end = strstr(data, "\r\n\r\n"))) {
         int new_trf_len, rc;
-        rc = _http_client_recv(client, data + len, 1, HTTP_CLIENT_CHUNK_SIZE - len - 1, &new_trf_len, left_ms(&timer), client_data);
+        rc = _http_client_recv(client, data + len, 1, HTTP_CLIENT_CHUNK_SIZE - len - 1, &new_trf_len, left_ms(&timer),
+                               client_data);
         if (rc != QCLOUD_RET_SUCCESS) {
             IOT_FUNC_EXIT_RC(rc);
         }
@@ -606,16 +599,15 @@ static int _http_client_response_parse(HTTPClient *client, char *data, int len, 
 
     if (NULL != (tmp_ptr = strstr(data, "Content-Length"))) {
         client_data->response_content_len = atoi(tmp_ptr + strlen("Content-Length: "));
-        client_data->retrieve_len = client_data->response_content_len;
+        client_data->retrieve_len         = client_data->response_content_len;
     } else if (NULL != (tmp_ptr = strstr(data, "Transfer-Encoding"))) {
-        int len_chunk = strlen("Chunked");
+        int   len_chunk   = strlen("Chunked");
         char *chunk_value = data + strlen("Transfer-Encoding: ");
 
-        if ((! memcmp(chunk_value, "Chunked", len_chunk))
-            || (! memcmp(chunk_value, "chunked", len_chunk))) {
-            client_data->is_chunked = IOT_TRUE;
+        if ((!memcmp(chunk_value, "Chunked", len_chunk)) || (!memcmp(chunk_value, "chunked", len_chunk))) {
+            client_data->is_chunked           = IOT_TRUE;
             client_data->response_content_len = 0;
-            client_data->retrieve_len = 0;
+            client_data->retrieve_len         = 0;
         }
     } else {
         Log_e("Could not parse header");
@@ -637,7 +629,8 @@ static int _http_client_connect(HTTPClient *client)
     return QCLOUD_RET_SUCCESS;
 }
 
-static int _http_client_send_request(HTTPClient *client, const char *url, HttpMethod method, HTTPClientData *client_data)
+static int _http_client_send_request(HTTPClient *client, const char *url, HttpMethod method,
+                                     HTTPClientData *client_data)
 {
     int rc;
 
@@ -654,13 +647,12 @@ static int _http_client_send_request(HTTPClient *client, const char *url, HttpMe
     return rc;
 }
 
-
 static int _http_client_recv_response(HTTPClient *client, uint32_t timeout_ms, HTTPClientData *client_data)
 {
     IOT_FUNC_ENTRY;
 
-    int reclen = 0, rc = QCLOUD_ERR_HTTP_CONN;
-    char buf[HTTP_CLIENT_CHUNK_SIZE] = { 0 };
+    int   reclen = 0, rc = QCLOUD_ERR_HTTP_CONN;
+    char  buf[HTTP_CLIENT_CHUNK_SIZE] = {0};
     Timer timer;
 
     InitTimer(&timer);
@@ -673,7 +665,7 @@ static int _http_client_recv_response(HTTPClient *client, uint32_t timeout_ms, H
 
     if (client_data->is_more) {
         client_data->response_buf[0] = '\0';
-        rc = _http_client_retrieve_content(client, buf, reclen, left_ms(&timer), client_data);
+        rc                           = _http_client_retrieve_content(client, buf, reclen, left_ms(&timer), client_data);
     } else {
         client_data->is_more = IOT_TRUE;
         rc = _http_client_recv(client, buf, 1, HTTP_CLIENT_CHUNK_SIZE - 1, &reclen, left_ms(&timer), client_data);
@@ -681,14 +673,14 @@ static int _http_client_recv_response(HTTPClient *client, uint32_t timeout_ms, H
         if (rc != QCLOUD_RET_SUCCESS) {
             IOT_FUNC_EXIT_RC(rc);
         }
-        //else if(0 == left_ms(&timer)){
+        // else if(0 == left_ms(&timer)){
         //  IOT_FUNC_EXIT_RC(QCLOUD_ERR_HTTP_TIMEOUT);
         //}
 
         buf[reclen] = '\0';
 
         if (reclen) {
-            //HAL_Printf("RESPONSE:\n%s", buf);
+            // HAL_Printf("RESPONSE:\n%s", buf);
             rc = _http_client_response_parse(client, buf, reclen, left_ms(&timer), client_data);
         }
     }
@@ -705,10 +697,10 @@ static int _http_network_init(Network *pNetwork, const char *host, int port, con
     pNetwork->type = NETWORK_TCP;
 #ifndef AUTH_WITH_NOTLS
     if (ca_crt_dir != NULL) {
-        pNetwork->ssl_connect_params.ca_crt = ca_crt_dir;
+        pNetwork->ssl_connect_params.ca_crt     = ca_crt_dir;
         pNetwork->ssl_connect_params.ca_crt_len = strlen(pNetwork->ssl_connect_params.ca_crt);
         pNetwork->ssl_connect_params.timeout_ms = 10000;
-        pNetwork->type = NETWORK_TLS;
+        pNetwork->type                          = NETWORK_TLS;
     }
 #endif
     pNetwork->host = host;
@@ -726,10 +718,11 @@ int qcloud_http_client_connect(HTTPClient *client, const char *url, int port, co
         return QCLOUD_ERR_HTTP_CONN;
     }
 
-    int rc;
+    int  rc;
     char host[HTTP_CLIENT_MAX_HOST_LEN] = {0};
-    rc = _http_client_parse_host(url, host, sizeof(host));
-    if (rc != QCLOUD_RET_SUCCESS) return rc;
+    rc                                  = _http_client_parse_host(url, host, sizeof(host));
+    if (rc != QCLOUD_RET_SUCCESS)
+        return rc;
 
     rc = _http_network_init(&client->network_stack, host, port, ca_crt);
     if (rc != QCLOUD_RET_SUCCESS)
@@ -756,13 +749,15 @@ void qcloud_http_client_close(HTTPClient *client)
     }
 }
 
-int qcloud_http_client_common(HTTPClient *client, const char *url, int port, const char *ca_crt, HttpMethod method, HTTPClientData *client_data)
+int qcloud_http_client_common(HTTPClient *client, const char *url, int port, const char *ca_crt, HttpMethod method,
+                              HTTPClientData *client_data)
 {
     int rc;
 
     if (client->network_stack.handle == 0) {
         rc = qcloud_http_client_connect(client, url, port, ca_crt);
-        if (rc != QCLOUD_RET_SUCCESS) return rc;
+        if (rc != QCLOUD_RET_SUCCESS)
+            return rc;
     }
 
     rc = _http_client_send_request(client, url, method, client_data);
@@ -779,14 +774,13 @@ int qcloud_http_recv_data(HTTPClient *client, uint32_t timeout_ms, HTTPClientDat
 {
     IOT_FUNC_ENTRY;
 
-    int rc = QCLOUD_RET_SUCCESS;
+    int   rc = QCLOUD_RET_SUCCESS;
     Timer timer;
 
     InitTimer(&timer);
-    countdown_ms(&timer, (unsigned int) timeout_ms);
+    countdown_ms(&timer, (unsigned int)timeout_ms);
 
-    if ((NULL != client_data->response_buf)
-        && (0 != client_data->response_buf_len)) {
+    if ((NULL != client_data->response_buf) && (0 != client_data->response_buf_len)) {
         rc = _http_client_recv_response(client, left_ms(&timer), client_data);
         if (rc < 0) {
             Log_e("http_client_recv_response is error,rc = %d", rc);
@@ -796,8 +790,6 @@ int qcloud_http_recv_data(HTTPClient *client, uint32_t timeout_ms, HTTPClientDat
     }
     IOT_FUNC_EXIT_RC(QCLOUD_RET_SUCCESS);
 }
-
-
 
 #ifdef __cplusplus
 }

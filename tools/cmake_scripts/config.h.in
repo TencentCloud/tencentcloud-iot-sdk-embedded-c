@@ -14,3 +14,4 @@
 #cmakedefine AT_OS_USED
 #cmakedefine AT_DEBUG
 #cmakedefine OTA_USE_HTTPS
+#cmakedefine MULTITHREAD_ENABLED

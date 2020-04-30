@@ -1,6 +1,6 @@
 /*
  * Tencent is pleased to support the open source community by making IoT Hub available.
- * Copyright (C) 2016 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2018-2020 THL A29 Limited, a Tencent company. All rights reserved.
 
  * Licensed under the MIT License (the "License"); you may not use this file except in
  * compliance with the License. You may obtain a copy of the License at
@@ -22,14 +22,12 @@ extern "C" {
 
 #include <stdio.h>
 
-#include "qcloud_iot_export_log.h"
 #include "qcloud_iot_export_error.h"
+#include "qcloud_iot_export_log.h"
 
-int qcloud_iot_utils_base64encode( unsigned char *dst, size_t dlen, size_t *olen,
-                                   const unsigned char *src, size_t slen );
+int qcloud_iot_utils_base64encode(unsigned char *dst, size_t dlen, size_t *olen, const unsigned char *src, size_t slen);
 
-int qcloud_iot_utils_base64decode( unsigned char *dst, size_t dlen, size_t *olen,
-                                   const unsigned char *src, size_t slen );
+int qcloud_iot_utils_base64decode(unsigned char *dst, size_t dlen, size_t *olen, const unsigned char *src, size_t slen);
 
 #ifdef __cplusplus
 }

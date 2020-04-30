@@ -1,30 +1,27 @@
 /*
- * Copyright (c) 2019-2021 Tencent Group. All rights reserved.
- * License-Identifier: Apache-2.0
- *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may
- * not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *    http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
+ * Tencent is pleased to support the open source community by making IoT Hub available.
+ * Copyright (C) 2018-2020 THL A29 Limited, a Tencent company. All rights reserved.
+
+ * Licensed under the MIT License (the "License"); you may not use this file except in
+ * compliance with the License. You may obtain a copy of the License at
+ * http://opensource.org/licenses/MIT
+
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is
+ * distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+ * either express or implied. See the License for the specific language governing permissions and
  * limitations under the License.
  *
  */
 
+#include "at_socket_inf.h"
+
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <stdint.h>
 
 #include "qcloud_iot_export.h"
 #include "qcloud_iot_import.h"
-
 #include "utils_param_check.h"
-#include "at_socket_inf.h"
 
 /** The global array of available at */
 static at_socket_ctx_t at_socket_ctxs[MAX_AT_SOCKET_NUM];
@@ -35,9 +32,9 @@ static void *sg_at_socket_mutex;
 /**at device driver ops*/
 static at_device_op_t *sg_at_device_ops = NULL;
 
-#define MAX_RECV_PKT_PER_CHAIN      (10)
+#define MAX_RECV_PKT_PER_CHAIN (10)
 
-static at_device_op_t * _at_device_op_get(void)
+static at_device_op_t *_at_device_op_get(void)
 {
     return sg_at_device_ops;
 }
@@ -46,8 +43,8 @@ static int _at_socket_ctx_free(at_socket_ctx_t *pCtx)
 {
     POINTER_SANITY_CHECK(pCtx, QCLOUD_ERR_INVAL);
 
-    pCtx->fd        = UNUSED_SOCKET;
-    pCtx->net_type  = eNET_DEFAULT;
+    pCtx->fd       = UNUSED_SOCKET;
+    pCtx->net_type = eNET_DEFAULT;
 
     if (pCtx->recvpkt_list) {
         list_destroy(pCtx->recvpkt_list);
@@ -68,7 +65,6 @@ static at_socket_ctx_t *_at_socket_ctx_alloc(void)
 
     for (i = 0; i < MAX_AT_SOCKET_NUM; i++) {
         if (at_socket_ctxs[i].state == eSOCKET_CLOSED) {
-
             at_socket_ctxs[i].net_type        = eNET_DEFAULT;
             at_socket_ctxs[i].send_timeout_ms = AT_SOCKET_SEND_TIMEOUT_MS;
             at_socket_ctxs[i].recv_timeout_ms = AT_SOCKET_RECV_TIMEOUT_MS;
@@ -87,7 +83,7 @@ static at_socket_ctx_t *_at_socket_ctx_alloc(void)
                 goto exit;
             }
 
-            at_socket_ctxs[i].state           = eSOCKET_ALLOCED;
+            at_socket_ctxs[i].state = eSOCKET_ALLOCED;
             return &at_socket_ctxs[i];
         }
     }
@@ -125,7 +121,7 @@ static int _at_recvpkt_put(List *rlist, const char *ptr, size_t length)
         return QCLOUD_ERR_FAILURE;
     }
 
-    pkt = (at_recv_pkt *) HAL_Malloc(sizeof(struct at_recv_pkt));
+    pkt = (at_recv_pkt *)HAL_Malloc(sizeof(struct at_recv_pkt));
     if (pkt == NULL) {
         Log_e("No memory for receive packet table!");
         return QCLOUD_ERR_FAILURE;
@@ -133,7 +129,7 @@ static int _at_recvpkt_put(List *rlist, const char *ptr, size_t length)
 
     pkt->bfsz_totle = length;
     pkt->bfsz_index = 0;
-    pkt->buff = (char *) ptr;
+    pkt->buff       = (char *)ptr;
 
     ListNode *node = list_node_new(pkt);
     if (NULL == node) {
@@ -151,9 +147,9 @@ static int _at_recvpkt_put(List *rlist, const char *ptr, size_t length)
 static int _at_recvpkt_get(List *pkt_list, char *buff, size_t len)
 {
     ListIterator *iter;
-    ListNode *node = NULL;
-    at_recv_pkt *pkt;
-    size_t readlen = 0, page_len = 0;
+    ListNode *    node = NULL;
+    at_recv_pkt * pkt;
+    size_t        readlen = 0, page_len = 0;
     POINTER_SANITY_CHECK(buff, QCLOUD_ERR_INVAL);
 
     if (pkt_list->len) {
@@ -180,7 +176,7 @@ static int _at_recvpkt_get(List *pkt_list, char *buff, size_t len)
 
             page_len = pkt->bfsz_totle - pkt->bfsz_index;
             if (page_len >= (len - readlen)) {
-                memcpy(buff  + readlen, pkt->buff + pkt->bfsz_index, (len - readlen));
+                memcpy(buff + readlen, pkt->buff + pkt->bfsz_index, (len - readlen));
                 pkt->bfsz_index += len - readlen;
                 readlen = len;
                 break;
@@ -218,7 +214,7 @@ static void _at_socket_recv_cb(int fd, at_socket_evt_t event, char *buff, size_t
 
 static void _at_socket_closed_cb(int fd, at_socket_evt_t event, char *buff, size_t bfsz)
 {
-    //fancyxu
+    // fancyxu
     at_socket_ctx_t *pAtSocket;
     pAtSocket = _at_socket_find(fd + MAX_AT_SOCKET_NUM);
 
@@ -236,7 +232,7 @@ int at_device_op_register(at_device_op_t *device_op)
 
     if (NULL == sg_at_device_ops) {
         sg_at_device_ops = device_op;
-        rc = QCLOUD_RET_SUCCESS;
+        rc               = QCLOUD_RET_SUCCESS;
     } else {
         Log_e("pre device op already register");
         rc = QCLOUD_ERR_FAILURE;
@@ -251,9 +247,9 @@ int at_socket_init(void)
     int rc = QCLOUD_RET_SUCCESS;
 
     for (i = 0; i < MAX_AT_SOCKET_NUM; i++) {
-        at_socket_ctxs[i].fd     = UNUSED_SOCKET;
-        at_socket_ctxs[i].state  = eSOCKET_CLOSED;
-        at_socket_ctxs[i].dev_op = NULL;
+        at_socket_ctxs[i].fd           = UNUSED_SOCKET;
+        at_socket_ctxs[i].state        = eSOCKET_CLOSED;
+        at_socket_ctxs[i].dev_op       = NULL;
         at_socket_ctxs[i].recvpkt_list = NULL;
     }
 
@@ -265,11 +261,13 @@ int at_socket_init(void)
 
     if (NULL != sg_at_device_ops) {
         if (QCLOUD_RET_SUCCESS == sg_at_device_ops->init()) {
-            Log_d("at device %s init success", (NULL == sg_at_device_ops->deviceName) ? "noname" : sg_at_device_ops->deviceName);
+            Log_d("at device %s init success",
+                  (NULL == sg_at_device_ops->deviceName) ? "noname" : sg_at_device_ops->deviceName);
             sg_at_device_ops->set_event_cb(AT_SOCKET_EVT_RECV, _at_socket_recv_cb);
             sg_at_device_ops->set_event_cb(AT_SOCKET_EVT_CLOSED, _at_socket_closed_cb);
         } else {
-            Log_e("at device %s init fail", (NULL == sg_at_device_ops->deviceName) ? "noname" : sg_at_device_ops->deviceName);
+            Log_e("at device %s init fail",
+                  (NULL == sg_at_device_ops->deviceName) ? "noname" : sg_at_device_ops->deviceName);
         }
     }
 
@@ -306,7 +304,7 @@ int at_socket_get_local_ip(char *ip, size_t iplen, char *gw, size_t gwlen, char 
 int at_socket_connect(const char *host, uint16_t port, eNetProto eProto)
 {
     at_socket_ctx_t *pAtSocket;
-    int fd;
+    int              fd;
 
     HAL_MutexLock(sg_at_socket_mutex);
     pAtSocket = _at_socket_ctx_alloc();
@@ -322,8 +320,8 @@ int at_socket_connect(const char *host, uint16_t port, eNetProto eProto)
         Log_e("dev_op connect fail,pls check at device driver!");
         _at_socket_ctx_free(pAtSocket);
     } else {
-        pAtSocket->fd = fd + MAX_AT_SOCKET_NUM;
-        pAtSocket->state =  eSOCKET_CONNECTED;
+        pAtSocket->fd    = fd + MAX_AT_SOCKET_NUM;
+        pAtSocket->state = eSOCKET_CONNECTED;
     }
 
     return pAtSocket->fd;
@@ -333,9 +331,8 @@ int at_socket_close(int fd)
 {
     at_socket_ctx_t *pAtSocket;
 
-
     pAtSocket = _at_socket_find(fd);
-    if (NULL == pAtSocket) { //server close the connection
+    if (NULL == pAtSocket) {  // server close the connection
         Log_e("socket was closed");
         return QCLOUD_ERR_TCP_PEER_SHUTDOWN;
     }
@@ -362,14 +359,14 @@ int at_socket_send(int fd, const void *buf, size_t len)
         Log_e("socket was closed");
         return QCLOUD_ERR_TCP_PEER_SHUTDOWN;
     } else {
-        return  pAtSocket->dev_op->send(fd - MAX_AT_SOCKET_NUM, buf, len);
+        return pAtSocket->dev_op->send(fd - MAX_AT_SOCKET_NUM, buf, len);
     }
 }
 
 int at_socket_recv(int fd, void *buf, size_t len)
 {
     at_socket_ctx_t *pAtSocket;
-    size_t  recv_len;
+    size_t           recv_len;
 
     pAtSocket = _at_socket_find(fd);
     POINTER_SANITY_CHECK(pAtSocket, QCLOUD_ERR_INVAL);
@@ -382,10 +379,11 @@ int at_socket_recv(int fd, void *buf, size_t len)
     } else {
         HAL_MutexLock(pAtSocket->recv_lock);
 
-        //call at device recv driver for os and nonos
+        // call at device recv driver for os and nonos
         if (pAtSocket->recvpkt_list->len == 0) {
-            if (pAtSocket->dev_op->recv_timeout(fd - MAX_AT_SOCKET_NUM, buf, len, pAtSocket->recv_timeout_ms) != QCLOUD_RET_SUCCESS) {
-                Log_e("at device recv err"); //do not return yet
+            if (pAtSocket->dev_op->recv_timeout(fd - MAX_AT_SOCKET_NUM, buf, len, pAtSocket->recv_timeout_ms) !=
+                QCLOUD_RET_SUCCESS) {
+                Log_e("at device recv err");  // do not return yet
             }
         }
 
@@ -410,6 +408,6 @@ int at_socket_recv_timeout(int fd, void *buf, size_t len, uint32_t timeout)
         Log_e("socket was closed");
         return QCLOUD_ERR_TCP_PEER_SHUTDOWN;
     } else {
-        return  pAtSocket->dev_op->recv_timeout(fd - MAX_AT_SOCKET_NUM, buf, len, timeout);
+        return pAtSocket->dev_op->recv_timeout(fd - MAX_AT_SOCKET_NUM, buf, len, timeout);
     }
 }

@@ -1,6 +1,6 @@
 /*
  * Tencent is pleased to support the open source community by making IoT Hub available.
- * Copyright (C) 2016 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2018-2020 THL A29 Limited, a Tencent company. All rights reserved.
 
  * Licensed under the MIT License (the "License"); you may not use this file except in
  * compliance with the License. You may obtain a copy of the License at
@@ -18,14 +18,13 @@
 
 #include "qcloud_iot_import.h"
 
-
 /**
  * \brief          SHA-1 context structure
  */
 typedef struct {
-    uint32_t total[2];          /*!< number of bytes processed  */
-    uint32_t state[5];          /*!< intermediate digest state  */
-    unsigned char buffer[64];   /*!< data block being processed */
+    uint32_t      total[2];   /*!< number of bytes processed  */
+    uint32_t      state[5];   /*!< intermediate digest state  */
+    unsigned char buffer[64]; /*!< data block being processed */
 } iot_sha1_context;
 
 /**
@@ -48,8 +47,7 @@ void utils_sha1_free(iot_sha1_context *ctx);
  * \param dst      The destination context
  * \param src      The context to be cloned
  */
-void utils_sha1_clone(iot_sha1_context *dst,
-                      const iot_sha1_context *src);
+void utils_sha1_clone(iot_sha1_context *dst, const iot_sha1_context *src);
 
 /**
  * \brief          SHA-1 context setup

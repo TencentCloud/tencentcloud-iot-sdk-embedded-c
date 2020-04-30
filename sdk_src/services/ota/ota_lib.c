@@ -1,6 +1,6 @@
 /*
  * Tencent is pleased to support the open source community by making IoT Hub available.
- * Copyright (C) 2016 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2018-2020 THL A29 Limited, a Tencent company. All rights reserved.
 
  * Licensed under the MIT License (the "License"); you may not use this file except in
  * compliance with the License. You may obtain a copy of the License at
@@ -19,34 +19,31 @@ extern "C" {
 
 #include "ota_lib.h"
 
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
 
+#include "lite-utils.h"
+#include "ota_client.h"
 #include "qcloud_iot_export.h"
 #include "qcloud_iot_import.h"
-
-#include "ota_client.h"
-
 #include "utils_md5.h"
-#include "lite-utils.h"
 
 /* Get the specific @key value, and copy to @dest */
 /* 0, successful; -1, failed */
-static int _qcloud_otalib_get_firmware_fixlen_para(const char *json_doc, const char *key,
-        char *dest, size_t dest_len)
+static int _qcloud_otalib_get_firmware_fixlen_para(const char *json_doc, const char *key, char *dest, size_t dest_len)
 {
     IOT_FUNC_ENTRY;
 
     int ret = QCLOUD_RET_SUCCESS;
 
-    char* key_bak = HAL_Malloc(strlen(key) + 1);
+    char *key_bak = HAL_Malloc(strlen(key) + 1);
     if (key_bak == NULL) {
         Log_e("not enough memory for malloc key");
         ret = IOT_OTA_ERR_FAIL;
         IOT_FUNC_EXIT_RC(ret);
     }
 
-    char* json_doc_bak = HAL_Malloc(strlen(json_doc) + 1);
+    char *json_doc_bak = HAL_Malloc(strlen(json_doc) + 1);
     if (json_doc_bak == NULL) {
         Log_e("not enough memory for malloc json");
         HAL_Free(key_bak);
@@ -57,7 +54,7 @@ static int _qcloud_otalib_get_firmware_fixlen_para(const char *json_doc, const c
     strcpy(key_bak, key);
     strcpy(json_doc_bak, json_doc);
 
-    char* value = LITE_json_value_of(key_bak, json_doc_bak);
+    char *value = LITE_json_value_of(key_bak, json_doc_bak);
     if (value == NULL) {
         Log_e("Not '%s' key in json doc of OTA", key);
         ret = IOT_OTA_ERR_FAIL;
@@ -84,7 +81,6 @@ static int _qcloud_otalib_get_firmware_fixlen_para(const char *json_doc, const c
     IOT_FUNC_EXIT_RC(ret);
 }
 
-
 /* Get variant length parameter of firmware, and copy to @dest */
 /* 0, successful; -1, failed */
 static int _qcloud_otalib_get_firmware_varlen_para(const char *json_doc, const char *key, char **dest)
@@ -95,14 +91,14 @@ static int _qcloud_otalib_get_firmware_varlen_para(const char *json_doc, const c
 
     int ret = QCLOUD_RET_SUCCESS;
 
-    char* key_bak = HAL_Malloc(strlen(key) + 1);
+    char *key_bak = HAL_Malloc(strlen(key) + 1);
     if (key_bak == NULL) {
         Log_e("not enough memory for malloc key");
         ret = IOT_OTA_ERR_FAIL;
         IOT_FUNC_EXIT_RC(ret);
     }
 
-    char* json_doc_bak = HAL_Malloc(strlen(json_doc) + 1);
+    char *json_doc_bak = HAL_Malloc(strlen(json_doc) + 1);
     if (json_doc_bak == NULL) {
         Log_e("not enough memory for malloc json");
         HAL_Free(key_bak);
@@ -151,12 +147,12 @@ void qcloud_otalib_md5_update(void *md5, const char *buf, size_t buf_len)
 
 void qcloud_otalib_md5_finalize(void *md5, char *output_str)
 {
-    int i;
+    int           i;
     unsigned char buf_out[16];
     utils_md5_finish(md5, buf_out);
 
     for (i = 0; i < 16; ++i) {
-        output_str[i * 2] = utils_hb2hex(buf_out[i] >> 4);
+        output_str[i * 2]     = utils_hb2hex(buf_out[i] >> 4);
         output_str[i * 2 + 1] = utils_hb2hex(buf_out[i]);
     }
     output_str[32] = '\0';
@@ -181,19 +177,20 @@ int qcloud_otalib_get_report_version_result(const char *json)
     char *result_code = NULL;
 
     int rc = _qcloud_otalib_get_firmware_varlen_para(json, RESULT_FIELD, &result_code);
-    if ( rc != QCLOUD_RET_SUCCESS || strcmp(result_code, "0") != 0) {
-        if (NULL != result_code) HAL_Free(result_code);
+    if (rc != QCLOUD_RET_SUCCESS || strcmp(result_code, "0") != 0) {
+        if (NULL != result_code)
+            HAL_Free(result_code);
         IOT_FUNC_EXIT_RC(IOT_OTA_ERR_FAIL);
     }
 
-    if (NULL != result_code) HAL_Free(result_code);
+    if (NULL != result_code)
+        HAL_Free(result_code);
     IOT_FUNC_EXIT_RC(QCLOUD_RET_SUCCESS);
 }
 
-int qcloud_otalib_get_params(const char *json, char **type, char **url, char **version, char *md5,
-                             uint32_t *fileSize)
+int qcloud_otalib_get_params(const char *json, char **type, char **url, char **version, char *md5, uint32_t *fileSize)
 {
-#define OTA_FILESIZE_STR_LEN    (16)
+#define OTA_FILESIZE_STR_LEN (16)
 
     IOT_FUNC_ENTRY;
 
@@ -230,7 +227,7 @@ int qcloud_otalib_get_params(const char *json, char **type, char **url, char **v
     }
 
     file_size_str[OTA_FILESIZE_STR_LEN] = '\0';
-    *fileSize = atoi(file_size_str);
+    *fileSize                           = atoi(file_size_str);
 
     IOT_FUNC_EXIT_RC(QCLOUD_RET_SUCCESS);
 
@@ -242,10 +239,7 @@ int qcloud_otalib_gen_info_msg(char *buf, size_t bufLen, uint32_t id, const char
     IOT_FUNC_ENTRY;
 
     int ret;
-    ret = HAL_Snprintf(buf,
-                       bufLen,
-                       "{\"type\": \"report_version\", \"report\":{\"version\":\"%s\"}}",
-                       version);
+    ret = HAL_Snprintf(buf, bufLen, "{\"type\": \"report_version\", \"report\":{\"version\":\"%s\"}}", version);
 
     if (ret < 0) {
         Log_e("HAL_Snprintf failed");
@@ -255,7 +249,8 @@ int qcloud_otalib_gen_info_msg(char *buf, size_t bufLen, uint32_t id, const char
     IOT_FUNC_EXIT_RC(QCLOUD_RET_SUCCESS);
 }
 
-int qcloud_otalib_gen_report_msg(char *buf, size_t bufLen, uint32_t id, const char *version, int progress, IOT_OTAReportType reportType)
+int qcloud_otalib_gen_report_msg(char *buf, size_t bufLen, uint32_t id, const char *version, int progress,
+                                 IOT_OTAReportType reportType)
 {
     IOT_FUNC_ENTRY;
 
@@ -264,15 +259,16 @@ int qcloud_otalib_gen_report_msg(char *buf, size_t bufLen, uint32_t id, const ch
     switch (reportType) {
         /* report OTA download begin */
         case IOT_OTAR_DOWNLOAD_BEGIN:
-            ret = HAL_Snprintf(buf,
-                               bufLen,
-                               "{\"type\": \"report_progress\", \"report\": {\"progress\": {\"state\":\"downloading\", \"percent\":\"0\", \"result_code\":\"0\", \"result_msg\":\"\"}, \"version\": \"%s\"}}", version);
+            ret = HAL_Snprintf(buf, bufLen,
+                               "{\"type\": \"report_progress\", \"report\": {\"progress\": {\"state\":\"downloading\", "
+                               "\"percent\":\"0\", \"result_code\":\"0\", \"result_msg\":\"\"}, \"version\": \"%s\"}}",
+                               version);
             break;
         /* report OTA download progress */
         case IOT_OTAR_DOWNLOADING:
-            ret = HAL_Snprintf(buf,
-                               bufLen,
-                               "{\"type\": \"report_progress\", \"report\": {\"progress\": {\"state\":\"downloading\", \"percent\":\"%d\", \"result_code\":\"0\", \"result_msg\":\"\"}, \"version\": \"%s\"}}",
+            ret = HAL_Snprintf(buf, bufLen,
+                               "{\"type\": \"report_progress\", \"report\": {\"progress\": {\"state\":\"downloading\", "
+                               "\"percent\":\"%d\", \"result_code\":\"0\", \"result_msg\":\"\"}, \"version\": \"%s\"}}",
                                progress, version);
             break;
         case IOT_OTAR_DOWNLOAD_TIMEOUT:
@@ -280,23 +276,24 @@ int qcloud_otalib_gen_report_msg(char *buf, size_t bufLen, uint32_t id, const ch
         case IOT_OTAR_MD5_NOT_MATCH:
         case IOT_OTAR_AUTH_FAIL:
         case IOT_OTAR_UPGRADE_FAIL:
-            ret = HAL_Snprintf(buf,
-                               bufLen,
-                               "{\"type\": \"report_progress\", \"report\": {\"progress\": {\"state\":\"fail\", \"result_code\":\"%d\", \"result_msg\":\"time_out\"}, \"version\": \"%s\"}}", reportType, version);
+            ret = HAL_Snprintf(buf, bufLen,
+                               "{\"type\": \"report_progress\", \"report\": {\"progress\": {\"state\":\"fail\", "
+                               "\"result_code\":\"%d\", \"result_msg\":\"time_out\"}, \"version\": \"%s\"}}",
+                               reportType, version);
             break;
         /* report OTA upgrade begin */
         case IOT_OTAR_UPGRADE_BEGIN:
-            ret = HAL_Snprintf(buf,
-                               bufLen,
-                               "{\"type\": \"report_progress\", \"report\":{\"progress\":{\"state\":\"burning\", \"result_code\":\"0\", \"result_msg\":\"\"}, \"version\":\"%s\"}}",
+            ret = HAL_Snprintf(buf, bufLen,
+                               "{\"type\": \"report_progress\", \"report\":{\"progress\":{\"state\":\"burning\", "
+                               "\"result_code\":\"0\", \"result_msg\":\"\"}, \"version\":\"%s\"}}",
                                version);
             break;
 
         /* report OTA upgrade finish */
         case IOT_OTAR_UPGRADE_SUCCESS:
-            ret = HAL_Snprintf(buf,
-                               bufLen,
-                               "{\"type\": \"report_progress\", \"report\":{\"progress\":{\"state\":\"done\", \"result_code\":\"0\", \"result_msg\":\"\"}, \"version\":\"%s\"}}",
+            ret = HAL_Snprintf(buf, bufLen,
+                               "{\"type\": \"report_progress\", \"report\":{\"progress\":{\"state\":\"done\", "
+                               "\"result_code\":\"0\", \"result_msg\":\"\"}, \"version\":\"%s\"}}",
                                version);
             break;
 
@@ -304,7 +301,6 @@ int qcloud_otalib_gen_report_msg(char *buf, size_t bufLen, uint32_t id, const ch
             IOT_FUNC_EXIT_RC(IOT_OTA_ERR_FAIL);
             break;
     }
-
 
     if (ret < 0) {
         Log_e("HAL_Snprintf failed");

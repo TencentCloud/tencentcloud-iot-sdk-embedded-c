@@ -1,6 +1,6 @@
 /*
  * Tencent is pleased to support the open source community by making IoT Hub available.
- * Copyright (C) 2016 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2018-2020 THL A29 Limited, a Tencent company. All rights reserved.
 
  * Licensed under the MIT License (the "License"); you may not use this file except in
  * compliance with the License. You may obtain a copy of the License at
@@ -17,16 +17,15 @@
 extern "C" {
 #endif
 
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdarg.h>
 #include <string.h>
+
 #include "qcloud_iot_import.h"
 #include "stm32l4xx_hal.h"
 
-
 static char now_time_str[20] = {0};
-
 
 uint32_t HAL_GetTimeMs(void)
 {
@@ -36,12 +35,12 @@ uint32_t HAL_GetTimeMs(void)
 /*Get timestamp*/
 long HAL_Timer_current_sec(void)
 {
-    //return GetTimeStampByAt(NULL);
+    // return GetTimeStampByAt(NULL);
 
     return HAL_GetTimeMs() / 1000;
 }
 
-char* HAL_Timer_current(void)
+char *HAL_Timer_current(void)
 {
     long time_sec;
 
@@ -52,14 +51,11 @@ char* HAL_Timer_current(void)
     return now_time_str;
 }
 
-
-
 bool HAL_Timer_expired(Timer *timer)
 {
     uint32_t now_ts;
 
-    now_ts  = HAL_GetTimeMs();
-
+    now_ts = HAL_GetTimeMs();
 
     return (now_ts > timer->end_time) ? true : false;
 }
@@ -85,7 +81,6 @@ void HAL_Timer_init(Timer *timer)
 {
     timer->end_time = 0;
 }
-
 
 #ifdef __cplusplus
 }

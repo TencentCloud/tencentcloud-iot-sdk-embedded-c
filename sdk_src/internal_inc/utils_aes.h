@@ -1,6 +1,6 @@
 /*
  * Tencent is pleased to support the open source community by making IoT Hub available.
- * Copyright (C) 2016 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2018-2020 THL A29 Limited, a Tencent company. All rights reserved.
 
  * Licensed under the MIT License (the "License"); you may not use this file except in
  * compliance with the License. You may obtain a copy of the License at
@@ -31,33 +31,36 @@ extern "C" {
 #define UTILS_ERR_PLATFORM_FEATURE_UNSUPPORTED -0x0072 /**< The requested feature is not supported by the platform */
 
 /* Internal macros meant to be called only from within the library. */
-#define UTILS_INTERNAL_VALIDATE_RET( cond, ret )  do { } while( 0 )
-#define UTILS_INTERNAL_VALIDATE( cond )           do { } while( 0 )
+#define UTILS_INTERNAL_VALIDATE_RET(cond, ret) \
+    do {                                       \
+    } while (0)
+#define UTILS_INTERNAL_VALIDATE(cond) \
+    do {                              \
+    } while (0)
 //==============================================//
 
 /* padlock.c and aesni.c rely on these values! */
-#define UTILS_AES_ENCRYPT     1 /**< AES encryption. */
-#define UTILS_AES_DECRYPT     0 /**< AES decryption. */
+#define UTILS_AES_ENCRYPT 1 /**< AES encryption. */
+#define UTILS_AES_DECRYPT 0 /**< AES decryption. */
 
-#define UTILS_AES_BLOCK_LEN     16
-#define AES_KEY_BITS_128        128
-#define AES_KEY_BITS_192        192
-#define AES_KEY_BITS_256        256
-
+#define UTILS_AES_BLOCK_LEN 16
+#define AES_KEY_BITS_128    128
+#define AES_KEY_BITS_192    192
+#define AES_KEY_BITS_256    256
 
 /* Error codes in range 0x0020-0x0022 */
-#define UTILS_ERR_AES_INVALID_KEY_LENGTH                -0x0020  /**< Invalid key length. */
-#define UTILS_ERR_AES_INVALID_INPUT_LENGTH              -0x0022  /**< Invalid data input length. */
+#define UTILS_ERR_AES_INVALID_KEY_LENGTH   -0x0020 /**< Invalid key length. */
+#define UTILS_ERR_AES_INVALID_INPUT_LENGTH -0x0022 /**< Invalid data input length. */
 
 /* Error codes in range 0x0021-0x0025 */
-#define UTILS_ERR_AES_BAD_INPUT_DATA                    -0x0021  /**< Invalid input data. */
+#define UTILS_ERR_AES_BAD_INPUT_DATA -0x0021 /**< Invalid input data. */
 
 /* UTILS_ERR_AES_FEATURE_UNAVAILABLE is deprecated and should not be used. */
-#define UTILS_ERR_AES_FEATURE_UNAVAILABLE               -0x0023  /**< Feature not available. For example, an unsupported AES key size. */
+#define UTILS_ERR_AES_FEATURE_UNAVAILABLE \
+    -0x0023 /**< Feature not available. For example, an unsupported AES key size. */
 
 /* UTILS_ERR_AES_HW_ACCEL_FAILED is deprecated and should not be used. */
-#define UTILS_ERR_AES_HW_ACCEL_FAILED                   -0x0025  /**< AES hardware accelerator failed. */
-
+#define UTILS_ERR_AES_HW_ACCEL_FAILED -0x0025 /**< AES hardware accelerator failed. */
 
 #if !defined(UTILS_AES_ALT)
 // Regular implementation
@@ -67,20 +70,19 @@ extern "C" {
  * \brief The AES context-type definition.
  */
 typedef struct utils_aes_context {
-    int nr;                     /*!< The number of rounds. */
-    uint32_t *rk;               /*!< AES round keys. */
-    uint32_t buf[68];           /*!< Unaligned data buffer. This buffer can
-                                     hold 32 extra Bytes, which can be used for
-                                     one of the following purposes:
-                                     <ul><li>Alignment if VIA padlock is
-                                             used.</li>
-                                     <li>Simplifying key expansion in the 256-bit
-                                         case by generating an extra round key.
-                                         </li></ul> */
-}
-utils_aes_context;
+    int       nr;      /*!< The number of rounds. */
+    uint32_t *rk;      /*!< AES round keys. */
+    uint32_t  buf[68]; /*!< Unaligned data buffer. This buffer can
+                            hold 32 extra Bytes, which can be used for
+                            one of the following purposes:
+                            <ul><li>Alignment if VIA padlock is
+                                    used.</li>
+                            <li>Simplifying key expansion in the 256-bit
+                                case by generating an extra round key.
+                                </li></ul> */
+} utils_aes_context;
 
-#else  /* UTILS_AES_ALT */
+#else /* UTILS_AES_ALT */
 #include "aes_alt.h"
 #endif /* UTILS_AES_ALT */
 
@@ -92,7 +94,7 @@ utils_aes_context;
  *
  * \param ctx      The AES context to initialize. This must not be \c NULL.
  */
-void utils_aes_init( utils_aes_context *ctx );
+void utils_aes_init(utils_aes_context *ctx);
 
 /**
  * \brief          This function releases and clears the specified AES context.
@@ -101,8 +103,7 @@ void utils_aes_init( utils_aes_context *ctx );
  *                 If this is \c NULL, this function does nothing.
  *                 Otherwise, the context must have been at least initialized.
  */
-void utils_aes_free( utils_aes_context *ctx );
-
+void utils_aes_free(utils_aes_context *ctx);
 
 /**
  * \brief          This function sets the encryption key.
@@ -119,8 +120,7 @@ void utils_aes_free( utils_aes_context *ctx );
  * \return         \c 0 on success.
  * \return         #UTILS_ERR_AES_INVALID_KEY_LENGTH on failure.
  */
-int utils_aes_setkey_enc( utils_aes_context *ctx, const unsigned char *key,
-                          unsigned int keybits );
+int utils_aes_setkey_enc(utils_aes_context *ctx, const unsigned char *key, unsigned int keybits);
 
 /**
  * \brief          This function sets the decryption key.
@@ -137,9 +137,7 @@ int utils_aes_setkey_enc( utils_aes_context *ctx, const unsigned char *key,
  * \return         \c 0 on success.
  * \return         #UTILS_ERR_AES_INVALID_KEY_LENGTH on failure.
  */
-int utils_aes_setkey_dec( utils_aes_context *ctx, const unsigned char *key,
-                          unsigned int keybits );
-
+int utils_aes_setkey_dec(utils_aes_context *ctx, const unsigned char *key, unsigned int keybits);
 
 /**
  * \brief          This function performs an AES single-block encryption or
@@ -164,10 +162,7 @@ int utils_aes_setkey_dec( utils_aes_context *ctx, const unsigned char *key,
 
  * \return         \c 0 on success.
  */
-int utils_aes_crypt_ecb( utils_aes_context *ctx,
-                         int mode,
-                         const unsigned char input[16],
-                         unsigned char output[16] );
+int utils_aes_crypt_ecb(utils_aes_context *ctx, int mode, const unsigned char input[16], unsigned char output[16]);
 
 #if defined(UTILS_CIPHER_MODE_CBC)
 /**
@@ -211,14 +206,9 @@ int utils_aes_crypt_ecb( utils_aes_context *ctx,
  * \return         #UTILS_ERR_AES_INVALID_INPUT_LENGTH
  *                 on failure.
  */
-int utils_aes_crypt_cbc( utils_aes_context *ctx,
-                         int mode,
-                         size_t length,
-                         unsigned char iv[16],
-                         const unsigned char *input,
-                         unsigned char *output );
+int utils_aes_crypt_cbc(utils_aes_context *ctx, int mode, size_t length, unsigned char iv[16],
+                        const unsigned char *input, unsigned char *output);
 #endif /* UTILS_CIPHER_MODE_CBC */
-
 
 /**
  * \brief           Internal AES block encryption function. This is only
@@ -231,9 +221,7 @@ int utils_aes_crypt_cbc( utils_aes_context *ctx,
  *
  * \return          \c 0 on success.
  */
-int utils_internal_aes_encrypt( utils_aes_context *ctx,
-                                const unsigned char input[16],
-                                unsigned char output[16] );
+int utils_internal_aes_encrypt(utils_aes_context *ctx, const unsigned char input[16], unsigned char output[16]);
 
 /**
  * \brief           Internal AES block decryption function. This is only
@@ -246,13 +234,11 @@ int utils_internal_aes_encrypt( utils_aes_context *ctx,
  *
  * \return          \c 0 on success.
  */
-int utils_internal_aes_decrypt( utils_aes_context *ctx,
-                                const unsigned char input[16],
-                                unsigned char output[16] );
+int utils_internal_aes_decrypt(utils_aes_context *ctx, const unsigned char input[16], unsigned char output[16]);
 
 #if !defined(UTILS_DEPRECATED_REMOVED)
 #if defined(UTILS_DEPRECATED_WARNING)
-#define UTILS_DEPRECATED      __attribute__((deprecated))
+#define UTILS_DEPRECATED __attribute__((deprecated))
 #else
 #define UTILS_DEPRECATED
 #endif
@@ -266,9 +252,8 @@ int utils_internal_aes_decrypt( utils_aes_context *ctx,
  * \param input     Plaintext block.
  * \param output    Output (ciphertext) block.
  */
-UTILS_DEPRECATED void utils_aes_encrypt( utils_aes_context *ctx,
-        const unsigned char input[16],
-        unsigned char output[16] );
+UTILS_DEPRECATED void utils_aes_encrypt(utils_aes_context *ctx, const unsigned char input[16],
+                                        unsigned char output[16]);
 
 /**
  * \brief           Deprecated internal AES block decryption function
@@ -280,13 +265,11 @@ UTILS_DEPRECATED void utils_aes_encrypt( utils_aes_context *ctx,
  * \param input     Ciphertext block.
  * \param output    Output (plaintext) block.
  */
-UTILS_DEPRECATED void utils_aes_decrypt( utils_aes_context *ctx,
-        const unsigned char input[16],
-        unsigned char output[16] );
+UTILS_DEPRECATED void utils_aes_decrypt(utils_aes_context *ctx, const unsigned char input[16],
+                                        unsigned char output[16]);
 
 #undef UTILS_DEPRECATED
 #endif /* !UTILS_DEPRECATED_REMOVED */
-
 
 #if defined(UTILS_SELF_TEST)
 /**
@@ -295,20 +278,14 @@ UTILS_DEPRECATED void utils_aes_decrypt( utils_aes_context *ctx,
  * \return         \c 0 on success.
  * \return         \c 1 on failure.
  */
-int utils_aes_self_test( int verbose );
+int utils_aes_self_test(int verbose);
 
 #endif /* UTILS_SELF_TEST */
 
 int aes_sample(int verbose);
 
-
-int utils_aes_cbc(uint8_t *pInData, uint32_t datalen,
-                  uint8_t *pOutData, uint32_t outBuffLen,
-                  uint8_t mode, uint8_t *pKey,
-                  uint16_t keybits, uint8_t *iv);
-
-
-
+int utils_aes_cbc(uint8_t *pInData, uint32_t datalen, uint8_t *pOutData, uint32_t outBuffLen, uint8_t mode,
+                  uint8_t *pKey, uint16_t keybits, uint8_t *iv);
 
 #ifdef __cplusplus
 }

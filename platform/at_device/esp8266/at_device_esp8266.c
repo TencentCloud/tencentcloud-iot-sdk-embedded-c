@@ -1,47 +1,43 @@
 /*
- * Copyright (c) 2019-2021 Tencent Group. All rights reserved.
- * License-Identifier: Apache-2.0
- *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may
- * not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *    http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
+ * Tencent is pleased to support the open source community by making IoT Hub available.
+ * Copyright (C) 2018-2020 THL A29 Limited, a Tencent company. All rights reserved.
+
+ * Licensed under the MIT License (the "License"); you may not use this file except in
+ * compliance with the License. You may obtain a copy of the License at
+ * http://opensource.org/licenses/MIT
+
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is
+ * distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+ * either express or implied. See the License for the specific language governing permissions and
  * limitations under the License.
  *
  */
+#include "at_device_esp8266.h"
+
 #include <stdio.h>
 #include <string.h>
 
-#include "qcloud_iot_import.h"
-#include "qcloud_iot_export.h"
-
-#include "utils_param_check.h"
 #include "at_client.h"
 #include "at_socket_inf.h"
-#include "at_device_esp8266.h"
+#include "qcloud_iot_export.h"
+#include "qcloud_iot_import.h"
+#include "utils_param_check.h"
 
-#define  WIFI_CONN_FLAG             (1<<0)
-#define  SEND_OK_FLAG               (1<<1)
-#define  SEND_FAIL_FLAG             (1<<2)
+#define WIFI_CONN_FLAG (1 << 0)
+#define SEND_OK_FLAG   (1 << 1)
+#define SEND_FAIL_FLAG (1 << 2)
 
 static uint8_t sg_SocketBitMap = 0;
 
 static at_evt_cb_t at_evt_cb_table[] = {
-    [AT_SOCKET_EVT_RECV] = NULL,
+    [AT_SOCKET_EVT_RECV]   = NULL,
     [AT_SOCKET_EVT_CLOSED] = NULL,
 };
 
 static int alloc_fd(void)
 {
-
     uint8_t i;
-    int fd;
+    int     fd;
 
     for (i = 0; i < ESP8266_MAX_SOCKET_NUM; i++) {
         if (0 == ((sg_SocketBitMap >> i) & 0x01)) {
@@ -57,14 +53,13 @@ static void free_fd(int fd)
 {
     uint8_t i = fd;
 
-    if ((fd != UNUSED_SOCKET) && fd <  ESP8266_MAX_SOCKET_NUM) {
+    if ((fd != UNUSED_SOCKET) && fd < ESP8266_MAX_SOCKET_NUM) {
         sg_SocketBitMap &= ~((1 << i) & 0xff);
     }
 }
 
 static void urc_send_func(const char *data, size_t size)
 {
-
     POINTER_SANITY_CHECK_RTN(data);
 
     if (strstr(data, "SEND OK")) {
@@ -99,15 +94,15 @@ static void urc_close_func(const char *data, size_t size)
 
 static void urc_recv_func(const char *data, size_t size)
 {
-    int fd;
-    size_t bfsz = 0, temp_size = 0;
+    int      fd;
+    size_t   bfsz = 0, temp_size = 0;
     uint32_t timeout;
-    char *recv_buf, temp[8];
+    char *   recv_buf, temp[8];
 
     POINTER_SANITY_CHECK_RTN(data);
 
     /* get the current socket and receive buffer size by receive data */
-    sscanf(data, "+IPD,%d,%d:", &fd, (int *) &bfsz);
+    sscanf(data, "+IPD,%d,%d:", &fd, (int *)&bfsz);
 
     /* get receive timeout by receive buffer length */
     timeout = bfsz;
@@ -176,15 +171,15 @@ static void urc_func(const char *data, size_t size)
 }
 
 static at_urc urc_table[] = {
-    {"SEND OK",          "\r\n",           urc_send_func},
-    {"SEND FAIL",        "\r\n",           urc_send_func},
-    {"Recv",             "bytes\r\n",      urc_send_bfsz_func},
-    {"",                 ",CLOSED\r\n",    urc_close_func},
-    {"+IPD",             ":",              urc_recv_func},
-    {"busy p",           "\r\n",           urc_busy_p_func},
-    {"busy s",           "\r\n",           urc_busy_s_func},
-    {"WIFI CONNECTED",   "\r\n",           urc_func},
-    {"WIFI DISCONNECT",  "\r\n",           urc_func},
+    {"SEND OK", "\r\n", urc_send_func},
+    {"SEND FAIL", "\r\n", urc_send_func},
+    {"Recv", "bytes\r\n", urc_send_bfsz_func},
+    {"", ",CLOSED\r\n", urc_close_func},
+    {"+IPD", ":", urc_recv_func},
+    {"busy p", "\r\n", urc_busy_p_func},
+    {"busy s", "\r\n", urc_busy_s_func},
+    {"WIFI CONNECTED", "\r\n", urc_func},
+    {"WIFI DISCONNECT", "\r\n", urc_func},
 };
 
 static void esp8266_set_event_cb(at_socket_evt_t event, at_evt_cb_t cb)
@@ -197,8 +192,8 @@ static void esp8266_set_event_cb(at_socket_evt_t event, at_evt_cb_t cb)
 static int esp8266_init(void)
 {
     at_response_t resp = NULL;
-    int ret;
-    int i;
+    int           ret;
+    int           i;
 
     resp = at_create_resp(512, 0, AT_RESP_TIMEOUT_MS);
     if (NULL == resp) {
@@ -218,7 +213,7 @@ static int esp8266_init(void)
     ret = at_exec_cmd(resp, "ATE0");
     if (QCLOUD_RET_SUCCESS != ret) {
         Log_e("cmd ATE0 exec err");
-        //goto exit;
+        // goto exit;
     }
 
     at_delayms(100);
@@ -226,7 +221,7 @@ static int esp8266_init(void)
     ret = at_exec_cmd(resp, "AT+CWMODE=1");
     if (QCLOUD_RET_SUCCESS != ret) {
         Log_e("cmd AT+CWMODE=1 exec err");
-        //goto exit;
+        // goto exit;
     }
 
     at_delayms(100);
@@ -234,7 +229,7 @@ static int esp8266_init(void)
     ret = at_exec_cmd(resp, "AT+GMR");
     if (QCLOUD_RET_SUCCESS != ret) {
         Log_e("cmd AT+CWMODE=1 exec err");
-        //goto exit;
+        // goto exit;
     }
 
     /* show module version */
@@ -270,7 +265,7 @@ __exit:
 static int esp8266_close(int fd)
 {
     at_response_t resp;
-    int ret;
+    int           ret;
 
     resp = at_create_resp(128, 0, AT_RESP_TIMEOUT_MS);
     if (NULL == resp) {
@@ -280,7 +275,7 @@ static int esp8266_close(int fd)
 
     ret = at_exec_cmd(resp, "AT+CIPCLOSE=%d", fd);
 
-    if (QCLOUD_RET_SUCCESS != ret)  { //fancyxu
+    if (QCLOUD_RET_SUCCESS != ret) {  // fancyxu
         Log_e("close socket(%d) fail", fd);
     }
 
@@ -294,8 +289,8 @@ static int esp8266_close(int fd)
 static int esp8266_connect(const char *ip, uint16_t port, eNetProto proto)
 {
     at_response_t resp;
-    bool retryed = false;
-    int fd, ret;
+    bool          retryed = false;
+    int           fd, ret;
 
     POINTER_SANITY_CHECK(ip, QCLOUD_ERR_INVAL);
     resp = at_create_resp(128, 0, AT_RESP_TIMEOUT_MS);
@@ -361,11 +356,11 @@ __exit:
 
 static int esp8266_send(int fd, const void *buff, size_t len)
 {
-    int ret;
-    at_response_t resp ;
-    size_t cur_pkt_size = 0;
-    size_t sent_size = 0;
-    size_t temp_size = 0;
+    int           ret;
+    at_response_t resp;
+    size_t        cur_pkt_size = 0;
+    size_t        sent_size    = 0;
+    size_t        temp_size    = 0;
 
     POINTER_SANITY_CHECK(buff, QCLOUD_ERR_INVAL);
     resp = at_create_resp(512, 2, AT_RESP_TIMEOUT_MS);
@@ -429,7 +424,7 @@ __exit:
         at_delete_resp(resp);
     }
 
-    return sent_size; //fancyxu
+    return sent_size;  // fancyxu
 }
 
 static int esp8266_recv_timeout(int fd, void *buf, size_t len, uint32_t timeout)
@@ -442,15 +437,14 @@ static int esp8266_recv_timeout(int fd, void *buf, size_t len, uint32_t timeout)
 
 static int esp8266_parse_domain(const char *host_name, char *host_ip, size_t host_ip_len)
 {
-#define RESOLVE_RETRY        5
+#define RESOLVE_RETRY 5
 
-    char recv_ip[16] = { 0 };
+    char          recv_ip[16] = {0};
     at_response_t resp;
-    int ret, i;
+    int           ret, i;
 
     POINTER_SANITY_CHECK(host_name, QCLOUD_ERR_INVAL);
     POINTER_SANITY_CHECK(host_ip, QCLOUD_ERR_INVAL);
-
 
     if (host_ip_len < 16) {
         Log_e("host ip buff too short");
@@ -500,20 +494,20 @@ __exit:
 }
 
 at_device_op_t at_ops_esp8266 = {
-    .init           = esp8266_init,
-    .connect        = esp8266_connect,
-    .send           = esp8266_send,
-    .recv_timeout   = esp8266_recv_timeout,
-    .close          = esp8266_close,
-    .parse_domain   = esp8266_parse_domain,
-    .set_event_cb   = esp8266_set_event_cb,
-    .deviceName     = "esp8266",
+    .init         = esp8266_init,
+    .connect      = esp8266_connect,
+    .send         = esp8266_send,
+    .recv_timeout = esp8266_recv_timeout,
+    .close        = esp8266_close,
+    .parse_domain = esp8266_parse_domain,
+    .set_event_cb = esp8266_set_event_cb,
+    .deviceName   = "esp8266",
 };
 
 int at_device_esp8266_init(void)
 {
-    int i;
-    int ret;
+    int         i;
+    int         ret;
     at_client_t p_client;
 
     ret = HAL_AT_Uart_Init();

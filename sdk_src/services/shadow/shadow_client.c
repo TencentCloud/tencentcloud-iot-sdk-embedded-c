@@ -1,6 +1,6 @@
 /*
  * Tencent is pleased to support the open source community by making IoT Hub available.
- * Copyright (C) 2016 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2018-2020 THL A29 Limited, a Tencent company. All rights reserved.
 
  * Licensed under the MIT License (the "License"); you may not use this file except in
  * compliance with the License. You may obtain a copy of the License at
@@ -19,21 +19,21 @@ extern "C" {
 
 #include "shadow_client.h"
 
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
-#include "utils_param_check.h"
-#include "shadow_client_json.h"
 #include "shadow_client_common.h"
+#include "shadow_client_json.h"
+#include "utils_param_check.h"
 
-
-static void _init_request_params(RequestParams *pParams, Method method, OnRequestCallback callback, void *userContext, uint8_t timeout_sec)
+static void _init_request_params(RequestParams *pParams, Method method, OnRequestCallback callback, void *userContext,
+                                 uint8_t timeout_sec)
 {
-    pParams->method             =       method;
-    pParams->user_context       =       userContext;
-    pParams->timeout_sec        =       timeout_sec;
-    pParams->request_callback   =       callback;
+    pParams->method           = method;
+    pParams->user_context     = userContext;
+    pParams->timeout_sec      = timeout_sec;
+    pParams->request_callback = callback;
 }
 
 /**
@@ -45,7 +45,6 @@ static void _init_request_params(RequestParams *pParams, Method method, OnReques
  */
 static inline int _check_snprintf_return(int32_t returnCode, size_t maxSizeOfWrite)
 {
-
     if (returnCode >= maxSizeOfWrite) {
         return QCLOUD_ERR_JSON_BUFFER_TRUNCATED;
     } else if (returnCode < 0) {
@@ -57,9 +56,9 @@ static inline int _check_snprintf_return(int32_t returnCode, size_t maxSizeOfWri
 
 static void _shadow_event_handler(void *pclient, void *context, MQTTEventMsg *msg)
 {
-    uintptr_t packet_id = (uintptr_t)msg->msg;
+    uintptr_t          packet_id     = (uintptr_t)msg->msg;
     Qcloud_IoT_Shadow *shadow_client = (Qcloud_IoT_Shadow *)context;
-    MQTTMessage* topic_info = (MQTTMessage*)msg->msg;
+    MQTTMessage *      topic_info    = (MQTTMessage *)msg->msg;
 
     switch (msg->event_type) {
         case MQTT_EVENT_SUBCRIBE_SUCCESS:
@@ -79,10 +78,7 @@ static void _shadow_event_handler(void *pclient, void *context, MQTTEventMsg *ms
             break;
         case MQTT_EVENT_PUBLISH_RECVEIVED:
             Log_d("shadow topic message arrived but without any related handle: topic=%.*s, topic_msg=%.*s",
-                  topic_info->topic_len,
-                  topic_info->ptopic,
-                  topic_info->payload_len,
-                  topic_info->payload);
+                  topic_info->topic_len, topic_info->ptopic, topic_info->payload_len, topic_info->payload);
             break;
         default:
             /* Log_i("Should NOT arrive here."); */
@@ -96,22 +92,23 @@ static void _shadow_event_handler(void *pclient, void *context, MQTTEventMsg *ms
 static void _copy_shadow_init_params_to_mqtt(MQTTInitParams *pMqttInitParams, ShadowInitParams *shadowInitParams)
 {
     pMqttInitParams->device_name = shadowInitParams->device_name;
-    pMqttInitParams->product_id = shadowInitParams->product_id;
+    pMqttInitParams->product_id  = shadowInitParams->product_id;
 
 #ifdef AUTH_MODE_CERT
-    pMqttInitParams->cert_file = shadowInitParams->cert_file;
-    pMqttInitParams->key_file = shadowInitParams->key_file;
+    memcpy(pMqttInitParams->cert_file, shadowInitParams->cert_file, FILE_PATH_MAX_LEN);
+    memcpy(pMqttInitParams->key_file, shadowInitParams->key_file, FILE_PATH_MAX_LEN);
 #else
     pMqttInitParams->device_secret = shadowInitParams->device_secret;
 #endif
 
-    pMqttInitParams->command_timeout = shadowInitParams->command_timeout;
+    pMqttInitParams->command_timeout        = shadowInitParams->command_timeout;
     pMqttInitParams->keep_alive_interval_ms = shadowInitParams->keep_alive_interval_ms;
-    pMqttInitParams->clean_session = shadowInitParams->clean_session;
-    pMqttInitParams->auto_connect_enable = shadowInitParams->auto_connect_enable;
+    pMqttInitParams->clean_session          = shadowInitParams->clean_session;
+    pMqttInitParams->auto_connect_enable    = shadowInitParams->auto_connect_enable;
 }
 
-static void _update_ack_cb(void *pClient, Method method, RequestAck requestAck, const char *pReceivedJsonDocument, void *pUserdata)
+static void _update_ack_cb(void *pClient, Method method, RequestAck requestAck, const char *pReceivedJsonDocument,
+                           void *pUserdata)
 {
     Log_d("requestAck=%d", requestAck);
 
@@ -124,7 +121,7 @@ static void _update_ack_cb(void *pClient, Method method, RequestAck requestAck, 
     *((RequestAck *)pUserdata) = requestAck;
 }
 
-void* IOT_Shadow_Construct(ShadowInitParams *pParams)
+void *IOT_Shadow_Construct(ShadowInitParams *pParams)
 {
     POINTER_SANITY_CHECK(pParams, NULL);
 
@@ -137,7 +134,7 @@ void* IOT_Shadow_Construct(ShadowInitParams *pParams)
     MQTTInitParams mqtt_init_params;
     _copy_shadow_init_params_to_mqtt(&mqtt_init_params, pParams);
 
-    mqtt_init_params.event_handle.h_fp = _shadow_event_handler;
+    mqtt_init_params.event_handle.h_fp    = _shadow_event_handler;
     mqtt_init_params.event_handle.context = shadow_client;
 
     void *mqtt_client = NULL;
@@ -146,11 +143,12 @@ void* IOT_Shadow_Construct(ShadowInitParams *pParams)
         goto End;
     }
 
-    shadow_client->mqtt = mqtt_client;
-    shadow_client->shadow_type = pParams->shadow_type;
-    shadow_client->event_handle = pParams->event_handle;
+    memset(shadow_client, 0, sizeof(Qcloud_IoT_Shadow));
+    shadow_client->mqtt                    = mqtt_client;
+    shadow_client->shadow_type             = pParams->shadow_type;
+    shadow_client->event_handle            = pParams->event_handle;
     shadow_client->inner_data.result_topic = NULL;
-    shadow_client->inner_data.token_num = 0;
+    shadow_client->inner_data.token_num    = 0;
 
     int rc;
 
@@ -185,7 +183,7 @@ void *IOT_Shadow_Get_Mqtt_Client(void *handle)
 {
     POINTER_SANITY_CHECK(handle, NULL);
 
-    Qcloud_IoT_Shadow   *shadow = (Qcloud_IoT_Shadow *)handle;
+    Qcloud_IoT_Shadow *shadow = (Qcloud_IoT_Shadow *)handle;
 
     return shadow->mqtt;
 }
@@ -194,7 +192,7 @@ int IOT_Shadow_Publish(void *handle, char *topicName, PublishParams *pParams)
 {
     POINTER_SANITY_CHECK(handle, QCLOUD_ERR_INVAL);
 
-    Qcloud_IoT_Shadow   *shadow = (Qcloud_IoT_Shadow *)handle;
+    Qcloud_IoT_Shadow *shadow = (Qcloud_IoT_Shadow *)handle;
 
     return qcloud_iot_mqtt_publish(shadow->mqtt, topicName, pParams);
 }
@@ -203,7 +201,7 @@ int IOT_Shadow_Subscribe(void *handle, char *topicFilter, SubscribeParams *pPara
 {
     POINTER_SANITY_CHECK(handle, QCLOUD_ERR_INVAL);
 
-    Qcloud_IoT_Shadow   *shadow = (Qcloud_IoT_Shadow *)handle;
+    Qcloud_IoT_Shadow *shadow = (Qcloud_IoT_Shadow *)handle;
 
     return qcloud_iot_mqtt_subscribe(shadow->mqtt, topicFilter, pParams);
 }
@@ -212,7 +210,7 @@ int IOT_Shadow_Unsubscribe(void *handle, char *topicFilter)
 {
     POINTER_SANITY_CHECK(handle, QCLOUD_ERR_INVAL);
 
-    Qcloud_IoT_Shadow   *shadow = (Qcloud_IoT_Shadow *)handle;
+    Qcloud_IoT_Shadow *shadow = (Qcloud_IoT_Shadow *)handle;
 
     return qcloud_iot_mqtt_unsubscribe(shadow->mqtt, topicFilter);
 }
@@ -221,7 +219,7 @@ bool IOT_Shadow_IsConnected(void *handle)
 {
     POINTER_SANITY_CHECK(handle, QCLOUD_ERR_INVAL);
 
-    Qcloud_IoT_Shadow* pshadow = (Qcloud_IoT_Shadow*)handle;
+    Qcloud_IoT_Shadow *pshadow = (Qcloud_IoT_Shadow *)handle;
 
     IOT_FUNC_EXIT_RC(IOT_MQTT_IsConnected(pshadow->mqtt))
 }
@@ -232,7 +230,7 @@ int IOT_Shadow_Destroy(void *handle)
 
     POINTER_SANITY_CHECK(handle, QCLOUD_ERR_INVAL);
 
-    Qcloud_IoT_Shadow* shadow_client = (Qcloud_IoT_Shadow*)handle;
+    Qcloud_IoT_Shadow *shadow_client = (Qcloud_IoT_Shadow *)handle;
     qcloud_iot_shadow_reset(handle);
 
     IOT_MQTT_Destroy(&shadow_client->mqtt);
@@ -253,7 +251,6 @@ int IOT_Shadow_Destroy(void *handle)
 
 int IOT_Shadow_Yield(void *handle, uint32_t timeout_ms)
 {
-
     IOT_FUNC_ENTRY;
     int rc;
 
@@ -272,12 +269,11 @@ int IOT_Shadow_Yield(void *handle, uint32_t timeout_ms)
 
 int IOT_Shadow_Register_Property(void *handle, DeviceProperty *pProperty, OnPropRegCallback callback)
 {
-
     IOT_FUNC_ENTRY;
     POINTER_SANITY_CHECK(handle, QCLOUD_ERR_INVAL);
 
-    Qcloud_IoT_Shadow* pshadow = (Qcloud_IoT_Shadow*)handle;
-    int rc;
+    Qcloud_IoT_Shadow *pshadow = (Qcloud_IoT_Shadow *)handle;
+    int                rc;
 
     if (IOT_MQTT_IsConnected(pshadow->mqtt) == false) {
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_MQTT_NO_CONN);
@@ -295,7 +291,7 @@ int IOT_Shadow_UnRegister_Property(void *handle, DeviceProperty *pProperty)
 {
     IOT_FUNC_ENTRY;
     POINTER_SANITY_CHECK(handle, QCLOUD_ERR_INVAL);
-    Qcloud_IoT_Shadow* pshadow = (Qcloud_IoT_Shadow*)handle;
+    Qcloud_IoT_Shadow *pshadow = (Qcloud_IoT_Shadow *)handle;
 
     if (IOT_MQTT_IsConnected(pshadow->mqtt) == false) {
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_MQTT_NO_CONN);
@@ -304,13 +300,13 @@ int IOT_Shadow_UnRegister_Property(void *handle, DeviceProperty *pProperty)
     if (!shadow_common_check_property_existence(pshadow, pProperty)) {
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_SHADOW_NOT_PROPERTY_EXIST);
     }
-    int rc =  shadow_common_remove_property(pshadow, pProperty);
+    int rc = shadow_common_remove_property(pshadow, pProperty);
     IOT_FUNC_EXIT_RC(rc);
 }
 
-int IOT_Shadow_Update(void *handle, char *pJsonDoc, size_t sizeOfBuffer, OnRequestCallback callback, void *userContext, uint32_t timeout_ms)
+int IOT_Shadow_Update(void *handle, char *pJsonDoc, size_t sizeOfBuffer, OnRequestCallback callback, void *userContext,
+                      uint32_t timeout_ms)
 {
-
     IOT_FUNC_ENTRY;
     int rc;
 
@@ -318,7 +314,7 @@ int IOT_Shadow_Update(void *handle, char *pJsonDoc, size_t sizeOfBuffer, OnReque
     POINTER_SANITY_CHECK(pJsonDoc, QCLOUD_ERR_INVAL);
     NUMBERIC_SANITY_CHECK(timeout_ms, QCLOUD_ERR_INVAL);
 
-    Qcloud_IoT_Shadow* shadow = (Qcloud_IoT_Shadow*)handle;
+    Qcloud_IoT_Shadow *shadow = (Qcloud_IoT_Shadow *)handle;
 
     if (IOT_MQTT_IsConnected(shadow->mqtt) == false) {
         Log_e("shadow is disconnected");
@@ -341,7 +337,6 @@ int IOT_Shadow_Update(void *handle, char *pJsonDoc, size_t sizeOfBuffer, OnReque
 
 int IOT_Shadow_Update_Sync(void *handle, char *pJsonDoc, size_t sizeOfBuffer, uint32_t timeout_ms)
 {
-
     IOT_FUNC_ENTRY;
     int rc = QCLOUD_RET_SUCCESS;
 
@@ -349,7 +344,7 @@ int IOT_Shadow_Update_Sync(void *handle, char *pJsonDoc, size_t sizeOfBuffer, ui
     POINTER_SANITY_CHECK(pJsonDoc, QCLOUD_ERR_INVAL);
     NUMBERIC_SANITY_CHECK(timeout_ms, QCLOUD_ERR_INVAL);
 
-    Qcloud_IoT_Shadow* shadow = (Qcloud_IoT_Shadow*)handle;
+    Qcloud_IoT_Shadow *shadow = (Qcloud_IoT_Shadow *)handle;
 
     if (IOT_MQTT_IsConnected(shadow->mqtt) == false) {
         Log_e("shadow is disconnected");
@@ -357,8 +352,9 @@ int IOT_Shadow_Update_Sync(void *handle, char *pJsonDoc, size_t sizeOfBuffer, ui
     }
 
     RequestAck ack_update = ACK_NONE;
-    rc = IOT_Shadow_Update(handle, pJsonDoc, sizeOfBuffer, _update_ack_cb, &ack_update, timeout_ms);
-    if (rc != QCLOUD_RET_SUCCESS) IOT_FUNC_EXIT_RC(rc);
+    rc                    = IOT_Shadow_Update(handle, pJsonDoc, sizeOfBuffer, _update_ack_cb, &ack_update, timeout_ms);
+    if (rc != QCLOUD_RET_SUCCESS)
+        IOT_FUNC_EXIT_RC(rc);
 
     while (ACK_NONE == ack_update) {
         IOT_Shadow_Yield(handle, 200);
@@ -377,7 +373,6 @@ int IOT_Shadow_Update_Sync(void *handle, char *pJsonDoc, size_t sizeOfBuffer, ui
 
 int IOT_Shadow_Get(void *handle, OnRequestCallback callback, void *userContext, uint32_t timeout_ms)
 {
-
     IOT_FUNC_ENTRY;
     int rc;
 
@@ -385,7 +380,7 @@ int IOT_Shadow_Get(void *handle, OnRequestCallback callback, void *userContext, 
     POINTER_SANITY_CHECK(callback, QCLOUD_ERR_INVAL);
     NUMBERIC_SANITY_CHECK(timeout_ms, QCLOUD_ERR_INVAL);
 
-    Qcloud_IoT_Shadow* shadow = (Qcloud_IoT_Shadow*)handle;
+    Qcloud_IoT_Shadow *shadow = (Qcloud_IoT_Shadow *)handle;
 
     if (IOT_MQTT_IsConnected(shadow->mqtt) == false) {
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_MQTT_NO_CONN);
@@ -396,8 +391,9 @@ int IOT_Shadow_Get(void *handle, OnRequestCallback callback, void *userContext, 
         subscribe_operation_result_to_cloud(shadow);
     }
 
-    char getRequestJsonDoc[MAX_SIZE_OF_JSON_WITH_CLIENT_TOKEN];
-    build_empty_json(&(shadow->inner_data.token_num), getRequestJsonDoc);
+    char               getRequestJsonDoc[MAX_SIZE_OF_JSON_WITH_CLIENT_TOKEN];
+    Qcloud_IoT_Client *mqtt_client = (Qcloud_IoT_Client *)shadow->mqtt;
+    build_empty_json(&(shadow->inner_data.token_num), getRequestJsonDoc, mqtt_client->device_info.product_id);
     Log_d("GET Request Document: %s", getRequestJsonDoc);
 
     RequestParams request_params = DEFAULT_REQUEST_PARAMS;
@@ -409,22 +405,22 @@ int IOT_Shadow_Get(void *handle, OnRequestCallback callback, void *userContext, 
 
 int IOT_Shadow_Get_Sync(void *handle, uint32_t timeout_ms)
 {
-
     IOT_FUNC_ENTRY;
     int rc = QCLOUD_RET_SUCCESS;
 
     POINTER_SANITY_CHECK(handle, QCLOUD_ERR_INVAL);
     NUMBERIC_SANITY_CHECK(timeout_ms, QCLOUD_ERR_INVAL);
 
-    Qcloud_IoT_Shadow* shadow = (Qcloud_IoT_Shadow*)handle;
+    Qcloud_IoT_Shadow *shadow = (Qcloud_IoT_Shadow *)handle;
 
     if (IOT_MQTT_IsConnected(shadow->mqtt) == false) {
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_MQTT_NO_CONN);
     }
 
     RequestAck ack_update = ACK_NONE;
-    rc = IOT_Shadow_Get(handle, _update_ack_cb, &ack_update, timeout_ms);
-    if (rc != QCLOUD_RET_SUCCESS) IOT_FUNC_EXIT_RC(rc);
+    rc                    = IOT_Shadow_Get(handle, _update_ack_cb, &ack_update, timeout_ms);
+    if (rc != QCLOUD_RET_SUCCESS)
+        IOT_FUNC_EXIT_RC(rc);
 
     while (ACK_NONE == ack_update) {
         IOT_Shadow_Yield(handle, 200);
@@ -450,7 +446,6 @@ int IOT_Shadow_Get_Sync(void *handle, uint32_t timeout_ms)
  */
 static int IOT_Shadow_JSON_Init(Qcloud_IoT_Shadow *pShadow, char *jsonBuffer, size_t sizeOfBuffer, bool overwrite)
 {
-
     if (jsonBuffer == NULL) {
         return QCLOUD_ERR_INVAL;
     }
@@ -474,8 +469,8 @@ static int IOT_Shadow_JSON_Init(Qcloud_IoT_Shadow *pShadow, char *jsonBuffer, si
  */
 static int IOT_Shadow_JSON_Finalize(Qcloud_IoT_Shadow *pShadow, char *jsonBuffer, size_t sizeOfBuffer)
 {
-    int rc;
-    size_t remain_size = 0;
+    int     rc;
+    size_t  remain_size    = 0;
     int32_t rc_of_snprintf = 0;
 
     if (jsonBuffer == NULL) {
@@ -487,7 +482,7 @@ static int IOT_Shadow_JSON_Finalize(Qcloud_IoT_Shadow *pShadow, char *jsonBuffer
     }
 
     rc_of_snprintf = HAL_Snprintf(jsonBuffer + strlen(jsonBuffer) - 1, remain_size, "}, \"%s\":\"", CLIENT_TOKEN_FIELD);
-    rc = _check_snprintf_return(rc_of_snprintf, remain_size);
+    rc             = _check_snprintf_return(rc_of_snprintf, remain_size);
     if (rc != QCLOUD_RET_SUCCESS) {
         return rc;
     }
@@ -496,8 +491,10 @@ static int IOT_Shadow_JSON_Finalize(Qcloud_IoT_Shadow *pShadow, char *jsonBuffer
         return QCLOUD_ERR_JSON_BUFFER_TOO_SMALL;
     }
 
-    rc_of_snprintf = generate_client_token(jsonBuffer + strlen(jsonBuffer), remain_size, &(pShadow->inner_data.token_num));
-    rc = _check_snprintf_return(rc_of_snprintf, remain_size);
+    Qcloud_IoT_Client *mqtt_client = (Qcloud_IoT_Client *)pShadow->mqtt;
+    rc_of_snprintf                 = generate_client_token(jsonBuffer + strlen(jsonBuffer), remain_size,
+                                           &(pShadow->inner_data.token_num), mqtt_client->device_info.product_id);
+    rc                             = _check_snprintf_return(rc_of_snprintf, remain_size);
 
     if (rc != QCLOUD_RET_SUCCESS) {
         return rc;
@@ -508,14 +505,14 @@ static int IOT_Shadow_JSON_Finalize(Qcloud_IoT_Shadow *pShadow, char *jsonBuffer
     }
 
     rc_of_snprintf = HAL_Snprintf(jsonBuffer + strlen(jsonBuffer), remain_size, "\"}");
-    rc = _check_snprintf_return(rc_of_snprintf, remain_size);
+    rc             = _check_snprintf_return(rc_of_snprintf, remain_size);
 
     return rc;
 }
 
 int IOT_Shadow_JSON_ConstructReport(void *handle, char *jsonBuffer, size_t sizeOfBuffer, uint8_t count, ...)
 {
-    Qcloud_IoT_Shadow* pshadow = (Qcloud_IoT_Shadow*)handle;
+    Qcloud_IoT_Shadow *pshadow = (Qcloud_IoT_Shadow *)handle;
     POINTER_SANITY_CHECK(pshadow, QCLOUD_ERR_INVAL);
 
     int rc = IOT_Shadow_JSON_Init(pshadow, jsonBuffer, sizeOfBuffer, false);
@@ -525,9 +522,9 @@ int IOT_Shadow_JSON_ConstructReport(void *handle, char *jsonBuffer, size_t sizeO
         return rc;
     }
 
-    size_t remain_size = 0;
+    size_t  remain_size    = 0;
     int32_t rc_of_snprintf = 0;
-    int8_t i;
+    int8_t  i;
 
     if (jsonBuffer == NULL) {
         return QCLOUD_ERR_INVAL;
@@ -538,7 +535,7 @@ int IOT_Shadow_JSON_ConstructReport(void *handle, char *jsonBuffer, size_t sizeO
     }
 
     rc_of_snprintf = HAL_Snprintf(jsonBuffer + strlen(jsonBuffer), remain_size, "\"reported\":{");
-    rc = _check_snprintf_return(rc_of_snprintf, remain_size);
+    rc             = _check_snprintf_return(rc_of_snprintf, remain_size);
 
     if (rc != QCLOUD_RET_SUCCESS) {
         return rc;
@@ -568,7 +565,7 @@ int IOT_Shadow_JSON_ConstructReport(void *handle, char *jsonBuffer, size_t sizeO
         return QCLOUD_ERR_JSON_BUFFER_TOO_SMALL;
     }
     rc_of_snprintf = HAL_Snprintf(jsonBuffer + strlen(jsonBuffer) - 1, remain_size, "},");
-    rc = _check_snprintf_return(rc_of_snprintf, remain_size);
+    rc             = _check_snprintf_return(rc_of_snprintf, remain_size);
 
     if (rc != QCLOUD_RET_SUCCESS) {
         Log_e("shadow json add report failed: %d", rc);
@@ -583,10 +580,10 @@ int IOT_Shadow_JSON_ConstructReport(void *handle, char *jsonBuffer, size_t sizeO
     return rc;
 }
 
-
-int IOT_Shadow_JSON_ConstructReportArray(void *handle, char *jsonBuffer, size_t sizeOfBuffer, uint8_t count, DeviceProperty *pDeviceProperties[])
+int IOT_Shadow_JSON_ConstructReportArray(void *handle, char *jsonBuffer, size_t sizeOfBuffer, uint8_t count,
+                                         DeviceProperty *pDeviceProperties[])
 {
-    Qcloud_IoT_Shadow* pshadow = (Qcloud_IoT_Shadow*)handle;
+    Qcloud_IoT_Shadow *pshadow = (Qcloud_IoT_Shadow *)handle;
     POINTER_SANITY_CHECK(pshadow, QCLOUD_ERR_INVAL);
     POINTER_SANITY_CHECK(pDeviceProperties, QCLOUD_ERR_INVAL);
 
@@ -597,9 +594,9 @@ int IOT_Shadow_JSON_ConstructReportArray(void *handle, char *jsonBuffer, size_t 
         return rc;
     }
 
-    size_t remain_size = 0;
+    size_t  remain_size    = 0;
     int32_t rc_of_snprintf = 0;
-    int8_t i;
+    int8_t  i;
 
     if (jsonBuffer == NULL) {
         return QCLOUD_ERR_INVAL;
@@ -610,7 +607,7 @@ int IOT_Shadow_JSON_ConstructReportArray(void *handle, char *jsonBuffer, size_t 
     }
 
     rc_of_snprintf = HAL_Snprintf(jsonBuffer + strlen(jsonBuffer), remain_size, "\"reported\":{");
-    rc = _check_snprintf_return(rc_of_snprintf, remain_size);
+    rc             = _check_snprintf_return(rc_of_snprintf, remain_size);
 
     if (rc != QCLOUD_RET_SUCCESS) {
         return rc;
@@ -633,7 +630,7 @@ int IOT_Shadow_JSON_ConstructReportArray(void *handle, char *jsonBuffer, size_t 
         return QCLOUD_ERR_JSON_BUFFER_TOO_SMALL;
     }
     rc_of_snprintf = HAL_Snprintf(jsonBuffer + strlen(jsonBuffer) - 1, remain_size, "},");
-    rc = _check_snprintf_return(rc_of_snprintf, remain_size);
+    rc             = _check_snprintf_return(rc_of_snprintf, remain_size);
 
     if (rc != QCLOUD_RET_SUCCESS) {
         Log_e("shadow json add report failed: %d", rc);
@@ -648,10 +645,9 @@ int IOT_Shadow_JSON_ConstructReportArray(void *handle, char *jsonBuffer, size_t 
     return rc;
 }
 
-
 int IOT_Shadow_JSON_Construct_OverwriteReport(void *handle, char *jsonBuffer, size_t sizeOfBuffer, uint8_t count, ...)
 {
-    Qcloud_IoT_Shadow* pshadow = (Qcloud_IoT_Shadow*)handle;
+    Qcloud_IoT_Shadow *pshadow = (Qcloud_IoT_Shadow *)handle;
     POINTER_SANITY_CHECK(pshadow, QCLOUD_ERR_INVAL);
 
     int rc = IOT_Shadow_JSON_Init(pshadow, jsonBuffer, sizeOfBuffer, true);
@@ -661,9 +657,9 @@ int IOT_Shadow_JSON_Construct_OverwriteReport(void *handle, char *jsonBuffer, si
         return rc;
     }
 
-    size_t remain_size = 0;
+    size_t  remain_size    = 0;
     int32_t rc_of_snprintf = 0;
-    int8_t i;
+    int8_t  i;
 
     if (jsonBuffer == NULL) {
         return QCLOUD_ERR_INVAL;
@@ -674,7 +670,7 @@ int IOT_Shadow_JSON_Construct_OverwriteReport(void *handle, char *jsonBuffer, si
     }
 
     rc_of_snprintf = HAL_Snprintf(jsonBuffer + strlen(jsonBuffer), remain_size, "\"reported\":{");
-    rc = _check_snprintf_return(rc_of_snprintf, remain_size);
+    rc             = _check_snprintf_return(rc_of_snprintf, remain_size);
 
     if (rc != QCLOUD_RET_SUCCESS) {
         return rc;
@@ -704,7 +700,7 @@ int IOT_Shadow_JSON_Construct_OverwriteReport(void *handle, char *jsonBuffer, si
         return QCLOUD_ERR_JSON_BUFFER_TOO_SMALL;
     }
     rc_of_snprintf = HAL_Snprintf(jsonBuffer + strlen(jsonBuffer) - 1, remain_size, "},");
-    rc = _check_snprintf_return(rc_of_snprintf, remain_size);
+    rc             = _check_snprintf_return(rc_of_snprintf, remain_size);
 
     if (rc != QCLOUD_RET_SUCCESS) {
         Log_e("shadow json add report failed: %d", rc);
@@ -719,10 +715,11 @@ int IOT_Shadow_JSON_Construct_OverwriteReport(void *handle, char *jsonBuffer, si
     return rc;
 }
 
-int IOT_Shadow_JSON_ConstructReportAndDesireAllNull(void *handle, char *jsonBuffer, size_t sizeOfBuffer, uint8_t count, ...)
+int IOT_Shadow_JSON_ConstructReportAndDesireAllNull(void *handle, char *jsonBuffer, size_t sizeOfBuffer, uint8_t count,
+                                                    ...)
 {
     POINTER_SANITY_CHECK(handle, QCLOUD_ERR_INVAL);
-    Qcloud_IoT_Shadow* pshadow = (Qcloud_IoT_Shadow*)handle;
+    Qcloud_IoT_Shadow *pshadow = (Qcloud_IoT_Shadow *)handle;
 
     int rc = IOT_Shadow_JSON_Init(pshadow, jsonBuffer, sizeOfBuffer, false);
 
@@ -731,9 +728,9 @@ int IOT_Shadow_JSON_ConstructReportAndDesireAllNull(void *handle, char *jsonBuff
         return rc;
     }
 
-    size_t remain_size = 0;
+    size_t  remain_size    = 0;
     int32_t rc_of_snprintf = 0;
-    int8_t i;
+    int8_t  i;
 
     if (jsonBuffer == NULL) {
         return QCLOUD_ERR_INVAL;
@@ -744,7 +741,7 @@ int IOT_Shadow_JSON_ConstructReportAndDesireAllNull(void *handle, char *jsonBuff
     }
 
     rc_of_snprintf = HAL_Snprintf(jsonBuffer + strlen(jsonBuffer), remain_size, "\"reported\":{");
-    rc = _check_snprintf_return(rc_of_snprintf, remain_size);
+    rc             = _check_snprintf_return(rc_of_snprintf, remain_size);
 
     if (rc != QCLOUD_RET_SUCCESS) {
         return rc;
@@ -774,7 +771,7 @@ int IOT_Shadow_JSON_ConstructReportAndDesireAllNull(void *handle, char *jsonBuff
         return QCLOUD_ERR_JSON_BUFFER_TOO_SMALL;
     }
     rc_of_snprintf = HAL_Snprintf(jsonBuffer + strlen(jsonBuffer) - 1, remain_size, "},");
-    rc = _check_snprintf_return(rc_of_snprintf, remain_size);
+    rc             = _check_snprintf_return(rc_of_snprintf, remain_size);
 
     if (rc != QCLOUD_RET_SUCCESS) {
         Log_e("shadow json add report failed: %d", rc);
@@ -782,7 +779,10 @@ int IOT_Shadow_JSON_ConstructReportAndDesireAllNull(void *handle, char *jsonBuff
     }
 
     rc_of_snprintf = HAL_Snprintf(jsonBuffer + strlen(jsonBuffer), remain_size, "\"desired\": null ");
-    rc = _check_snprintf_return(rc_of_snprintf, remain_size);
+    rc             = _check_snprintf_return(rc_of_snprintf, remain_size);
+    if (rc != QCLOUD_RET_SUCCESS) {
+        return rc;
+    }
 
     rc = IOT_Shadow_JSON_Finalize(pshadow, jsonBuffer, sizeOfBuffer);
     if (rc != QCLOUD_RET_SUCCESS) {
@@ -795,7 +795,7 @@ int IOT_Shadow_JSON_ConstructReportAndDesireAllNull(void *handle, char *jsonBuff
 int IOT_Shadow_JSON_ConstructDesireAllNull(void *handle, char *jsonBuffer, size_t sizeOfBuffer)
 {
     POINTER_SANITY_CHECK(handle, QCLOUD_ERR_INVAL);
-    Qcloud_IoT_Shadow* shadow = (Qcloud_IoT_Shadow*)handle;
+    Qcloud_IoT_Shadow *shadow = (Qcloud_IoT_Shadow *)handle;
 
     int rc = IOT_Shadow_JSON_Init(shadow, jsonBuffer, sizeOfBuffer, false);
 
@@ -804,7 +804,7 @@ int IOT_Shadow_JSON_ConstructDesireAllNull(void *handle, char *jsonBuffer, size_
         return rc;
     }
 
-    size_t remain_size = 0;
+    size_t  remain_size    = 0;
     int32_t rc_of_snprintf = 0;
 
     if (jsonBuffer == NULL) {
@@ -816,7 +816,7 @@ int IOT_Shadow_JSON_ConstructDesireAllNull(void *handle, char *jsonBuffer, size_
     }
 
     rc_of_snprintf = HAL_Snprintf(jsonBuffer + strlen(jsonBuffer), remain_size, "\"desired\": null ");
-    rc = _check_snprintf_return(rc_of_snprintf, remain_size);
+    rc             = _check_snprintf_return(rc_of_snprintf, remain_size);
 
     if (rc != QCLOUD_RET_SUCCESS) {
         return rc;
@@ -829,7 +829,7 @@ int IOT_Shadow_JSON_ConstructDesireAllNull(void *handle, char *jsonBuffer, size_
 int IOT_Shadow_JSON_ConstructDesirePropNull(void *handle, char *jsonBuffer, size_t sizeOfBuffer, uint8_t count, ...)
 {
     POINTER_SANITY_CHECK(handle, QCLOUD_ERR_INVAL);
-    Qcloud_IoT_Shadow* shadow = (Qcloud_IoT_Shadow*)handle;
+    Qcloud_IoT_Shadow *shadow = (Qcloud_IoT_Shadow *)handle;
 
     int rc = IOT_Shadow_JSON_Init(shadow, jsonBuffer, sizeOfBuffer, false);
 
@@ -838,9 +838,9 @@ int IOT_Shadow_JSON_ConstructDesirePropNull(void *handle, char *jsonBuffer, size
         return rc;
     }
 
-    size_t remain_size = 0;
+    size_t  remain_size    = 0;
     int32_t rc_of_snprintf = 0;
-    int8_t i;
+    int8_t  i;
 
     if (jsonBuffer == NULL) {
         return QCLOUD_ERR_INVAL;
@@ -851,7 +851,7 @@ int IOT_Shadow_JSON_ConstructDesirePropNull(void *handle, char *jsonBuffer, size
     }
 
     rc_of_snprintf = HAL_Snprintf(jsonBuffer + strlen(jsonBuffer), remain_size, "\"desired\":{");
-    rc = _check_snprintf_return(rc_of_snprintf, remain_size);
+    rc             = _check_snprintf_return(rc_of_snprintf, remain_size);
 
     if (rc != QCLOUD_RET_SUCCESS) {
         return rc;
@@ -862,7 +862,7 @@ int IOT_Shadow_JSON_ConstructDesirePropNull(void *handle, char *jsonBuffer, size
 
     for (i = 0; i < count; i++) {
         DeviceProperty *pJsonNode;
-        pJsonNode = va_arg (pArgs, DeviceProperty *);
+        pJsonNode = va_arg(pArgs, DeviceProperty *);
         if (pJsonNode != NULL && pJsonNode->key != NULL) {
             rc = put_json_node(jsonBuffer, remain_size, pJsonNode->key, pJsonNode->data, pJsonNode->type);
             if (rc != QCLOUD_RET_SUCCESS) {
@@ -881,7 +881,7 @@ int IOT_Shadow_JSON_ConstructDesirePropNull(void *handle, char *jsonBuffer, size
     }
     // strlen(jsonBuffer) - 1 to remove last comma
     rc_of_snprintf = HAL_Snprintf(jsonBuffer + strlen(jsonBuffer) - 1, remain_size, "},");
-    rc = _check_snprintf_return(rc_of_snprintf, remain_size);
+    rc             = _check_snprintf_return(rc_of_snprintf, remain_size);
 
     if (rc != QCLOUD_RET_SUCCESS) {
         Log_e("shadow json add desired failed: %d", rc);
@@ -895,4 +895,3 @@ int IOT_Shadow_JSON_ConstructDesirePropNull(void *handle, char *jsonBuffer, size
 #ifdef __cplusplus
 }
 #endif
-

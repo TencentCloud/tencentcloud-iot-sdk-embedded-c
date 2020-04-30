@@ -1,6 +1,6 @@
 /*
  * Tencent is pleased to support the open source community by making IoT Hub available.
- * Copyright (C) 2016 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2018-2020 THL A29 Limited, a Tencent company. All rights reserved.
 
  * Licensed under the MIT License (the "License"); you may not use this file except in
  * compliance with the License. You may obtain a copy of the License at
@@ -20,30 +20,29 @@
 extern "C" {
 #endif
 
-#include <stdint.h>
-#include <stdbool.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #include "qcloud_iot_export.h"
 #include "qcloud_iot_import.h"
 
-#define VERSION_FIELD               "version"
-#define TYPE_FIELD                  "type"
-#define CLIENT_TOKEN_FIELD          "clientToken"
-#define RESULT_FIELD                "result"
+#define VERSION_FIELD      "version"
+#define TYPE_FIELD         "type"
+#define CLIENT_TOKEN_FIELD "clientToken"
+#define RESULT_FIELD       "result"
 
-#define OPERATION_DELTA             "delta"
-#define OPERATION_GET               "get"
-#define OPERATION_UPDATE            "update"
+#define OPERATION_DELTA  "delta"
+#define OPERATION_GET    "get"
+#define OPERATION_UPDATE "update"
 
-#define PAYLOAD_STATE               "payload.state"
-#define PAYLOAD_VERSION             "payload.version"
-#define PAYLOAD_STATE_DELTA         "payload.state.delta"
+#define PAYLOAD_STATE       "payload.state"
+#define PAYLOAD_VERSION     "payload.version"
+#define PAYLOAD_STATE_DELTA "payload.state.delta"
 
-#define REPLY_CODE                  "code"
-#define REPLY_STATUS                "status"
-
+#define REPLY_CODE   "code"
+#define REPLY_STATUS "status"
 
 /**
  * add a JSON node to JSON string
@@ -69,24 +68,25 @@ int put_json_node(char *jsonBuffer, size_t sizeOfBuffer, const char *pKey, void 
  */
 int event_put_json_node(char *jsonBuffer, size_t sizeOfBuffer, const char *pKey, void *pData, JsonDataType type);
 
-
 /**
  * @brief generate a ClientToken
  *
  * @param pStrBuffer    string buffer
  * @param sizeOfBuffer  size of buffer
  * @param tokenNumber   shadow token number, increment every time
+ * @param product_id    device product ID
  * @return              QCLOUD_RET_SUCCESS for success, or err code for failure
  */
-int generate_client_token(char *pStrBuffer, size_t sizeOfBuffer, uint32_t *tokenNumber);
+int generate_client_token(char *pStrBuffer, size_t sizeOfBuffer, uint32_t *tokenNumber, char *product_id);
 
 /**
  * @brief generate an empty JSON with only clientToken
  *
  * @param tokenNumber   shadow token number, increment every time
  * @param pJsonBuffer   JSON string buffer
+ * @param product_id    device product ID
  */
-void build_empty_json(uint32_t *tokenNumber, char *pJsonBuffer);
+void build_empty_json(uint32_t *tokenNumber, char *pJsonBuffer, char *product_id);
 
 /**
  * @brief parse field of clientToken from JSON string
@@ -170,7 +170,6 @@ bool parse_shadow_operation_delta(char *pJsonDoc, char **pDelta);
  */
 bool parse_shadow_operation_get(char *pJsonDoc, char **pDelta);
 
-
 /**
  * @brief update value in JSON if key is matched, not for OBJECT type
  *
@@ -184,4 +183,4 @@ bool update_value_if_key_match(char *pJsonDoc, DeviceProperty *pProperty);
 }
 #endif
 
-#endif //IOT_SHADOW_CLIENT_JSON_H_
+#endif  // IOT_SHADOW_CLIENT_JSON_H_

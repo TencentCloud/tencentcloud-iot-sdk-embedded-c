@@ -1,6 +1,6 @@
 /*
  * Tencent is pleased to support the open source community by making IoT Hub available.
- * Copyright (C) 2016 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2018-2020 THL A29 Limited, a Tencent company. All rights reserved.
 
  * Licensed under the MIT License (the "License"); you may not use this file except in
  * compliance with the License. You may obtain a copy of the License at
@@ -17,46 +17,36 @@
 extern "C" {
 #endif
 
-#include <string.h>
-#include <stdio.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <string.h>
 
-#include "shadow_client.h"
-
-#include "utils_param_check.h"
 #include "qcloud_iot_import.h"
-
+#include "shadow_client.h"
 #include "shadow_client_json.h"
-
 #include "utils_list.h"
-
-
+#include "utils_param_check.h"
 
 /**
  * @brief type for document request
  */
 typedef struct {
-    char                   client_token[MAX_SIZE_OF_CLIENT_TOKEN];          // clientToken
-    Method                 method;                                          // method type
+    char   client_token[MAX_SIZE_OF_CLIENT_TOKEN];  // clientToken
+    Method method;                                  // method type
 
-    void                   *user_context;                                   // user context
-    Timer                  timer;                                           // timer for timeout
+    void *user_context;  // user context
+    Timer timer;         // timer for timeout
 
-    OnRequestCallback      callback;                                        // request response callback
+    OnRequestCallback callback;  // request response callback
 } Request;
 
-
-
-static char cloud_rcv_buf[CLOUD_IOT_JSON_RX_BUF_LEN];
-
-bool discard_old_delta_flag = true;
-
-typedef void (*TraverseHandle)(Qcloud_IoT_Shadow *pShadow, ListNode **node, List *list, const char *pClientToken, const char *pType);
+typedef void (*TraverseHandle)(Qcloud_IoT_Shadow *pShadow, ListNode **node, List *list, const char *pClientToken,
+                               const char *pType);
 
 static void _on_operation_result_handler(void *pClient, MQTTMessage *message, void *pUserdata);
 
-static void _handle_delta(Qcloud_IoT_Shadow *pShadow, char* delta_str);
+static void _handle_delta(Qcloud_IoT_Shadow *pShadow, char *delta_str);
 
 static int _set_shadow_json_type(char *pJsonDoc, size_t sizeOfBuffer, Method method);
 
@@ -66,11 +56,14 @@ static int _add_request_to_list(Qcloud_IoT_Shadow *pShadow, const char *pClientT
 
 static int _unsubscribe_operation_result_to_cloud(Qcloud_IoT_Shadow *pShadow);
 
-static void _traverse_list(Qcloud_IoT_Shadow *pShadow, List *list, const char *pClientToken, const char *pType, TraverseHandle traverseHandle);
+static void _traverse_list(Qcloud_IoT_Shadow *pShadow, List *list, const char *pClientToken, const char *pType,
+                           TraverseHandle traverseHandle);
 
-static void _handle_request_callback(Qcloud_IoT_Shadow *pShadow, ListNode **node, List *list, const char *pClientToken, const char *pType);
+static void _handle_request_callback(Qcloud_IoT_Shadow *pShadow, ListNode **node, List *list, const char *pClientToken,
+                                     const char *pType);
 
-static void _handle_expired_request_callback(Qcloud_IoT_Shadow *pShadow, ListNode **node, List *list, const char *pClientToken, const char *pType);
+static void _handle_expired_request_callback(Qcloud_IoT_Shadow *pShadow, ListNode **node, List *list,
+                                             const char *pClientToken, const char *pType);
 
 int qcloud_iot_shadow_init(Qcloud_IoT_Shadow *pShadow)
 {
@@ -135,7 +128,7 @@ int do_shadow_request(Qcloud_IoT_Shadow *pShadow, RequestParams *pParams, char *
     POINTER_SANITY_CHECK(pJsonDoc, QCLOUD_ERR_INVAL);
     POINTER_SANITY_CHECK(pParams, QCLOUD_ERR_INVAL);
 
-    char* client_token = NULL;
+    char *client_token = NULL;
 
     if (!parse_client_token(pJsonDoc, &client_token)) {
         Log_e("fail to parse client token!");
@@ -171,13 +164,17 @@ int subscribe_operation_result_to_cloud(Qcloud_IoT_Shadow *pShadow)
 
     if (pShadow->inner_data.result_topic == NULL) {
         char *operation_result_topic = (char *)HAL_Malloc(MAX_SIZE_OF_CLOUD_TOPIC * sizeof(char));
-        if (operation_result_topic == NULL) IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
+        if (operation_result_topic == NULL)
+            IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
 
         memset(operation_result_topic, 0x0, MAX_SIZE_OF_CLOUD_TOPIC);
+        Qcloud_IoT_Client *mqtt_client = (Qcloud_IoT_Client *)pShadow->mqtt;
         if (eTEMPLATE == pShadow->shadow_type) {
-            size = HAL_Snprintf(operation_result_topic, MAX_SIZE_OF_CLOUD_TOPIC, "$template/operation/result/%s/%s", iot_device_info_get()->product_id, iot_device_info_get()->device_name);
+            size = HAL_Snprintf(operation_result_topic, MAX_SIZE_OF_CLOUD_TOPIC, "$template/operation/result/%s/%s",
+                                mqtt_client->device_info.product_id, mqtt_client->device_info.device_name);
         } else {
-            size = HAL_Snprintf(operation_result_topic, MAX_SIZE_OF_CLOUD_TOPIC, "$shadow/operation/result/%s/%s", iot_device_info_get()->product_id, iot_device_info_get()->device_name);
+            size = HAL_Snprintf(operation_result_topic, MAX_SIZE_OF_CLOUD_TOPIC, "$shadow/operation/result/%s/%s",
+                                mqtt_client->device_info.product_id, mqtt_client->device_info.device_name);
         }
         if (size < 0 || size > MAX_SIZE_OF_CLOUD_TOPIC - 1) {
             Log_e("buf size < topic length!");
@@ -187,9 +184,9 @@ int subscribe_operation_result_to_cloud(Qcloud_IoT_Shadow *pShadow)
         pShadow->inner_data.result_topic = operation_result_topic;
     }
 
-    SubscribeParams subscribe_params = DEFAULT_SUB_PARAMS;
+    SubscribeParams subscribe_params    = DEFAULT_SUB_PARAMS;
     subscribe_params.on_message_handler = _on_operation_result_handler;
-    subscribe_params.qos = QOS0;
+    subscribe_params.qos                = QOS0;
 
     rc = IOT_MQTT_Subscribe(pShadow->mqtt, pShadow->inner_data.result_topic, &subscribe_params);
     if (rc < 0) {
@@ -213,12 +210,15 @@ static int _publish_operation_to_cloud(Qcloud_IoT_Shadow *pShadow, Method method
     int rc = QCLOUD_RET_SUCCESS;
 
     char topic[MAX_SIZE_OF_CLOUD_TOPIC] = {0};
-    int size;
+    int  size;
 
+    Qcloud_IoT_Client *mqtt_client = (Qcloud_IoT_Client *)pShadow->mqtt;
     if (eTEMPLATE == pShadow->shadow_type) {
-        size = HAL_Snprintf(topic, MAX_SIZE_OF_CLOUD_TOPIC, "$template/operation/%s/%s", iot_device_info_get()->product_id, iot_device_info_get()->device_name);
+        size = HAL_Snprintf(topic, MAX_SIZE_OF_CLOUD_TOPIC, "$template/operation/%s/%s",
+                            mqtt_client->device_info.product_id, mqtt_client->device_info.device_name);
     } else {
-        size = HAL_Snprintf(topic, MAX_SIZE_OF_CLOUD_TOPIC, "$shadow/operation/%s/%s", iot_device_info_get()->product_id, iot_device_info_get()->device_name);
+        size = HAL_Snprintf(topic, MAX_SIZE_OF_CLOUD_TOPIC, "$shadow/operation/%s/%s",
+                            mqtt_client->device_info.product_id, mqtt_client->device_info.device_name);
     }
 
     if (size < 0 || size > MAX_SIZE_OF_CLOUD_TOPIC - 1) {
@@ -227,9 +227,9 @@ static int _publish_operation_to_cloud(Qcloud_IoT_Shadow *pShadow, Method method
     }
 
     PublishParams pubParams = DEFAULT_PUB_PARAMS;
-    pubParams.qos = QOS0;
-    pubParams.payload_len = strlen(pJsonDoc);
-    pubParams.payload = (char *) pJsonDoc;
+    pubParams.qos           = QOS0;
+    pubParams.payload_len   = strlen(pJsonDoc);
+    pubParams.payload       = (char *)pJsonDoc;
 
     rc = IOT_MQTT_Publish(pShadow->mqtt, topic, &pubParams);
 
@@ -246,17 +246,17 @@ static void _on_operation_result_handler(void *pClient, MQTTMessage *message, vo
     POINTER_SANITY_CHECK_RTN(pClient);
     POINTER_SANITY_CHECK_RTN(message);
 
-    Qcloud_IoT_Client *mqtt_client = (Qcloud_IoT_Client *)pClient;
-    Qcloud_IoT_Shadow *shadow_client = (Qcloud_IoT_Shadow*)mqtt_client->event_handle.context;
+    Qcloud_IoT_Client *mqtt_client   = (Qcloud_IoT_Client *)pClient;
+    Qcloud_IoT_Shadow *shadow_client = (Qcloud_IoT_Shadow *)mqtt_client->event_handle.context;
 
-    const char *topic = message->ptopic;
-    size_t topic_len = message->topic_len;
+    const char *topic     = message->ptopic;
+    size_t      topic_len = message->topic_len;
     if (NULL == topic || topic_len <= 0) {
         IOT_FUNC_EXIT;
     }
 
     char *client_token = NULL;
-    char *type_str = NULL;
+    char *type_str     = NULL;
 
     if (message->payload_len > CLOUD_IOT_JSON_RX_BUF_LEN) {
         Log_e("The length of the received message exceeds the specified length!");
@@ -264,25 +264,25 @@ static void _on_operation_result_handler(void *pClient, MQTTMessage *message, vo
     }
 
     int cloud_rcv_len = Min(CLOUD_IOT_JSON_RX_BUF_LEN - 1, message->payload_len);
-    memcpy(cloud_rcv_buf, message->payload, cloud_rcv_len + 1);
-    cloud_rcv_buf[cloud_rcv_len] = '\0';    // jsmn_parse relies on a string
-
-    if (!parse_shadow_operation_type(cloud_rcv_buf, &type_str)) {
+    memcpy(shadow_client->shadow_recv_buf, message->payload, cloud_rcv_len + 1);
+    shadow_client->shadow_recv_buf[cloud_rcv_len] = '\0';  // jsmn_parse relies on a string
+    if (!parse_shadow_operation_type(shadow_client->shadow_recv_buf, &type_str)) {
         Log_e("Fail to parse type!");
         goto End;
     }
-    Log_d("type:%s", type_str);
+    Log_d("type: %s", type_str);
+
     // non-delta msg push is triggered by device side, parse client token first
-    if (strcmp(type_str, OPERATION_DELTA) && !parse_client_token(cloud_rcv_buf, &client_token)) {
-        Log_e("Fail to parse client token! Json=%s", cloud_rcv_buf);
+    if (strcmp(type_str, OPERATION_DELTA) && !parse_client_token(shadow_client->shadow_recv_buf, &client_token)) {
+        Log_e("Fail to parse client token! Json=%s", shadow_client->shadow_recv_buf);
         goto End;
     }
 
     if (!strcmp(type_str, OPERATION_DELTA)) {
         HAL_MutexLock(shadow_client->mutex);
-        char* delta_str = NULL;
-        if (parse_shadow_operation_delta(cloud_rcv_buf, &delta_str)) {
-            Log_d("dlta:%s", delta_str);
+        char *delta_str = NULL;
+        if (parse_shadow_operation_delta(shadow_client->shadow_recv_buf, &delta_str)) {
+            Log_d("delta string: %s", delta_str);
             _handle_delta(shadow_client, delta_str);
             HAL_Free(delta_str);
         }
@@ -292,7 +292,8 @@ static void _on_operation_result_handler(void *pClient, MQTTMessage *message, vo
     }
 
     if (shadow_client != NULL)
-        _traverse_list(shadow_client, shadow_client->inner_data.request_list, client_token, type_str, _handle_request_callback);
+        _traverse_list(shadow_client, shadow_client->inner_data.request_list, client_token, type_str,
+                       _handle_request_callback);
 
 End:
     HAL_Free(type_str);
@@ -301,13 +302,12 @@ End:
     IOT_FUNC_EXIT;
 }
 
-
-static void _handle_delta(Qcloud_IoT_Shadow *pShadow, char* delta_str)
+static void _handle_delta(Qcloud_IoT_Shadow *pShadow, char *delta_str)
 {
     IOT_FUNC_ENTRY;
     if (pShadow->inner_data.property_handle_list->len) {
-        ListIterator *iter;
-        ListNode *node = NULL;
+        ListIterator *   iter;
+        ListNode *       node            = NULL;
         PropertyHandler *property_handle = NULL;
 
         if (NULL == (iter = list_iterator_new(pShadow->inner_data.property_handle_list, LIST_TAIL))) {
@@ -328,7 +328,6 @@ static void _handle_delta(Qcloud_IoT_Shadow *pShadow, char* delta_str)
             }
 
             if (property_handle->property != NULL) {
-
                 if (update_value_if_key_match(delta_str, property_handle->property)) {
                     if (property_handle->callback != NULL) {
                         property_handle->callback(pShadow, delta_str, strlen(delta_str), property_handle->property);
@@ -336,7 +335,6 @@ static void _handle_delta(Qcloud_IoT_Shadow *pShadow, char* delta_str)
                     node = NULL;
                 }
             }
-
         }
 
         list_iterator_destroy(iter);
@@ -347,7 +345,7 @@ static void _handle_delta(Qcloud_IoT_Shadow *pShadow, char* delta_str)
 
 static void _insert(char *str, char *pch, int pos)
 {
-    int len = strlen(str);
+    int len  = strlen(str);
     int nlen = strlen(pch);
     int i;
     for (i = len - 1; i >= pos; --i) {
@@ -355,11 +353,9 @@ static void _insert(char *str, char *pch, int pos)
     }
 
     int n;
-    for (n = 0; n < nlen; n++)
-        *(str + pos + n) = *pch++;
+    for (n = 0; n < nlen; n++) *(str + pos + n) = *pch++;
     *(str + len + nlen) = 0;
 }
-
 
 static int _set_shadow_json_type(char *pJsonDoc, size_t sizeOfBuffer, Method method)
 {
@@ -384,7 +380,7 @@ static int _set_shadow_json_type(char *pJsonDoc, size_t sizeOfBuffer, Method met
     if (rc != QCLOUD_RET_SUCCESS)
         IOT_FUNC_EXIT_RC(rc);
 
-    size_t json_len = strlen(pJsonDoc);
+    size_t json_len    = strlen(pJsonDoc);
     size_t remain_size = sizeOfBuffer - json_len;
 
     char json_node_str[64] = {0};
@@ -410,7 +406,7 @@ static int _unsubscribe_operation_result_to_cloud(Qcloud_IoT_Shadow *pShadow)
 
     if (pShadow->inner_data.result_topic == NULL)
         IOT_FUNC_EXIT_RC(rc);
-    
+
     rc = IOT_MQTT_Unsubscribe(pShadow->mqtt, pShadow->inner_data.result_topic);
     if (rc < 0) {
         Log_e("unsubscribe topic: %s failed: %d.", pShadow->inner_data.result_topic, rc);
@@ -418,7 +414,6 @@ static int _unsubscribe_operation_result_to_cloud(Qcloud_IoT_Shadow *pShadow)
 
     IOT_FUNC_EXIT_RC(rc);
 }
-
 
 static int _add_request_to_list(Qcloud_IoT_Shadow *pShadow, const char *pClientToken, RequestParams *pParams)
 {
@@ -441,7 +436,7 @@ static int _add_request_to_list(Qcloud_IoT_Shadow *pShadow, const char *pClientT
     strncpy(request->client_token, pClientToken, MAX_SIZE_OF_CLIENT_TOKEN);
 
     request->user_context = pParams->user_context;
-    request->method = pParams->method;
+    request->method       = pParams->method;
 
     InitTimer(&(request->timer));
     countdown(&(request->timer), pParams->timeout_sec);
@@ -450,6 +445,7 @@ static int _add_request_to_list(Qcloud_IoT_Shadow *pShadow, const char *pClientT
     if (NULL == node) {
         HAL_MutexUnlock(pShadow->mutex);
         Log_e("run list_node_new is error!");
+        HAL_Free(request);
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
     }
 
@@ -463,7 +459,8 @@ static int _add_request_to_list(Qcloud_IoT_Shadow *pShadow, const char *pClientT
 /**
  * @brief iterator list and call traverseHandle for each node
  */
-static void _traverse_list(Qcloud_IoT_Shadow *pShadow, List *list, const char *pClientToken, const char *pType, TraverseHandle traverseHandle)
+static void _traverse_list(Qcloud_IoT_Shadow *pShadow, List *list, const char *pClientToken, const char *pType,
+                           TraverseHandle traverseHandle)
 {
     IOT_FUNC_ENTRY;
 
@@ -471,7 +468,7 @@ static void _traverse_list(Qcloud_IoT_Shadow *pShadow, List *list, const char *p
 
     if (list->len) {
         ListIterator *iter;
-        ListNode *node = NULL;
+        ListNode *    node = NULL;
 
         if (NULL == (iter = list_iterator_new(list, LIST_TAIL))) {
             HAL_MutexUnlock(pShadow->mutex);
@@ -499,8 +496,8 @@ static void _traverse_list(Qcloud_IoT_Shadow *pShadow, List *list, const char *p
     IOT_FUNC_EXIT;
 }
 
-
-static void _handle_request_callback(Qcloud_IoT_Shadow *pShadow, ListNode **node, List *list, const char *pClientToken, const char *pType)
+static void _handle_request_callback(Qcloud_IoT_Shadow *pShadow, ListNode **node, List *list, const char *pClientToken,
+                                     const char *pType)
 {
     IOT_FUNC_ENTRY;
 
@@ -515,7 +512,7 @@ static void _handle_request_callback(Qcloud_IoT_Shadow *pShadow, ListNode **node
         // result = 0 for success, result != 0 for fail
         int16_t result_code = 0;
 
-        bool parse_success = parse_shadow_operation_result_code(cloud_rcv_buf, &result_code);
+        bool parse_success = parse_shadow_operation_result_code(pShadow->shadow_recv_buf, &result_code);
         if (parse_success) {
             if (result_code == 0) {
                 status = ACK_ACCEPTED;
@@ -525,15 +522,15 @@ static void _handle_request_callback(Qcloud_IoT_Shadow *pShadow, ListNode **node
 
             if ((strcmp(pType, "get") == 0 && status == ACK_ACCEPTED) ||
                 (strcmp(pType, "update") && status == ACK_REJECTED)) {
-                char* delta_str = NULL;
-                if (parse_shadow_operation_get(cloud_rcv_buf, &delta_str)) {
+                char *delta_str = NULL;
+                if (parse_shadow_operation_get(pShadow->shadow_recv_buf, &delta_str)) {
                     _handle_delta(pShadow, delta_str);
                     HAL_Free(delta_str);
                 }
             }
 
             if (request->callback != NULL) {
-                request->callback(pShadow, request->method, status, cloud_rcv_buf, request->user_context);
+                request->callback(pShadow, request->method, status, pShadow->shadow_recv_buf, request->user_context);
             }
         } else {
             Log_e("parse shadow operation result code failed.");
@@ -541,14 +538,13 @@ static void _handle_request_callback(Qcloud_IoT_Shadow *pShadow, ListNode **node
 
         list_remove(list, *node);
         *node = NULL;
-
     }
 
     IOT_FUNC_EXIT;
 }
 
-
-static void _handle_expired_request_callback(Qcloud_IoT_Shadow *pShadow, ListNode **node, List *list, const char *pClientToken, const char *pType)
+static void _handle_expired_request_callback(Qcloud_IoT_Shadow *pShadow, ListNode **node, List *list,
+                                             const char *pClientToken, const char *pType)
 {
     IOT_FUNC_ENTRY;
 
@@ -558,7 +554,7 @@ static void _handle_expired_request_callback(Qcloud_IoT_Shadow *pShadow, ListNod
 
     if (expired(&request->timer)) {
         if (request->callback != NULL) {
-            request->callback(pShadow, request->method, ACK_TIMEOUT, cloud_rcv_buf, request->user_context);
+            request->callback(pShadow, request->method, ACK_TIMEOUT, pShadow->shadow_recv_buf, request->user_context);
         }
 
         list_remove(list, *node);

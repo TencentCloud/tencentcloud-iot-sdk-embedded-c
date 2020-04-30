@@ -22,7 +22,6 @@ extern "C" {
 #include <string.h>
 
 #include "mqtt_client.h"
-
 #include "utils_list.h"
 
 /**
@@ -46,7 +45,7 @@ static int _read_string_with_len(char **string, uint16_t *stringLen, unsigned ch
         }
 
         if (&(*pptr)[*stringLen] <= enddata) {
-            *string = (char *) *pptr;
+            *string = (char *)*pptr;
             *pptr += *stringLen;
             rc = QCLOUD_RET_SUCCESS;
         }
@@ -56,12 +55,12 @@ static int _read_string_with_len(char **string, uint16_t *stringLen, unsigned ch
 }
 
 /**
-  * Determines the length of the MQTT publish packet that would be produced using the supplied parameters
-  * @param qos the MQTT QoS of the publish (packetid is omitted for QoS 0)
-  * @param topicName the topic name to be used in the publish
-  * @param payload_len the length of the payload to be sent
-  * @return the length of buffer needed to contain the serialized version of the packet
-  */
+ * Determines the length of the MQTT publish packet that would be produced using the supplied parameters
+ * @param qos the MQTT QoS of the publish (packetid is omitted for QoS 0)
+ * @param topicName the topic name to be used in the publish
+ * @param payload_len the length of the payload to be sent
+ * @return the length of buffer needed to contain the serialized version of the packet
+ */
 static uint32_t _get_publish_packet_len(uint8_t qos, char *topicName, size_t payload_len)
 {
     size_t len = 0;
@@ -70,7 +69,7 @@ static uint32_t _get_publish_packet_len(uint8_t qos, char *topicName, size_t pay
     if (qos > 0) {
         len += 2; /* packetid */
     }
-    return (uint32_t) len;
+    return (uint32_t)len;
 }
 
 static int _mask_push_pubInfo_to(Qcloud_IoT_Client *c, int len, unsigned short msgId, ListNode **node)
@@ -103,8 +102,8 @@ static int _mask_push_pubInfo_to(Qcloud_IoT_Client *c, int len, unsigned short m
     }
 
     repubInfo->node_state = MQTT_NODE_STATE_NORMANL;
-    repubInfo->msg_id = msgId;
-    repubInfo->len = len;
+    repubInfo->msg_id     = msgId;
+    repubInfo->len        = len;
     InitTimer(&repubInfo->pub_start_time);
     countdown_ms(&repubInfo->pub_start_time, c->command_timeout_ms);
 
@@ -115,6 +114,7 @@ static int _mask_push_pubInfo_to(Qcloud_IoT_Client *c, int len, unsigned short m
     *node = list_node_new(repubInfo);
     if (NULL == *node) {
         HAL_MutexUnlock(c->lock_list_pub);
+        HAL_Free(repubInfo);
         Log_e("list_node_new failed!");
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
     }
@@ -127,20 +127,21 @@ static int _mask_push_pubInfo_to(Qcloud_IoT_Client *c, int len, unsigned short m
 }
 
 /**
-  * Deserializes the supplied (wire) buffer into publish data
-  * @param dup returned integer - the MQTT dup flag
-  * @param qos returned integer - the MQTT QoS value
-  * @param retained returned integer - the MQTT retained flag
-  * @param packet_id returned integer - the MQTT packet identifier
-  * @param topicName returned MQTTString - the MQTT topic in the publish
-  * @param payload returned byte buffer - the MQTT publish payload
-  * @param payload_len returned integer - the length of the MQTT payload
-  * @param buf the raw buffer data, of the correct length determined by the remaining length field
-  * @param buf_len the length in bytes of the data in the supplied buffer
-  * @return error code.  1 is success
-  */
+ * Deserializes the supplied (wire) buffer into publish data
+ * @param dup returned integer - the MQTT dup flag
+ * @param qos returned integer - the MQTT QoS value
+ * @param retained returned integer - the MQTT retained flag
+ * @param packet_id returned integer - the MQTT packet identifier
+ * @param topicName returned MQTTString - the MQTT topic in the publish
+ * @param payload returned byte buffer - the MQTT publish payload
+ * @param payload_len returned integer - the length of the MQTT payload
+ * @param buf the raw buffer data, of the correct length determined by the remaining length field
+ * @param buf_len the length in bytes of the data in the supplied buffer
+ * @return error code.  1 is success
+ */
 int deserialize_publish_packet(uint8_t *dup, QoS *qos, uint8_t *retained, uint16_t *packet_id, char **topicName,
-                               uint16_t *topicNameLen, unsigned char **payload, size_t *payload_len, unsigned char *buf, size_t buf_len)
+                               uint16_t *topicNameLen, unsigned char **payload, size_t *payload_len, unsigned char *buf,
+                               size_t buf_len)
 {
     IOT_FUNC_ENTRY;
 
@@ -149,12 +150,12 @@ int deserialize_publish_packet(uint8_t *dup, QoS *qos, uint8_t *retained, uint16
     POINTER_SANITY_CHECK(retained, QCLOUD_ERR_INVAL);
     POINTER_SANITY_CHECK(packet_id, QCLOUD_ERR_INVAL);
 
-    unsigned char header, type = 0;
+    unsigned char  header, type = 0;
     unsigned char *curdata = buf;
     unsigned char *enddata = NULL;
-    int rc;
-    uint32_t decodedLen = 0;
-    uint32_t readBytesLen = 0;
+    int            rc;
+    uint32_t       decodedLen   = 0;
+    uint32_t       readBytesLen = 0;
 
     /* Publish header size is at least four bytes.
      * Fixed header is two bytes.
@@ -166,11 +167,11 @@ int deserialize_publish_packet(uint8_t *dup, QoS *qos, uint8_t *retained, uint16
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_BUF_TOO_SHORT);
     }
 
-    header = mqtt_read_char(&curdata);
-    type = (header & MQTT_HEADER_TYPE_MASK) >> MQTT_HEADER_TYPE_SHIFT;
-    *dup  = (header & MQTT_HEADER_DUP_MASK) >> MQTT_HEADER_DUP_SHIFT;
-    *qos  = (QoS)((header & MQTT_HEADER_QOS_MASK) >> MQTT_HEADER_QOS_SHIFT);
-    *retained  = header & MQTT_HEADER_RETAIN_MASK;
+    header    = mqtt_read_char(&curdata);
+    type      = (header & MQTT_HEADER_TYPE_MASK) >> MQTT_HEADER_TYPE_SHIFT;
+    *dup      = (header & MQTT_HEADER_DUP_MASK) >> MQTT_HEADER_DUP_SHIFT;
+    *qos      = (QoS)((header & MQTT_HEADER_QOS_MASK) >> MQTT_HEADER_QOS_SHIFT);
+    *retained = header & MQTT_HEADER_RETAIN_MASK;
 
     if (PUBLISH != type) {
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
@@ -185,7 +186,8 @@ int deserialize_publish_packet(uint8_t *dup, QoS *qos, uint8_t *retained, uint16
     enddata = curdata + decodedLen;
 
     /* do we have enough data to read the protocol version byte? */
-    if (QCLOUD_RET_SUCCESS != _read_string_with_len(topicName, topicNameLen, &curdata, enddata) || (0 > (enddata - curdata))) {
+    if (QCLOUD_RET_SUCCESS != _read_string_with_len(topicName, topicNameLen, &curdata, enddata) ||
+        (0 > (enddata - curdata))) {
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
     }
 
@@ -193,33 +195,32 @@ int deserialize_publish_packet(uint8_t *dup, QoS *qos, uint8_t *retained, uint16
         *packet_id = mqtt_read_uint16_t(&curdata);
     }
 
-    *payload_len = (size_t) (enddata - curdata);
-    *payload = curdata;
+    *payload_len = (size_t)(enddata - curdata);
+    *payload     = curdata;
 
     IOT_FUNC_EXIT_RC(QCLOUD_RET_SUCCESS);
 }
 
 /**
-  * Serializes the ack packet into the supplied buffer.
-  * @param buf the buffer into which the packet will be serialized
-  * @param buf_len the length in bytes of the supplied buffer
-  * @param packet_type the MQTT packet type: 1.PUBACK; 2.PUBREL; 3.PUBCOMP
-  * @param dup the MQTT dup flag
-  * @param packet_id the MQTT packet identifier
-  * @return serialized length, or error if 0
-  */
+ * Serializes the ack packet into the supplied buffer.
+ * @param buf the buffer into which the packet will be serialized
+ * @param buf_len the length in bytes of the supplied buffer
+ * @param packet_type the MQTT packet type: 1.PUBACK; 2.PUBREL; 3.PUBCOMP
+ * @param dup the MQTT dup flag
+ * @param packet_id the MQTT packet identifier
+ * @return serialized length, or error if 0
+ */
 int serialize_pub_ack_packet(unsigned char *buf, size_t buf_len, MessageTypes packet_type, uint8_t dup,
-                             uint16_t packet_id,
-                             uint32_t *serialized_len)
+                             uint16_t packet_id, uint32_t *serialized_len)
 {
     IOT_FUNC_ENTRY;
     POINTER_SANITY_CHECK(buf, QCLOUD_ERR_INVAL);
     POINTER_SANITY_CHECK(serialized_len, QCLOUD_ERR_INVAL);
 
-    unsigned char header = 0;
-    unsigned char *ptr = buf;
-    QoS requestQoS = (PUBREL == packet_type) ? QOS1 : QOS0;  // refer to MQTT spec 3.6.1
-    int rc = mqtt_init_packet_header(&header, packet_type, requestQoS, dup, 0);
+    unsigned char  header     = 0;
+    unsigned char *ptr        = buf;
+    QoS            requestQoS = (PUBREL == packet_type) ? QOS1 : QOS0;  // refer to MQTT spec 3.6.1
+    int            rc         = mqtt_init_packet_header(&header, packet_type, requestQoS, dup, 0);
 
     /* Minimum byte length required by ACK headers is
      * 2 for fixed and 2 for variable part */
@@ -234,28 +235,26 @@ int serialize_pub_ack_packet(unsigned char *buf, size_t buf_len, MessageTypes pa
 
     ptr += mqtt_write_packet_rem_len(ptr, 2); /* write remaining length */
     mqtt_write_uint_16(&ptr, packet_id);
-    *serialized_len = (uint32_t) (ptr - buf);
+    *serialized_len = (uint32_t)(ptr - buf);
 
     IOT_FUNC_EXIT_RC(QCLOUD_RET_SUCCESS);
 }
 
-
 /**
-  * Serializes the supplied publish data into the supplied buffer, ready for sending
-  * @param buf the buffer into which the packet will be serialized
-  * @param buf_len the length in bytes of the supplied buffer
-  * @param dup integer - the MQTT dup flag
-  * @param qos integer - the MQTT QoS value
-  * @param retained integer - the MQTT retained flag
-  * @param packet_id integer - the MQTT packet identifier
-  * @param topicName MQTTString - the MQTT topic in the publish
-  * @param payload byte buffer - the MQTT publish payload
-  * @param payload_len integer - the length of the MQTT payload
-  * @return the length of the serialized data.  <= 0 indicates error
-  */
+ * Serializes the supplied publish data into the supplied buffer, ready for sending
+ * @param buf the buffer into which the packet will be serialized
+ * @param buf_len the length in bytes of the supplied buffer
+ * @param dup integer - the MQTT dup flag
+ * @param qos integer - the MQTT QoS value
+ * @param retained integer - the MQTT retained flag
+ * @param packet_id integer - the MQTT packet identifier
+ * @param topicName MQTTString - the MQTT topic in the publish
+ * @param payload byte buffer - the MQTT publish payload
+ * @param payload_len integer - the length of the MQTT payload
+ * @return the length of the serialized data.  <= 0 indicates error
+ */
 static int _serialize_publish_packet(unsigned char *buf, size_t buf_len, uint8_t dup, QoS qos, uint8_t retained,
-                                     uint16_t packet_id,
-                                     char *topicName, unsigned char *payload, size_t payload_len,
+                                     uint16_t packet_id, char *topicName, unsigned char *payload, size_t payload_len,
                                      uint32_t *serialized_len)
 {
     IOT_FUNC_ENTRY;
@@ -263,10 +262,10 @@ static int _serialize_publish_packet(unsigned char *buf, size_t buf_len, uint8_t
     POINTER_SANITY_CHECK(serialized_len, QCLOUD_ERR_INVAL);
     POINTER_SANITY_CHECK(payload, QCLOUD_ERR_INVAL);
 
-    unsigned char *ptr = buf;
-    unsigned char header = 0;
-    uint32_t rem_len = 0;
-    int rc;
+    unsigned char *ptr     = buf;
+    unsigned char  header  = 0;
+    uint32_t       rem_len = 0;
+    int            rc;
 
     rem_len = _get_publish_packet_len(qos, topicName, payload_len);
     if (get_mqtt_packet_len(rem_len) > buf_len) {
@@ -280,18 +279,19 @@ static int _serialize_publish_packet(unsigned char *buf, size_t buf_len, uint8_t
 
     mqtt_write_char(&ptr, header); /* write header */
 
-    ptr += mqtt_write_packet_rem_len(ptr, rem_len); /* write remaining length */;
+    ptr += mqtt_write_packet_rem_len(ptr, rem_len); /* write remaining length */
+    ;
 
-    mqtt_write_utf8_string(&ptr, topicName);   /* Variable Header: Topic Name */
+    mqtt_write_utf8_string(&ptr, topicName); /* Variable Header: Topic Name */
 
     if (qos > 0) {
-        mqtt_write_uint_16(&ptr, packet_id);  /* Variable Header: Topic Name */
+        mqtt_write_uint_16(&ptr, packet_id); /* Variable Header: Topic Name */
     }
 
     memcpy(ptr, payload, payload_len);
     ptr += payload_len;
 
-    *serialized_len = (uint32_t) (ptr - buf);
+    *serialized_len = (uint32_t)(ptr - buf);
 
     IOT_FUNC_EXIT_RC(QCLOUD_RET_SUCCESS);
 }
@@ -304,9 +304,9 @@ int qcloud_iot_mqtt_publish(Qcloud_IoT_Client *pClient, char *topicName, Publish
     POINTER_SANITY_CHECK(pParams, QCLOUD_ERR_INVAL);
     STRING_PTR_SANITY_CHECK(topicName, QCLOUD_ERR_INVAL);
 
-    Timer timer;
+    Timer    timer;
     uint32_t len = 0;
-    int rc;
+    int      rc;
 
     ListNode *node = NULL;
 
@@ -343,8 +343,9 @@ int qcloud_iot_mqtt_publish(Qcloud_IoT_Client *pClient, char *topicName, Publish
         }
     }
 
-    rc = _serialize_publish_packet(pClient->write_buf, pClient->write_buf_size, 0, pParams->qos, pParams->retained, pParams->id,
-                                   topicName, (unsigned char *) pParams->payload, pParams->payload_len, &len);
+    rc = _serialize_publish_packet(pClient->write_buf, pClient->write_buf_size, 0, pParams->qos, pParams->retained,
+                                   pParams->id, topicName, (unsigned char *)pParams->payload, pParams->payload_len,
+                                   &len);
     if (QCLOUD_RET_SUCCESS != rc) {
         HAL_MutexUnlock(pClient->lock_write_buf);
         IOT_FUNC_EXIT_RC(rc);

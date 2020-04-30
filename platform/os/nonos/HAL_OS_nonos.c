@@ -1,6 +1,6 @@
 /*
  * Tencent is pleased to support the open source community by making IoT Hub available.
- * Copyright (C) 2016 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2018-2020 THL A29 Limited, a Tencent company. All rights reserved.
 
  * Licensed under the MIT License (the "License"); you may not use this file except in
  * compliance with the License. You may obtain a copy of the License at
@@ -13,12 +13,12 @@
  *
  */
 
+#include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdarg.h>
+
 #include "qcloud_iot_import.h"
 #include "stm32l4xx_hal.h"
-
 
 void HAL_Printf(_IN_ const char *fmt, ...)
 {
@@ -34,7 +34,7 @@ void HAL_Printf(_IN_ const char *fmt, ...)
 int HAL_Snprintf(_IN_ char *str, const int len, const char *fmt, ...)
 {
     va_list args;
-    int rc;
+    int     rc;
 
     va_start(args, fmt);
     rc = vsnprintf(str, len, fmt, args);
@@ -60,7 +60,8 @@ void HAL_DelayMs(_IN_ uint32_t ms)
 
 void HAL_Free(void *ptr)
 {
-    free(ptr);
+    if (ptr)
+        free(ptr);
 }
 
 void *HAL_Malloc(uint32_t size)
@@ -87,4 +88,3 @@ void HAL_MutexUnlock(void *mutex)
 {
     return;
 }
-

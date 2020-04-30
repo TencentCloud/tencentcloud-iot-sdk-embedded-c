@@ -1,11 +1,21 @@
+/*
+ * Tencent is pleased to support the open source community by making IoT Hub available.
+ * Copyright (C) 2018-2020 THL A29 Limited, a Tencent company. All rights reserved.
+
+ * Licensed under the MIT License (the "License"); you may not use this file except in
+ * compliance with the License. You may obtain a copy of the License at
+ * http://opensource.org/licenses/MIT
+
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is
+ * distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+ * either express or implied. See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+#include "gateway_common.h"
 
 #include "lite-utils.h"
 #include "mqtt_client.h"
-#include "gateway_common.h"
-
-
-static char cloud_rcv_buf[GATEWAY_RECEIVE_BUFFER_LEN];
-
 
 static bool get_json_type(char *json, char **v)
 {
@@ -19,7 +29,7 @@ static bool get_json_devices(char *json, char **v)
     return *v == NULL ? false : true;
 }
 
-static bool get_json_result(char *json, int32_t* res)
+static bool get_json_result(char *json, int32_t *res)
 {
     char *v = LITE_json_value_of("result", json);
     if (v == NULL) {
@@ -39,7 +49,6 @@ static bool get_json_product_id(char *json, char **v)
     return *v == NULL ? false : true;
 }
 
-
 static bool get_json_device_name(char *json, char **v)
 {
     *v = LITE_json_value_of("device_name", json);
@@ -48,27 +57,27 @@ static bool get_json_device_name(char *json, char **v)
 
 static void _gateway_message_handler(void *client, MQTTMessage *message, void *user_data)
 {
-    Qcloud_IoT_Client *mqtt = NULL;
-    Gateway *gateway = NULL;
-    char *topic = NULL;
-    size_t topic_len = 0;
-    int cloud_rcv_len = 0;
-    char *type = NULL;
-    char *devices = NULL, *devices_strip = NULL;
-    char *product_id = NULL;
-    char *device_name = NULL;
-    int32_t result = 0;
-    char client_id[MAX_SIZE_OF_CLIENT_ID + 1] = {0};
-    int size = 0;
+    Qcloud_IoT_Client *mqtt          = NULL;
+    Gateway *          gateway       = NULL;
+    char *             topic         = NULL;
+    size_t             topic_len     = 0;
+    int                cloud_rcv_len = 0;
+    char *             type          = NULL;
+    char *             devices = NULL, *devices_strip = NULL;
+    char *             product_id                           = NULL;
+    char *             device_name                          = NULL;
+    int32_t            result                               = 0;
+    char               client_id[MAX_SIZE_OF_CLIENT_ID + 1] = {0};
+    int                size                                 = 0;
 
     POINTER_SANITY_CHECK_RTN(client);
     POINTER_SANITY_CHECK_RTN(message);
 
-    mqtt = (Qcloud_IoT_Client *)client;
-    gateway = (Gateway*)mqtt->event_handle.context;
+    mqtt    = (Qcloud_IoT_Client *)client;
+    gateway = (Gateway *)mqtt->event_handle.context;
     POINTER_SANITY_CHECK_RTN(gateway);
 
-    topic = (char *)message->ptopic;
+    topic     = (char *)message->ptopic;
     topic_len = message->topic_len;
     if (NULL == topic || topic_len == 0) {
         Log_e("topic == NULL or topic_len == 0.");
@@ -80,17 +89,18 @@ static void _gateway_message_handler(void *client, MQTTMessage *message, void *u
         return;
     }
 
-    cloud_rcv_len = Min(GATEWAY_RECEIVE_BUFFER_LEN - 1, message->payload_len);
-    memcpy(cloud_rcv_buf, message->payload, cloud_rcv_len + 1);
-    cloud_rcv_buf[cloud_rcv_len] = '\0';    // jsmn_parse relies on a string
+    cloud_rcv_len  = Min(GATEWAY_RECEIVE_BUFFER_LEN - 1, message->payload_len);
+    char *json_buf = gateway->recv_buf;
+    memcpy(gateway->recv_buf, message->payload, cloud_rcv_len);
+    json_buf[cloud_rcv_len] = '\0';  // jsmn_parse relies on a string
 
-    if (!get_json_type(cloud_rcv_buf, &type)) {
-        Log_e("Fail to parse type from msg: %s", cloud_rcv_buf);
+    if (!get_json_type(json_buf, &type)) {
+        Log_e("Fail to parse type from msg: %s", json_buf);
         return;
     }
 
-    if (!get_json_devices(cloud_rcv_buf, &devices)) {
-        Log_e("Fail to parse devices from msg: %s", cloud_rcv_buf);
+    if (!get_json_devices(json_buf, &devices)) {
+        Log_e("Fail to parse devices from msg: %s", json_buf);
         HAL_Free(type);
         return;
     }
@@ -102,19 +112,19 @@ static void _gateway_message_handler(void *client, MQTTMessage *message, void *u
     }
 
     if (!get_json_result(devices_strip, &result)) {
-        Log_e("Fail to parse result from msg: %s", cloud_rcv_buf);
+        Log_e("Fail to parse result from msg: %s", json_buf);
         HAL_Free(type);
         HAL_Free(devices);
         return;
     }
     if (!get_json_product_id(devices_strip, &product_id)) {
-        Log_e("Fail to parse product_id from msg: %s", cloud_rcv_buf);
+        Log_e("Fail to parse product_id from msg: %s", json_buf);
         HAL_Free(type);
         HAL_Free(devices);
         return;
     }
     if (!get_json_device_name(devices_strip, &device_name)) {
-        Log_e("Fail to parse device_name from msg: %s", cloud_rcv_buf);
+        Log_e("Fail to parse device_name from msg: %s", json_buf);
         HAL_Free(type);
         HAL_Free(devices);
         HAL_Free(product_id);
@@ -131,14 +141,13 @@ static void _gateway_message_handler(void *client, MQTTMessage *message, void *u
         return;
     }
 
-
     if (strncmp(type, "online", sizeof("online") - 1) == 0) {
-        if (strncmp(client_id,  gateway->gateway_data.online.client_id, size) == 0) {
+        if (strncmp(client_id, gateway->gateway_data.online.client_id, size) == 0) {
             Log_i("client_id(%s), online success. result %d", client_id, result);
             gateway->gateway_data.online.result = result;
         }
     } else if (strncmp(type, "offline", sizeof("offline") - 1) == 0) {
-        if (strncmp(client_id,  gateway->gateway_data.offline.client_id, size) == 0) {
+        if (strncmp(client_id, gateway->gateway_data.offline.client_id, size) == 0) {
             Log_i("client_id(%s), offline success. result %d", client_id, result);
             gateway->gateway_data.offline.result = result;
         }
@@ -149,21 +158,20 @@ static void _gateway_message_handler(void *client, MQTTMessage *message, void *u
     HAL_Free(product_id);
     HAL_Free(device_name);
     return;
-
 }
 
 int gateway_subscribe_unsubscribe_topic(Gateway *gateway, char *topic_filter, SubscribeParams *params, int is_subscribe)
 {
-    int rc = 0;
-    int loop_count = 0;
-    uint32_t status = -1;
+    int      rc         = 0;
+    int      loop_count = 0;
+    uint32_t status     = -1;
 
     POINTER_SANITY_CHECK(gateway, QCLOUD_ERR_INVAL);
     POINTER_SANITY_CHECK(params, QCLOUD_ERR_INVAL);
 
     STRING_PTR_SANITY_CHECK(topic_filter, QCLOUD_ERR_INVAL);
 
-    params->qos = QOS1;
+    params->qos                       = QOS1;
     gateway->gateway_data.sync_status = status;
 
     if (is_subscribe) {
@@ -200,18 +208,19 @@ int gateway_subscribe_unsubscribe_topic(Gateway *gateway, char *topic_filter, Su
 
 int gateway_subscribe_unsubscribe_default(Gateway *gateway, GatewayParam *param)
 {
-    int rc = 0;
-    int size = 0;
-    char topic_filter[MAX_SIZE_OF_CLOUD_TOPIC + 1] = {0};
-    SubscribeParams subscribe_params = DEFAULT_SUB_PARAMS;
+    int             rc                                        = 0;
+    int             size                                      = 0;
+    char            topic_filter[MAX_SIZE_OF_CLOUD_TOPIC + 1] = {0};
+    SubscribeParams subscribe_params                          = DEFAULT_SUB_PARAMS;
 
     POINTER_SANITY_CHECK(param, QCLOUD_ERR_INVAL);
 
     STRING_PTR_SANITY_CHECK(param->product_id, QCLOUD_ERR_INVAL);
     STRING_PTR_SANITY_CHECK(param->device_name, QCLOUD_ERR_INVAL);
 
-    //subscribe  online/offline operation reslut
-    size = HAL_Snprintf(topic_filter, MAX_SIZE_OF_CLOUD_TOPIC + 1, GATEWAY_TOPIC_OPERATION_RESULT_FMT, param->product_id, param->device_name);
+    // subscribe  online/offline operation reslut
+    size = HAL_Snprintf(topic_filter, MAX_SIZE_OF_CLOUD_TOPIC + 1, GATEWAY_TOPIC_OPERATION_RESULT_FMT,
+                        param->product_id, param->device_name);
     if (size < 0 || size > MAX_SIZE_OF_CLOUD_TOPIC) {
         Log_e("buf size < topic length!");
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
@@ -225,9 +234,9 @@ int gateway_subscribe_unsubscribe_default(Gateway *gateway, GatewayParam *param)
     IOT_FUNC_EXIT_RC(QCLOUD_RET_SUCCESS);
 }
 
-SubdevSession* subdev_find_session(Gateway *gateway, char *product_id, char *device_name)
+SubdevSession *subdev_find_session(Gateway *gateway, char *product_id, char *device_name)
 {
-    SubdevSession* session = NULL;
+    SubdevSession *session = NULL;
 
     POINTER_SANITY_CHECK(gateway, NULL);
     STRING_PTR_SANITY_CHECK(product_id, NULL);
@@ -247,9 +256,9 @@ SubdevSession* subdev_find_session(Gateway *gateway, char *product_id, char *dev
     IOT_FUNC_EXIT_RC(NULL);
 }
 
-SubdevSession* subdev_add_session(Gateway *gateway, char *product_id, char *device_name)
+SubdevSession *subdev_add_session(Gateway *gateway, char *product_id, char *device_name)
 {
-    SubdevSession* session = NULL;
+    SubdevSession *session = NULL;
 
     POINTER_SANITY_CHECK(gateway, NULL);
     STRING_PTR_SANITY_CHECK(product_id, NULL);
@@ -261,25 +270,26 @@ SubdevSession* subdev_add_session(Gateway *gateway, char *product_id, char *devi
         IOT_FUNC_EXIT_RC(NULL);
     }
 
+    memset(session, 0, sizeof(SubdevSession));
     /* add session to list */
-    session->next = gateway->session_list;
+    session->next         = gateway->session_list;
     gateway->session_list = session;
 
     int size = strlen(product_id);
     strncpy(session->product_id, product_id, size);
     session->product_id[size] = '\0';
-    size = strlen(device_name);
+    size                      = strlen(device_name);
     strncpy(session->device_name, device_name, size);
     session->device_name[size] = '\0';
-    session->session_status = SUBDEV_SEESION_STATUS_INIT;
+    session->session_status    = SUBDEV_SEESION_STATUS_INIT;
 
     IOT_FUNC_EXIT_RC(session);
 }
 
 int subdev_remove_session(Gateway *gateway, char *product_id, char *device_name)
 {
-    SubdevSession* cur_session = NULL;
-    SubdevSession* pre_session = NULL;
+    SubdevSession *cur_session = NULL;
+    SubdevSession *pre_session = NULL;
 
     POINTER_SANITY_CHECK(gateway, QCLOUD_ERR_FAILURE);
     STRING_PTR_SANITY_CHECK(product_id, QCLOUD_ERR_FAILURE);
@@ -295,7 +305,7 @@ int subdev_remove_session(Gateway *gateway, char *product_id, char *device_name)
     /* session is exist */
     while (cur_session) {
         if (0 == strncmp(cur_session->product_id, product_id, strlen(product_id)) &&
-            0 == strncmp(cur_session->device_name, device_name, strlen(device_name)) ) {
+            0 == strncmp(cur_session->device_name, device_name, strlen(device_name))) {
             if (cur_session == gateway->session_list) {
                 gateway->session_list = cur_session->next;
             } else {
@@ -311,12 +321,11 @@ int subdev_remove_session(Gateway *gateway, char *product_id, char *device_name)
     IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
 }
 
-
 int gateway_publish_sync(Gateway *gateway, char *topic, PublishParams *params, int32_t *result)
 {
-    int rc = 0;
-    int loop_count = 0;
-    int32_t res = *result;
+    int     rc         = 0;
+    int     loop_count = 0;
+    int32_t res        = *result;
 
     POINTER_SANITY_CHECK(gateway, QCLOUD_ERR_INVAL);
 
@@ -342,4 +351,3 @@ int gateway_publish_sync(Gateway *gateway, char *topic, PublishParams *params, i
     }
     IOT_FUNC_EXIT_RC(QCLOUD_RET_SUCCESS);
 }
-

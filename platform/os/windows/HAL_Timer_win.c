@@ -1,6 +1,6 @@
 /*
  * Tencent is pleased to support the open source community by making IoT Hub available.
- * Copyright (C) 2016 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2018-2020 THL A29 Limited, a Tencent company. All rights reserved.
 
  * Licensed under the MIT License (the "License"); you may not use this file except in
  * compliance with the License. You may obtain a copy of the License at
@@ -17,11 +17,10 @@
 extern "C" {
 #endif
 
-#include <time.h>
 #include <Windows.h>
-#include "qcloud_iot_import.h"
+#include <time.h>
 
-static char now_time_str[20] = {0};
+#include "qcloud_iot_import.h"
 
 bool HAL_Timer_expired(Timer *timer)
 {
@@ -42,7 +41,7 @@ void HAL_Timer_countdown(Timer *timer, unsigned int timeout)
     timer->end_time = GetTickCount64() + (UINT64)timeout * 1000;
 }
 
-int HAL_Timer_remain(Timer* timer)
+int HAL_Timer_remain(Timer *timer)
 {
     UINT64 now = GetTickCount64();
 
@@ -58,16 +57,16 @@ void HAL_Timer_init(Timer *timer)
     timer->end_time = 0;
 }
 
-char* HAL_Timer_current(void)
+char *HAL_Timer_current(char *time_str)
 {
-    static char time_str[64] = { '\0' };
-    time_t now;
+    time_t    now;
     struct tm tm_val;
 
     time(&now);
     localtime_s(&tm_val, &now);
 
-    snprintf(time_str, sizeof(time_str), "%04d/%02d/%02d %02d:%02d:%02d", tm_val.tm_year + 1900, tm_val.tm_mon + 1, tm_val.tm_mday, tm_val.tm_hour, tm_val.tm_min, tm_val.tm_sec);
+    snprintf(time_str, TIME_FORMAT_STR_LEN, "%04d/%02d/%02d %02d:%02d:%02d", tm_val.tm_year + 1900, tm_val.tm_mon + 1,
+             tm_val.tm_mday, tm_val.tm_hour, tm_val.tm_min, tm_val.tm_sec);
 
     return time_str;
 }
