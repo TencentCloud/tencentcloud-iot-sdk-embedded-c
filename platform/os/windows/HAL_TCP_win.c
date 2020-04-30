@@ -1,6 +1,6 @@
 /*
  * Tencent is pleased to support the open source community by making IoT Hub available.
- * Copyright (C) 2016 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2018-2020 THL A29 Limited, a Tencent company. All rights reserved.
 
  * Licensed under the MIT License (the "License"); you may not use this file except in
  * compliance with the License. You may obtain a copy of the License at
@@ -12,20 +12,20 @@
  * limitations under the License.
  *
  */
+#include <errno.h>
 #include <stdio.h>
 #include <string.h>
-#include <errno.h>
 
-//DO NOT change the include order
-#include <WinSock2.h>
+// DO NOT change the include order
 #include <WS2tcpip.h>
+#include <WinSock2.h>
 #pragma comment(lib, "ws2_32.lib")
 #include <Windows.h>
 
 #include "qcloud_iot_common.h"
-#include "qcloud_iot_import.h"
-#include "qcloud_iot_export_log.h"
 #include "qcloud_iot_export_error.h"
+#include "qcloud_iot_export_log.h"
+#include "qcloud_iot_import.h"
 
 static uint64_t _win_get_time_ms(void)
 {
@@ -45,23 +45,23 @@ static uint64_t _win_time_left(uint64_t t_end, uint64_t t_now)
     return t_left;
 }
 
-uintptr_t HAL_TCP_Connect(const char* host, uint16_t port)
+uintptr_t HAL_TCP_Connect(const char *host, uint16_t port)
 {
-    WORD sockVersion = MAKEWORD(2, 2);
+    WORD    sockVersion = MAKEWORD(2, 2);
     WSADATA data;
 
     if (WSAStartup(sockVersion, &data) != 0) {
         return 0;
     }
-    int ret;
-    struct addrinfo hints, * addr_list, * cur;
-    SOCKET fd;
+    int             ret;
+    struct addrinfo hints, *addr_list, *cur;
+    SOCKET          fd;
 
     char port_str[6];
     HAL_Snprintf(port_str, 6, "%d", port);
 
     memset(&hints, 0x00, sizeof(hints));
-    hints.ai_family = AF_UNSPEC;
+    hints.ai_family   = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_protocol = IPPROTO_TCP;
 
@@ -103,7 +103,6 @@ uintptr_t HAL_TCP_Connect(const char* host, uint16_t port)
     return (uintptr_t)ret;
 }
 
-
 int HAL_TCP_Disconnect(uintptr_t fd)
 {
     closesocket(fd);
@@ -112,17 +111,16 @@ int HAL_TCP_Disconnect(uintptr_t fd)
     return 0;
 }
 
-
 int HAL_TCP_Write(uintptr_t fd, const unsigned char *buf, uint32_t len, uint32_t timeout_ms, size_t *written_len)
 {
-    int ret;
+    int      ret;
     uint32_t len_sent;
     uint64_t t_end, t_left;
-    fd_set sets;
+    fd_set   sets;
 
-    t_end = _win_get_time_ms() + timeout_ms;
+    t_end    = _win_get_time_ms() + timeout_ms;
     len_sent = 0;
-    ret = 1; /* send one time if timeout_ms is value 0 */
+    ret      = 1; /* send one time if timeout_ms is value 0 */
 
     do {
         t_left = _win_time_left(t_end, _win_get_time_ms());
@@ -133,7 +131,7 @@ int HAL_TCP_Write(uintptr_t fd, const unsigned char *buf, uint32_t len, uint32_t
             FD_ZERO(&sets);
             FD_SET(fd, &sets);
 
-            timeout.tv_sec = (long)t_left / 1000;
+            timeout.tv_sec  = (long)t_left / 1000;
             timeout.tv_usec = ((long)t_left % 1000) * 1000;
 
             ret = select(fd + 1, NULL, &sets, NULL, &timeout);
@@ -186,16 +184,15 @@ int HAL_TCP_Write(uintptr_t fd, const unsigned char *buf, uint32_t len, uint32_t
     return len_sent > 0 ? QCLOUD_RET_SUCCESS : ret;
 }
 
-
 int HAL_TCP_Read(uintptr_t fd, unsigned char *buf, uint32_t len, uint32_t timeout_ms, size_t *read_len)
 {
-    int ret, err_code;
-    uint32_t len_recv;
-    uint64_t t_end, t_left;
-    fd_set sets;
+    int            ret, err_code;
+    uint32_t       len_recv;
+    uint64_t       t_end, t_left;
+    fd_set         sets;
     struct timeval timeout;
 
-    t_end = _win_get_time_ms() + timeout_ms;
+    t_end    = _win_get_time_ms() + timeout_ms;
     len_recv = 0;
     err_code = 0;
 
@@ -209,7 +206,7 @@ int HAL_TCP_Read(uintptr_t fd, unsigned char *buf, uint32_t len, uint32_t timeou
         FD_ZERO(&sets);
         FD_SET(fd, &sets);
 
-        timeout.tv_sec = (long)(t_left / 1000);
+        timeout.tv_sec  = (long)(t_left / 1000);
         timeout.tv_usec = (long)((t_left % 1000) * 1000);
 
         ret = select(fd + 1, &sets, NULL, NULL, &timeout);
@@ -219,9 +216,9 @@ int HAL_TCP_Read(uintptr_t fd, unsigned char *buf, uint32_t len, uint32_t timeou
                 len_recv += ret;
             } else if (0 == ret) {
                 struct sockaddr_in peer;
-                int sLen = sizeof(peer);
-                int peer_port = 0;
-                getpeername(fd, (struct sockaddr*)&peer, &sLen);
+                int                sLen      = sizeof(peer);
+                int                peer_port = 0;
+                getpeername(fd, (struct sockaddr *)&peer, &sLen);
                 peer_port = ntohs(peer.sin_port);
 
                 /* reduce log print due to frequent log server connect/disconnect */

@@ -1,6 +1,6 @@
 /*
  * Tencent is pleased to support the open source community by making IoT Hub available.
- * Copyright (C) 2016 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2018-2020 THL A29 Limited, a Tencent company. All rights reserved.
 
  * Licensed under the MIT License (the "License"); you may not use this file except in
  * compliance with the License. You may obtain a copy of the License at
@@ -23,11 +23,7 @@ extern "C" {
 #include "qcloud_iot_export.h"
 #include "qcloud_iot_import.h"
 
-int iot_device_info_init(void);
-
-int iot_device_info_set(const char *product_id, const char *device_name);
-
-DeviceInfo* iot_device_info_get(void);
+int iot_device_info_set(DeviceInfo *device_info, const char *product_id, const char *device_name);
 
 #ifdef __cplusplus
 }

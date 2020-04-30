@@ -1,6 +1,6 @@
 /*
  * Tencent is pleased to support the open source community by making IoT Hub available.
- * Copyright (C) 2016 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2018-2020 THL A29 Limited, a Tencent company. All rights reserved.
 
  * Licensed under the MIT License (the "License"); you may not use this file except in
  * compliance with the License. You may obtain a copy of the License at
@@ -17,20 +17,18 @@
 extern "C" {
 #endif
 
+#include <errno.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdint.h>
 #include <time.h>
-#include <errno.h>
-
-#include "qcloud_iot_export.h"
-#include "qcloud_iot_import.h"
 
 #include "coap_client.h"
-
+#include "qcloud_iot_export.h"
+#include "qcloud_iot_import.h"
 #include "utils_param_check.h"
 
-#define COAP_MSG_OPLIST_FIRST(list)       ((list)->first)                  /**< Get the first option from an option linked-list */
+#define COAP_MSG_OPLIST_FIRST(list) ((list)->first) /**< Get the first option from an option linked-list */
 
 /**
  *  @brief Format the header in a message
@@ -51,11 +49,8 @@ static ssize_t _coap_message_serialize_header(CoAPMessage *message, char *buf, s
         return -ENOSPC;
     }
 
-    buf[0] = (char)((COAP_MSG_VER << 6)
-                    | ((message->type & 0x03) << 4)
-                    | (message->token_len & 0x0f));
-    buf[1] = (char)(((message->code_class & 0x07) << 5)
-                    | (message->code_detail & 0x1f));
+    buf[0] = (char)((COAP_MSG_VER << 6) | ((message->type & 0x03) << 4) | (message->token_len & 0x0f));
+    buf[1] = (char)(((message->code_class & 0x07) << 5) | (message->code_detail & 0x1f));
 
     buf[2] = (message->msg_id & 0xFF00) >> 8;
     buf[3] = (message->msg_id & 0x00FF);
@@ -103,8 +98,8 @@ static ssize_t _coap_msg_format_op(CoAPMsgOption *op, unsigned prev_num, char *b
     IOT_FUNC_ENTRY
 
     unsigned short op_delta = 0;
-    unsigned num = 0;
-    char *p = buf;
+    unsigned       num      = 0;
+    char *         p        = buf;
 
     op_delta = op->option_num - prev_num;
     num++;
@@ -151,7 +146,7 @@ static ssize_t _coap_msg_format_op(CoAPMsgOption *op, unsigned prev_num, char *b
 
     /* option delta extended */
     if (op_delta >= 269) {
-        *p     = (unsigned char)(((op_delta - 269) & 0xFF00) >> 8);
+        *p       = (unsigned char)(((op_delta - 269) & 0xFF00) >> 8);
         *(p + 1) = (unsigned char)(((op_delta - 269) & 0x00FF));
         p += 2;
         len -= 2;
@@ -163,7 +158,7 @@ static ssize_t _coap_msg_format_op(CoAPMsgOption *op, unsigned prev_num, char *b
 
     /* option length extended */
     if (op->val_len >= 269) {
-        *p     = (unsigned char)(((op->val_len - 269) & 0xFF00) >> 8);
+        *p       = (unsigned char)(((op->val_len - 269) & 0xFF00) >> 8);
         *(p + 1) = (unsigned char)(((op->val_len - 269) & 0x00FF));
         p += 2;
         len -= 2;
@@ -195,10 +190,10 @@ static ssize_t _coap_message_serialize_options(CoAPMessage *message, char *buf, 
 {
     IOT_FUNC_ENTRY;
 
-    CoAPMsgOption *op = NULL;
-    unsigned prev_num = 0;
-    ssize_t num = 0;
-    char *p = buf;
+    CoAPMsgOption *op       = NULL;
+    unsigned       prev_num = 0;
+    ssize_t        num      = 0;
+    char *         p        = buf;
 
     op = COAP_MSG_OPLIST_FIRST(&message->op_list);
     while (op != NULL) {
@@ -209,7 +204,7 @@ static ssize_t _coap_message_serialize_options(CoAPMessage *message, char *buf, 
         p += num;
         len -= num;
         prev_num = COAP_MSG_OPTION_NUM(op);
-        op = COAP_MSG_OP_NEXT(op);
+        op       = COAP_MSG_OP_NEXT(op);
     }
 
     IOT_FUNC_EXIT_RC(p - buf)
@@ -252,7 +247,7 @@ ssize_t serialize_coap_message(CoAPMessage *message, char *buf, size_t len)
     POINTER_SANITY_CHECK(buf, QCLOUD_ERR_INVAL);
 
     ssize_t num = 0;
-    char *p = buf;
+    char *  p   = buf;
 
     num = _coap_message_serialize_header(message, p, len);
     if (num < 0) {
@@ -295,5 +290,3 @@ error:
 #ifdef __cplusplus
 }
 #endif
-
-

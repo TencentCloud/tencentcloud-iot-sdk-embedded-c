@@ -1,6 +1,6 @@
 /*
  * Tencent is pleased to support the open source community by making IoT Hub available.
- * Copyright (C) 2016 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2018-2020 THL A29 Limited, a Tencent company. All rights reserved.
 
  * Licensed under the MIT License (the "License"); you may not use this file except in
  * compliance with the License. You may obtain a copy of the License at
@@ -13,25 +13,19 @@
  *
  */
 
+#include <limits.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <string.h>
-#include <limits.h>
 
-#include "utils_getopt.h"
 #include "qcloud_iot_export.h"
-
-#ifdef AUTH_MODE_CERT
-static char sg_cert_file[PATH_MAX + 1];      // full path of device cert file
-static char sg_key_file[PATH_MAX + 1];       // full path of device key file
-#endif
-
+#include "utils_getopt.h"
 
 void _event_handler(void *client, void *context, MQTTEventMsg *msg)
 {
-    MQTTMessage* mqtt_messge = (MQTTMessage*)msg->msg;
-    uintptr_t packet_id = (uintptr_t)msg->msg;
+    MQTTMessage *mqtt_messge = (MQTTMessage *)msg->msg;
+    uintptr_t    packet_id   = (uintptr_t)msg->msg;
 
     switch (msg->event_type) {
         case MQTT_EVENT_UNDEF:
@@ -48,10 +42,7 @@ void _event_handler(void *client, void *context, MQTTEventMsg *msg)
 
         case MQTT_EVENT_PUBLISH_RECVEIVED:
             Log_i("topic message arrived but without any related handle: topic=%.*s, topic_msg=%.*s",
-                  mqtt_messge->topic_len,
-                  mqtt_messge->ptopic,
-                  mqtt_messge->payload_len,
-                  mqtt_messge->payload);
+                  mqtt_messge->topic_len, mqtt_messge->ptopic, mqtt_messge->payload_len, mqtt_messge->payload);
             break;
         case MQTT_EVENT_SUBCRIBE_SUCCESS:
             Log_i("subscribe success, packet-id=%u", (unsigned int)packet_id);
@@ -100,20 +91,20 @@ static void _message_handler(void *client, MQTTMessage *message, void *user_data
         return;
     }
 
-    Log_i("Receive Message With topicName:%.*s, payload:%.*s",
-          (int) message->topic_len, message->ptopic, (int) message->payload_len, (char *) message->payload);
+    Log_i("Receive Message With topicName:%.*s, payload:%.*s", (int)message->topic_len, message->ptopic,
+          (int)message->payload_len, (char *)message->payload);
 }
 
-static int _setup_gw_init_params(GatewayInitParam* gw_init_params, GatewayDeviceInfo *gw_dev_info)
+static int _setup_gw_init_params(GatewayInitParam *gw_init_params, GatewayDeviceInfo *gw_dev_info)
 {
     MQTTInitParams *init_params = &gw_init_params->init_param;
-    DeviceInfo *dev_info = &gw_dev_info->gw_info;
-    init_params->product_id = dev_info->product_id;
-    init_params->device_name = dev_info->device_name;
+    DeviceInfo *    dev_info    = &gw_dev_info->gw_info;
+    init_params->product_id     = dev_info->product_id;
+    init_params->device_name    = dev_info->device_name;
 
 #ifdef AUTH_MODE_CERT
-    char certs_dir[PATH_MAX + 1] = "certs";
-    char current_path[PATH_MAX + 1];
+    char  certs_dir[16] = "certs";
+    char  current_path[128];
     char *cwd = getcwd(current_path, sizeof(current_path));
 
     if (cwd == NULL) {
@@ -122,25 +113,26 @@ static int _setup_gw_init_params(GatewayInitParam* gw_init_params, GatewayDevice
     }
 
 #ifdef WIN32
-    sprintf(sg_cert_file, "%s\\%s\\%s", current_path, certs_dir, dev_info->ev_cert_file_name);
-    sprintf(sg_key_file, "%s\\%s\\%s", current_path, certs_dir, dev_info->dev_key_file_name);
+    HAL_Snprintf(init_params->cert_file, FILE_PATH_MAX_LEN, "%s\\%s\\%s", current_path, certs_dir,
+                 dev_info->dev_cert_file_name);
+    HAL_Snprintf(init_params->key_file, FILE_PATH_MAX_LEN, "%s\\%s\\%s", current_path, certs_dir,
+                 dev_info->dev_key_file_name);
 #else
-    sprintf(sg_cert_file, "%s/%s/%s", current_path, certs_dir, dev_info->dev_cert_file_name);
-    sprintf(sg_key_file, "%s/%s/%s", current_path, certs_dir, dev_info->dev_key_file_name);
+    HAL_Snprintf(init_params->cert_file, FILE_PATH_MAX_LEN, "%s/%s/%s", current_path, certs_dir,
+                 dev_info->dev_cert_file_name);
+    HAL_Snprintf(init_params->key_file, FILE_PATH_MAX_LEN, "%s/%s/%s", current_path, certs_dir,
+                 dev_info->dev_key_file_name);
 #endif
-
-    init_params->cert_file = sg_cert_file;
-    init_params->key_file = sg_key_file;
 
 #else
     init_params->device_secret = dev_info->device_secret;
 #endif
 
-    init_params->command_timeout = QCLOUD_IOT_MQTT_COMMAND_TIMEOUT;
+    init_params->command_timeout        = QCLOUD_IOT_MQTT_COMMAND_TIMEOUT;
     init_params->keep_alive_interval_ms = QCLOUD_IOT_MQTT_KEEP_ALIVE_INTERNAL;
 
-    init_params->auto_connect_enable = 1;
-    init_params->event_handle.h_fp = _event_handler;
+    init_params->auto_connect_enable  = 1;
+    init_params->event_handle.h_fp    = _event_handler;
     init_params->event_handle.context = NULL;
 
     return QCLOUD_RET_SUCCESS;
@@ -150,15 +142,15 @@ static int _setup_gw_init_params(GatewayInitParam* gw_init_params, GatewayDevice
 static int _subscribe_subdev_topic_wait_result(void *client, char *topic_keyword, QoS qos, GatewayParam *gw_info)
 {
     char topic_name[128] = {0};
-    int size = HAL_Snprintf(topic_name, sizeof(topic_name), "%s/%s/%s", 
-                    gw_info->subdev_product_id, gw_info->subdev_device_name, topic_keyword);
+    int  size            = HAL_Snprintf(topic_name, sizeof(topic_name), "%s/%s/%s", gw_info->subdev_product_id,
+                            gw_info->subdev_device_name, topic_keyword);
     if (size < 0 || size > sizeof(topic_name) - 1) {
         Log_e("topic content length not enough! content size:%d  buf size:%d", size, (int)sizeof(topic_name));
         return QCLOUD_ERR_FAILURE;
     }
-    
-    SubscribeParams sub_params = DEFAULT_SUB_PARAMS;
-    sub_params.qos = qos;
+
+    SubscribeParams sub_params    = DEFAULT_SUB_PARAMS;
+    sub_params.qos                = qos;
     sub_params.on_message_handler = _message_handler;
 
     int rc = IOT_Gateway_Subscribe(client, topic_name, &sub_params);
@@ -184,44 +176,42 @@ static int _subscribe_subdev_topic_wait_result(void *client, char *topic_keyword
         Log_e("wait for subscribe result timeout!");
         return QCLOUD_ERR_FAILURE;
     }
-    
 }
 
 // publish MQTT msg
 static int _publish_subdev_msg(void *client, char *topic_keyword, QoS qos, GatewayParam *gw_info)
 {
     char topic_name[128] = {0};
-    int size = HAL_Snprintf(topic_name, sizeof(topic_name), "%s/%s/%s", 
-                    gw_info->subdev_product_id, gw_info->subdev_device_name, topic_keyword);
+    int  size            = HAL_Snprintf(topic_name, sizeof(topic_name), "%s/%s/%s", gw_info->subdev_product_id,
+                            gw_info->subdev_device_name, topic_keyword);
     if (size < 0 || size > sizeof(topic_name) - 1) {
         Log_e("topic content length not enough! content size:%d  buf size:%d", size, (int)sizeof(topic_name));
         return QCLOUD_ERR_FAILURE;
     }
-    
-    static int test_count = 0;    
+
+    static int    test_count = 0;
     PublishParams pub_params = DEFAULT_PUB_PARAMS;
-    pub_params.qos = qos;
+    pub_params.qos           = qos;
 
     char topic_content[128] = {0};
-    size = HAL_Snprintf(topic_content, sizeof(topic_content), "{\"action\": \"gateway_test\", \"count\": \"%d\"}", test_count++);
+    size = HAL_Snprintf(topic_content, sizeof(topic_content), "{\"action\": \"gateway_test\", \"count\": \"%d\"}",
+                        test_count++);
     if (size < 0 || size > sizeof(topic_content) - 1) {
         Log_e("payload content length not enough! content size:%d  buf size:%d", size, (int)sizeof(topic_content));
         return -3;
     }
 
-    pub_params.payload = topic_content;
+    pub_params.payload     = topic_content;
     pub_params.payload_len = strlen(topic_content);
 
     return IOT_Gateway_Publish(client, topic_name, &pub_params);
 }
 
-
 static int sg_loop_count = 5;
 static int parse_arguments(int argc, char **argv)
 {
     int c;
-    while ((c = utils_getopt(argc, argv, "c:l:")) != EOF)
-        switch (c) {
+    while ((c = utils_getopt(argc, argv, "c:l:")) != EOF) switch (c) {
             case 'c':
                 if (HAL_SetDevInfoFile(utils_optarg))
                     return -1;
@@ -236,10 +226,11 @@ static int parse_arguments(int argc, char **argv)
                 break;
 
             default:
-                HAL_Printf("usage: %s [options]\n"
-                           "  [-c <config file for DeviceInfo>] \n"
-                           "  [-l <loop count>] \n"
-                           , argv[0]);
+                HAL_Printf(
+                    "usage: %s [options]\n"
+                    "  [-c <config file for DeviceInfo>] \n"
+                    "  [-l <loop count>] \n",
+                    argv[0]);
                 return -1;
         }
     return 0;
@@ -247,8 +238,8 @@ static int parse_arguments(int argc, char **argv)
 
 int main(int argc, char **argv)
 {
-    int rc = QCLOUD_ERR_FAILURE;
-    void* client = NULL;
+    int   rc     = QCLOUD_ERR_FAILURE;
+    void *client = NULL;
 
     IOT_Log_Set_Level(eLOG_DEBUG);
 
@@ -276,14 +267,15 @@ int main(int argc, char **argv)
     }
 
     // make sub-device online
-    GatewayParam gw_param = DEFAULT_GATEWAY_PARAMS;;
-    gw_param.product_id = gw_dev_info.gw_info.product_id;
+    GatewayParam gw_param = DEFAULT_GATEWAY_PARAMS;
+    ;
+    gw_param.product_id  = gw_dev_info.gw_info.product_id;
     gw_param.device_name = gw_dev_info.gw_info.device_name;
 
     DeviceInfo *sub_dev_info;
     sub_dev_info = gw_dev_info.sub_dev_info;
 
-    gw_param.subdev_product_id = sub_dev_info->product_id;
+    gw_param.subdev_product_id  = sub_dev_info->product_id;
     gw_param.subdev_device_name = sub_dev_info->device_name;
 
 #if 0
@@ -343,4 +335,3 @@ int main(int argc, char **argv)
 
     return rc;
 }
-

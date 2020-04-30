@@ -1,6 +1,6 @@
 /*
  * Tencent is pleased to support the open source community by making IoT Hub available.
- * Copyright (C) 2016 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2018-2020 THL A29 Limited, a Tencent company. All rights reserved.
 
  * Licensed under the MIT License (the "License"); you may not use this file except in
  * compliance with the License. You may obtain a copy of the License at
@@ -21,7 +21,6 @@ extern "C" {
 #endif
 
 #include "qcloud_iot_export_log.h"
-
 
 /**
  * @brief init the log upload functions
@@ -60,7 +59,8 @@ void clear_upload_buffer(void);
 /**
  * @brief do one upload to server
  *
- * @param force_upload if true, it will do upload right away, otherwise it will check log_level, buffer left and upload interval
+ * @param force_upload if true, it will do upload right away, otherwise it will check log_level, buffer left and upload
+ * interval
  * @return QCLOUD_RET_SUCCESS when success or no log to upload or timer is not expired
  */
 int do_log_upload(bool force_upload);
@@ -86,7 +86,7 @@ void set_log_upload_in_comm_err(bool value);
  * @param log_level
  * @return QCLOUD_RET_SUCCESS when success
  */
-int qcloud_get_log_level(void* client, int *log_level);
+int qcloud_get_log_level(void *client, int *log_level);
 
 /**
  * @brief subscribe to upload log_level topic
@@ -96,10 +96,8 @@ int qcloud_get_log_level(void* client, int *log_level);
  */
 int qcloud_log_topic_subscribe(void *client);
 
-
 #ifdef __cplusplus
 }
 #endif
 
-#endif //QCLOUD_IOT_LOG_UPLOAD_H_
-
+#endif  // QCLOUD_IOT_LOG_UPLOAD_H_

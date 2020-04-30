@@ -1,6 +1,6 @@
 /*
  * Tencent is pleased to support the open source community by making IoT Hub available.
- * Copyright (C) 2016 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2018-2020 THL A29 Limited, a Tencent company. All rights reserved.
 
  * Licensed under the MIT License (the "License"); you may not use this file except in
  * compliance with the License. You may obtain a copy of the License at
@@ -13,24 +13,17 @@
  *
  */
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <string.h>
 
-#include "utils_getopt.h"
+#include "lite-utils.h"
 #include "qcloud_iot_export.h"
 #include "qcloud_iot_import.h"
-#include "lite-utils.h"
-
-#ifdef AUTH_MODE_CERT
-static char sg_cert_file[PATH_MAX + 1];      // full path of device cert file
-static char sg_key_file[PATH_MAX + 1];       // full path of device key file
-#endif
-
+#include "utils_getopt.h"
 
 static DeviceInfo sg_devInfo;
-
 
 #define MAX_LENGTH_OF_UPDATE_JSON_BUFFER 200
 
@@ -38,13 +31,12 @@ static DeviceInfo sg_devInfo;
 static float sg_desire_temperature = 20.0f;
 static float sg_report_temperature = ROOM_TEMPERATURE;
 
-static float sg_energy_consumption = 0.0f;
-static bool sg_airconditioner_openned = false;
+static float sg_energy_consumption     = 0.0f;
+static bool  sg_airconditioner_openned = false;
 
 static MQTTEventType sg_subscribe_event_result = MQTT_EVENT_UNDEF;
 
 #define MAX_RECV_LEN (512 + 1)
-
 
 // compare float value
 bool _is_value_equal(float left, float right)
@@ -54,7 +46,6 @@ bool _is_value_equal(float left, float right)
     else
         return false;
 }
-
 
 // simulate room temperature change
 static void _simulate_room_temperature(float *roomTemperature)
@@ -131,28 +122,27 @@ static void on_message_callback(void *pClient, MQTTMessage *message, void *userD
     if (message == NULL)
         return;
 
-    const char *topicName = message->ptopic;
-    size_t topicNameLen = message->topic_len;
+    const char *topicName    = message->ptopic;
+    size_t      topicNameLen = message->topic_len;
 
     if (topicName == NULL || topicNameLen == 0) {
         return;
     }
 
-    Log_i("Receive Message With topicName:%.*s, payload:%.*s",
-          (int) topicNameLen, topicName, (int) message->payload_len, (char *) message->payload);
-
+    Log_i("Receive Message With topicName:%.*s, payload:%.*s", (int)topicNameLen, topicName, (int)message->payload_len,
+          (char *)message->payload);
 
     static char cloud_rcv_buf[MAX_RECV_LEN + 1];
-    size_t len = (message->payload_len > MAX_RECV_LEN) ? MAX_RECV_LEN : (message->payload_len);
+    size_t      len = (message->payload_len > MAX_RECV_LEN) ? MAX_RECV_LEN : (message->payload_len);
 
     if (message->payload_len > MAX_RECV_LEN) {
         Log_e("paload len exceed buffer size");
     }
 
     memcpy(cloud_rcv_buf, message->payload, len);
-    cloud_rcv_buf[len] = '\0';    // jsmn_parse relies on a string
+    cloud_rcv_buf[len] = '\0';  // jsmn_parse relies on a string
 
-    char* value = LITE_json_value_of("action", cloud_rcv_buf);
+    char *value = LITE_json_value_of("action", cloud_rcv_buf);
     if (value != NULL) {
         if (strcmp(value, "come_home") == 0) {
             sg_airconditioner_openned = true;
@@ -165,7 +155,7 @@ static void on_message_callback(void *pClient, MQTTMessage *message, void *userD
 }
 
 // Setup MQTT construct parameters
-static int _setup_connect_init_params(ShadowInitParams* initParams)
+static int _setup_connect_init_params(ShadowInitParams *initParams)
 {
     int ret;
 
@@ -175,27 +165,36 @@ static int _setup_connect_init_params(ShadowInitParams* initParams)
     }
 
     initParams->device_name = sg_devInfo.device_name;
-    initParams->product_id = sg_devInfo.product_id;
+    initParams->product_id  = sg_devInfo.product_id;
 
 #ifdef AUTH_MODE_CERT
-    char certs_dir[PATH_MAX + 1] = "certs";
-    char current_path[PATH_MAX + 1];
+    char  certs_dir[16] = "certs";
+    char  current_path[128];
     char *cwd = getcwd(current_path, sizeof(current_path));
+
     if (cwd == NULL) {
         Log_e("getcwd return NULL");
         return QCLOUD_ERR_FAILURE;
     }
-    sprintf(sg_cert_file, "%s/%s/%s", current_path, certs_dir, sg_devInfo.dev_cert_file_name);
-    sprintf(sg_key_file, "%s/%s/%s", current_path, certs_dir, sg_devInfo.dev_key_file_name);
 
-    initParams->cert_file = sg_cert_file;
-    initParams->key_file = sg_key_file;
+#ifdef WIN32
+    HAL_Snprintf(initParams->cert_file, FILE_PATH_MAX_LEN, "%s\\%s\\%s", current_path, certs_dir,
+                 sg_devInfo.dev_cert_file_name);
+    HAL_Snprintf(initParams->key_file, FILE_PATH_MAX_LEN, "%s\\%s\\%s", current_path, certs_dir,
+                 sg_devInfo.dev_key_file_name);
+#else
+    HAL_Snprintf(initParams->cert_file, FILE_PATH_MAX_LEN, "%s/%s/%s", current_path, certs_dir,
+                 sg_devInfo.dev_cert_file_name);
+    HAL_Snprintf(initParams->key_file, FILE_PATH_MAX_LEN, "%s/%s/%s", current_path, certs_dir,
+                 sg_devInfo.dev_key_file_name);
+#endif
+
 #else
     initParams->device_secret = sg_devInfo.device_secret;
 #endif
 
     initParams->auto_connect_enable = 1;
-    initParams->event_handle.h_fp = event_handler;
+    initParams->event_handle.h_fp   = event_handler;
 
     return QCLOUD_RET_SUCCESS;
 }
@@ -204,12 +203,13 @@ static int _setup_connect_init_params(ShadowInitParams* initParams)
 static int _register_subscribe_topics(void *client)
 {
     static char topic_name[128] = {0};
-    int size = HAL_Snprintf(topic_name, sizeof(topic_name), "%s/%s/%s", sg_devInfo.product_id, sg_devInfo.device_name, "control");
+    int size = HAL_Snprintf(topic_name, sizeof(topic_name), "%s/%s/%s", sg_devInfo.product_id, sg_devInfo.device_name,
+                            "control");
     if (size < 0 || size > sizeof(topic_name) - 1) {
         Log_e("topic content length not enough! content size:%d  buf size:%d", size, (int)sizeof(topic_name));
         return QCLOUD_ERR_FAILURE;
     }
-    SubscribeParams sub_params = DEFAULT_SUB_PARAMS;
+    SubscribeParams sub_params    = DEFAULT_SUB_PARAMS;
     sub_params.on_message_handler = on_message_callback;
     return IOT_Shadow_Subscribe(client, topic_name, &sub_params);
 }
@@ -217,30 +217,29 @@ static int _register_subscribe_topics(void *client)
 int main(int argc, char **argv)
 {
     int c;
-    while ((c = utils_getopt(argc, argv, "c:")) != EOF)
-        switch (c) {
+    while ((c = utils_getopt(argc, argv, "c:")) != EOF) switch (c) {
             case 'c':
                 if (HAL_SetDevInfoFile(utils_optarg))
                     return -1;
                 break;
 
             default:
-                HAL_Printf("usage: %s [options]\n"
-                           "  [-c <config file for DeviceInfo>] \n"
-                           , argv[0]);
+                HAL_Printf(
+                    "usage: %s [options]\n"
+                    "  [-c <config file for DeviceInfo>] \n",
+                    argv[0]);
 
                 return -1;
         }
 
-
     int rc;
 
-    //init log level
+    // init log level
     IOT_Log_Set_Level(eLOG_DEBUG);
 
-    //init connection
+    // init connection
     ShadowInitParams init_params = DEFAULT_SHAWDOW_INIT_PARAMS;
-    rc = _setup_connect_init_params(&init_params);
+    rc                           = _setup_connect_init_params(&init_params);
     if (rc != QCLOUD_RET_SUCCESS) {
         Log_e("init params err,rc=%d", rc);
         return rc;
@@ -254,15 +253,15 @@ int main(int argc, char **argv)
         return QCLOUD_ERR_FAILURE;
     }
 
-    //register subscribe topics here
+    // register subscribe topics here
     rc = _register_subscribe_topics(client);
     if (rc < 0) {
         Log_e("Client Subscribe Topic Failed: %d", rc);
         return rc;
     }
 
-    while (IOT_Shadow_IsConnected(client) || rc == QCLOUD_ERR_MQTT_ATTEMPTING_RECONNECT || rc == QCLOUD_RET_MQTT_RECONNECTED) {
-
+    while (IOT_Shadow_IsConnected(client) || rc == QCLOUD_ERR_MQTT_ATTEMPTING_RECONNECT ||
+           rc == QCLOUD_RET_MQTT_RECONNECTED) {
         rc = IOT_Shadow_Yield(client, 200);
 
         if (rc == QCLOUD_ERR_MQTT_ATTEMPTING_RECONNECT) {

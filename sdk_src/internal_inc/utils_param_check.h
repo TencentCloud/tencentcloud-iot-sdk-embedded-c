@@ -1,6 +1,6 @@
 /*
  * Tencent is pleased to support the open source community by making IoT Hub available.
- * Copyright (C) 2016 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2018-2020 THL A29 Limited, a Tencent company. All rights reserved.
 
  * Licensed under the MIT License (the "License"); you may not use this file except in
  * compliance with the License. You may obtain a copy of the License at
@@ -22,61 +22,61 @@ extern "C" {
 
 #include "qcloud_iot_export_log.h"
 
-#define NUMBERIC_SANITY_CHECK(num, err) \
-    do { \
-        if (0 == (num)) { \
+#define NUMBERIC_SANITY_CHECK(num, err)           \
+    do {                                          \
+        if (0 == (num)) {                         \
             Log_e("Invalid argument, numeric 0"); \
-            return (err); \
-        } \
-    } while(0)
+            return (err);                         \
+        }                                         \
+    } while (0)
 
-#define NUMBERIC_SANITY_CHECK_RTN(num) \
-    do { \
-        if (0 == (num)) { \
+#define NUMBERIC_SANITY_CHECK_RTN(num)            \
+    do {                                          \
+        if (0 == (num)) {                         \
             Log_e("Invalid argument, numeric 0"); \
-            return; \
-        } \
-    } while(0)
+            return;                               \
+        }                                         \
+    } while (0)
 
-#define POINTER_SANITY_CHECK(ptr, err) \
-    do { \
-        if (NULL == (ptr)) { \
+#define POINTER_SANITY_CHECK(ptr, err)                     \
+    do {                                                   \
+        if (NULL == (ptr)) {                               \
             Log_e("Invalid argument, %s = %p", #ptr, ptr); \
-            return (err); \
-        } \
-    } while(0)
+            return (err);                                  \
+        }                                                  \
+    } while (0)
 
-#define POINTER_SANITY_CHECK_RTN(ptr) \
-    do { \
-        if (NULL == (ptr)) { \
+#define POINTER_SANITY_CHECK_RTN(ptr)                      \
+    do {                                                   \
+        if (NULL == (ptr)) {                               \
             Log_e("Invalid argument, %s = %p", #ptr, ptr); \
-            return; \
-        } \
-    } while(0)
+            return;                                        \
+        }                                                  \
+    } while (0)
 
-#define STRING_PTR_SANITY_CHECK(ptr, err) \
-    do { \
-        if (NULL == (ptr)) { \
-            Log_e("Invalid argument, %s = %p", #ptr, (ptr)); \
-            return (err); \
-        } \
-        if (0 == strlen((ptr))) { \
+#define STRING_PTR_SANITY_CHECK(ptr, err)                      \
+    do {                                                       \
+        if (NULL == (ptr)) {                                   \
+            Log_e("Invalid argument, %s = %p", #ptr, (ptr));   \
+            return (err);                                      \
+        }                                                      \
+        if (0 == strlen((ptr))) {                              \
             Log_e("Invalid argument, %s = '%s'", #ptr, (ptr)); \
-            return (err); \
-        } \
-    } while(0)
+            return (err);                                      \
+        }                                                      \
+    } while (0)
 
-#define STRING_PTR_SANITY_CHECK_RTN(ptr) \
-    do { \
-        if (NULL == (ptr)) { \
-            Log_e("Invalid argument, %s = %p", #ptr, (ptr)); \
-            return; \
-        } \
-        if (0 == strlen((ptr))) { \
+#define STRING_PTR_SANITY_CHECK_RTN(ptr)                       \
+    do {                                                       \
+        if (NULL == (ptr)) {                                   \
+            Log_e("Invalid argument, %s = %p", #ptr, (ptr));   \
+            return;                                            \
+        }                                                      \
+        if (0 == strlen((ptr))) {                              \
             Log_e("Invalid argument, %s = '%s'", #ptr, (ptr)); \
-            return; \
-        } \
-    } while(0)
+            return;                                            \
+        }                                                      \
+    } while (0)
 
 #if defined(__cplusplus)
 }

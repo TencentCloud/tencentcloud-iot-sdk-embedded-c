@@ -1,6 +1,6 @@
 /*
  * Tencent is pleased to support the open source community by making IoT Hub available.
- * Copyright (C) 2016 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2018-2020 THL A29 Limited, a Tencent company. All rights reserved.
 
  * Licensed under the MIT License (the "License"); you may not use this file except in
  * compliance with the License. You may obtain a copy of the License at
@@ -13,12 +13,13 @@
  *
  */
 
+#include "utils_sha1.h"
+
 #include <stdlib.h>
 #include <string.h>
 
-#include "qcloud_iot_import.h"
 #include "qcloud_iot_export_log.h"
-#include "utils_sha1.h"
+#include "qcloud_iot_import.h"
 
 /* Implementation that should never be optimized out by the compiler */
 static void utils_sha1_zeroize(void *v, size_t n)
@@ -33,22 +34,20 @@ static void utils_sha1_zeroize(void *v, size_t n)
  * 32-bit integer manipulation macros (big endian)
  */
 #ifndef IOT_SHA1_GET_UINT32_BE
-#define IOT_SHA1_GET_UINT32_BE(n,b,i)                            \
-    {                                                       \
-        (n) = ( (uint32_t) (b)[(i)    ] << 24 )             \
-              | ( (uint32_t) (b)[(i) + 1] << 16 )             \
-              | ( (uint32_t) (b)[(i) + 2] <<  8 )             \
-              | ( (uint32_t) (b)[(i) + 3]       );            \
+#define IOT_SHA1_GET_UINT32_BE(n, b, i)                                                                     \
+    {                                                                                                       \
+        (n) = ((uint32_t)(b)[(i)] << 24) | ((uint32_t)(b)[(i) + 1] << 16) | ((uint32_t)(b)[(i) + 2] << 8) | \
+              ((uint32_t)(b)[(i) + 3]);                                                                     \
     }
 #endif
 
 #ifndef IOT_SHA1_PUT_UINT32_BE
-#define IOT_SHA1_PUT_UINT32_BE(n,b,i)                            \
-    {                                                       \
-        (b)[(i)    ] = (unsigned char) ( (n) >> 24 );       \
-        (b)[(i) + 1] = (unsigned char) ( (n) >> 16 );       \
-        (b)[(i) + 2] = (unsigned char) ( (n) >>  8 );       \
-        (b)[(i) + 3] = (unsigned char) ( (n)       );       \
+#define IOT_SHA1_PUT_UINT32_BE(n, b, i)            \
+    {                                              \
+        (b)[(i)]     = (unsigned char)((n) >> 24); \
+        (b)[(i) + 1] = (unsigned char)((n) >> 16); \
+        (b)[(i) + 2] = (unsigned char)((n) >> 8);  \
+        (b)[(i) + 3] = (unsigned char)((n));       \
     }
 #endif
 
@@ -66,8 +65,7 @@ void utils_sha1_free(iot_sha1_context *ctx)
     utils_sha1_zeroize(ctx, sizeof(iot_sha1_context));
 }
 
-void utils_sha1_clone(iot_sha1_context *dst,
-                      const iot_sha1_context *src)
+void utils_sha1_clone(iot_sha1_context *dst, const iot_sha1_context *src)
 {
     *dst = *src;
 }
@@ -91,16 +89,16 @@ void utils_sha1_process(iot_sha1_context *ctx, const unsigned char data[64])
 {
     uint32_t temp, W[16], A, B, C, D, E;
 
-    IOT_SHA1_GET_UINT32_BE(W[ 0], data,  0);
-    IOT_SHA1_GET_UINT32_BE(W[ 1], data,  4);
-    IOT_SHA1_GET_UINT32_BE(W[ 2], data,  8);
-    IOT_SHA1_GET_UINT32_BE(W[ 3], data, 12);
-    IOT_SHA1_GET_UINT32_BE(W[ 4], data, 16);
-    IOT_SHA1_GET_UINT32_BE(W[ 5], data, 20);
-    IOT_SHA1_GET_UINT32_BE(W[ 6], data, 24);
-    IOT_SHA1_GET_UINT32_BE(W[ 7], data, 28);
-    IOT_SHA1_GET_UINT32_BE(W[ 8], data, 32);
-    IOT_SHA1_GET_UINT32_BE(W[ 9], data, 36);
+    IOT_SHA1_GET_UINT32_BE(W[0], data, 0);
+    IOT_SHA1_GET_UINT32_BE(W[1], data, 4);
+    IOT_SHA1_GET_UINT32_BE(W[2], data, 8);
+    IOT_SHA1_GET_UINT32_BE(W[3], data, 12);
+    IOT_SHA1_GET_UINT32_BE(W[4], data, 16);
+    IOT_SHA1_GET_UINT32_BE(W[5], data, 20);
+    IOT_SHA1_GET_UINT32_BE(W[6], data, 24);
+    IOT_SHA1_GET_UINT32_BE(W[7], data, 28);
+    IOT_SHA1_GET_UINT32_BE(W[8], data, 32);
+    IOT_SHA1_GET_UINT32_BE(W[9], data, 36);
     IOT_SHA1_GET_UINT32_BE(W[10], data, 40);
     IOT_SHA1_GET_UINT32_BE(W[11], data, 44);
     IOT_SHA1_GET_UINT32_BE(W[12], data, 48);
@@ -108,18 +106,15 @@ void utils_sha1_process(iot_sha1_context *ctx, const unsigned char data[64])
     IOT_SHA1_GET_UINT32_BE(W[14], data, 56);
     IOT_SHA1_GET_UINT32_BE(W[15], data, 60);
 
-#define S(x,n) ((x << n) | ((x & 0xFFFFFFFF) >> (32 - n)))
+#define S(x, n) ((x << n) | ((x & 0xFFFFFFFF) >> (32 - n)))
 
-#define R(t)                                            \
-    (                                                       \
-            temp = W[( t -  3 ) & 0x0F] ^ W[( t - 8 ) & 0x0F] ^ \
-                   W[( t - 14 ) & 0x0F] ^ W[  t       & 0x0F],  \
-            ( W[t & 0x0F] = S(temp,1) )                         \
-    )
+#define R(t) \
+    (temp = W[(t - 3) & 0x0F] ^ W[(t - 8) & 0x0F] ^ W[(t - 14) & 0x0F] ^ W[t & 0x0F], (W[t & 0x0F] = S(temp, 1)))
 
-#define P(a,b,c,d,e,x)                                  \
-    {                                                       \
-        e += S(a,5) + F(b,c,d) + K + x; b = S(b,30);        \
+#define P(a, b, c, d, e, x)                \
+    {                                      \
+        e += S(a, 5) + F(b, c, d) + K + x; \
+        b = S(b, 30);                      \
     }
 
     A = ctx->state[0];
@@ -128,8 +123,8 @@ void utils_sha1_process(iot_sha1_context *ctx, const unsigned char data[64])
     D = ctx->state[3];
     E = ctx->state[4];
 
-#define F(x,y,z) (z ^ (x & (y ^ z)))
-#define K 0x5A827999
+#define F(x, y, z) (z ^ (x & (y ^ z)))
+#define K          0x5A827999
 
     P(A, B, C, D, E, W[0]);
     P(E, A, B, C, D, W[1]);
@@ -155,8 +150,8 @@ void utils_sha1_process(iot_sha1_context *ctx, const unsigned char data[64])
 #undef K
 #undef F
 
-#define F(x,y,z) (x ^ y ^ z)
-#define K 0x6ED9EBA1
+#define F(x, y, z) (x ^ y ^ z)
+#define K          0x6ED9EBA1
 
     P(A, B, C, D, E, R(20));
     P(E, A, B, C, D, R(21));
@@ -182,8 +177,8 @@ void utils_sha1_process(iot_sha1_context *ctx, const unsigned char data[64])
 #undef K
 #undef F
 
-#define F(x,y,z) ((x & y) | (z & (x | y)))
-#define K 0x8F1BBCDC
+#define F(x, y, z) ((x & y) | (z & (x | y)))
+#define K          0x8F1BBCDC
 
     P(A, B, C, D, E, R(40));
     P(E, A, B, C, D, R(41));
@@ -209,8 +204,8 @@ void utils_sha1_process(iot_sha1_context *ctx, const unsigned char data[64])
 #undef K
 #undef F
 
-#define F(x,y,z) (x ^ y ^ z)
-#define K 0xCA62C1D6
+#define F(x, y, z) (x ^ y ^ z)
+#define K          0xCA62C1D6
 
     P(A, B, C, D, E, R(60));
     P(E, A, B, C, D, R(61));
@@ -248,7 +243,7 @@ void utils_sha1_process(iot_sha1_context *ctx, const unsigned char data[64])
  */
 void utils_sha1_update(iot_sha1_context *ctx, const unsigned char *input, size_t ilen)
 {
-    size_t fill;
+    size_t   fill;
     uint32_t left;
 
     if (ilen == 0) {
@@ -258,10 +253,10 @@ void utils_sha1_update(iot_sha1_context *ctx, const unsigned char *input, size_t
     left = ctx->total[0] & 0x3F;
     fill = 64 - left;
 
-    ctx->total[0] += (uint32_t) ilen;
+    ctx->total[0] += (uint32_t)ilen;
     ctx->total[0] &= 0xFFFFFFFF;
 
-    if (ctx->total[0] < (uint32_t) ilen) {
+    if (ctx->total[0] < (uint32_t)ilen) {
         ctx->total[1]++;
     }
 
@@ -269,14 +264,14 @@ void utils_sha1_update(iot_sha1_context *ctx, const unsigned char *input, size_t
         memcpy((void *)(ctx->buffer + left), input, fill);
         utils_sha1_process(ctx, ctx->buffer);
         input += fill;
-        ilen  -= fill;
+        ilen -= fill;
         left = 0;
     }
 
     while (ilen >= 64) {
         utils_sha1_process(ctx, input);
         input += 64;
-        ilen  -= 64;
+        ilen -= 64;
     }
 
     if (ilen > 0) {
@@ -284,28 +279,24 @@ void utils_sha1_update(iot_sha1_context *ctx, const unsigned char *input, size_t
     }
 }
 
-static const unsigned char iot_sha1_padding[64] = {
-    0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-};
+static const unsigned char iot_sha1_padding[64] = {0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                                   0,    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                                   0,    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 /*
  * SHA-1 final digest
  */
 void utils_sha1_finish(iot_sha1_context *ctx, unsigned char output[20])
 {
-    uint32_t last, padn;
-    uint32_t high, low;
+    uint32_t      last, padn;
+    uint32_t      high, low;
     unsigned char msglen[8];
 
-    high = (ctx->total[0] >> 29)
-           | (ctx->total[1] <<  3);
-    low  = (ctx->total[0] <<  3);
+    high = (ctx->total[0] >> 29) | (ctx->total[1] << 3);
+    low  = (ctx->total[0] << 3);
 
     IOT_SHA1_PUT_UINT32_BE(high, msglen, 0);
-    IOT_SHA1_PUT_UINT32_BE(low,  msglen, 4);
+    IOT_SHA1_PUT_UINT32_BE(low, msglen, 4);
 
     last = ctx->total[0] & 0x3F;
     padn = (last < 56) ? (56 - last) : (120 - last);
@@ -313,13 +304,12 @@ void utils_sha1_finish(iot_sha1_context *ctx, unsigned char output[20])
     utils_sha1_update(ctx, iot_sha1_padding, padn);
     utils_sha1_update(ctx, msglen, 8);
 
-    IOT_SHA1_PUT_UINT32_BE(ctx->state[0], output,  0);
-    IOT_SHA1_PUT_UINT32_BE(ctx->state[1], output,  4);
-    IOT_SHA1_PUT_UINT32_BE(ctx->state[2], output,  8);
+    IOT_SHA1_PUT_UINT32_BE(ctx->state[0], output, 0);
+    IOT_SHA1_PUT_UINT32_BE(ctx->state[1], output, 4);
+    IOT_SHA1_PUT_UINT32_BE(ctx->state[2], output, 8);
     IOT_SHA1_PUT_UINT32_BE(ctx->state[3], output, 12);
     IOT_SHA1_PUT_UINT32_BE(ctx->state[4], output, 16);
 }
-
 
 /*
  * output = SHA-1( input buffer )
@@ -334,4 +324,3 @@ void utils_sha1(const unsigned char *input, size_t ilen, unsigned char output[20
     utils_sha1_finish(&ctx, output);
     utils_sha1_free(&ctx);
 }
-

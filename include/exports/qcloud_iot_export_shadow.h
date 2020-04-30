@@ -1,6 +1,6 @@
 /*
  * Tencent is pleased to support the open source community by making IoT Hub available.
- * Copyright (C) 2016 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2018-2020 THL A29 Limited, a Tencent company. All rights reserved.
 
  * Licensed under the MIT License (the "License"); you may not use this file except in
  * compliance with the License. You may obtain a copy of the License at
@@ -23,50 +23,51 @@ extern "C" {
 #include "qcloud_iot_export_mqtt.h"
 
 typedef enum _eShadowType_ {
-    eSHADOW = 0,    // normal shadow
+    eSHADOW   = 0,  // normal shadow
     eTEMPLATE = 1,  // data template
 } eShadowType;
-
 
 /* The structure of MQTT shadow init parameters */
 typedef struct {
     /* device info */
-    char                        *product_id;             // product ID
-    char                        *device_name;            // device name
+    char *product_id;   // product ID
+    char *device_name;  // device name
 
 #ifdef AUTH_MODE_CERT
-    char                        *cert_file;              // cert file path
-    char                        *key_file;               // key file path
+    char cert_file[FILE_PATH_MAX_LEN];  // full path of device cert file
+    char key_file[FILE_PATH_MAX_LEN];   // full path of device key file
 #else
-    char                        *device_secret;          // device secret
+    char *device_secret;  // device secret
 #endif
 
-    uint32_t                    command_timeout;            // timeout value (unit: ms) for MQTT connect/pub/sub/yield
-    uint32_t                    keep_alive_interval_ms;     // MQTT keep alive time interval in millisecond
-
-    uint8_t                     clean_session;              // flag of clean session, 1 clean, 0 not clean
-
-    uint8_t                     auto_connect_enable;        // flag of auto reconnection, 1 is enable and recommended
-
-    MQTTEventHandler            event_handle;               // event callback
-
-    eShadowType                 shadow_type;                // shadow type
+    uint32_t         command_timeout;         // timeout value (unit: ms) for MQTT connect/pub/sub/yield
+    uint32_t         keep_alive_interval_ms;  // MQTT keep alive time interval in millisecond
+    uint8_t          clean_session;           // flag of clean session, 1 clean, 0 not clean
+    uint8_t          auto_connect_enable;     // flag of auto reconnection, 1 is enable and recommended
+    MQTTEventHandler event_handle;            // event callback
+    eShadowType      shadow_type;             // shadow type
 } ShadowInitParams;
 
 #ifdef AUTH_MODE_CERT
-#define DEFAULT_SHAWDOW_INIT_PARAMS { NULL, NULL, NULL, NULL, 5000, 240 * 1000, 1, 1, {0}, 0}
+#define DEFAULT_SHAWDOW_INIT_PARAMS                          \
+    {                                                        \
+        NULL, NULL, {0}, {0}, 5000, 240 * 1000, 1, 1, {0}, 0 \
+    }
 #else
-#define DEFAULT_SHAWDOW_INIT_PARAMS { NULL, NULL, NULL, 5000, 240 * 1000, 1, 1, {0}, 0}
+#define DEFAULT_SHAWDOW_INIT_PARAMS                      \
+    {                                                    \
+        NULL, NULL, NULL, 5000, 240 * 1000, 1, 1, {0}, 0 \
+    }
 #endif
 
 /**
  * @brief Type of shadow request ACK
  */
 typedef enum {
-    ACK_NONE = -3,
-    ACK_TIMEOUT = -2,
-    ACK_REJECTED = -1,
-    ACK_ACCEPTED = 0
+    ACK_NONE     = -3,  // ACK is init state
+    ACK_TIMEOUT  = -2,  // received ACK timeout
+    ACK_REJECTED = -1,  // ACK is rejected
+    ACK_ACCEPTED = 0,   // ACK is accepted
 } RequestAck;
 
 /**
@@ -80,60 +81,44 @@ typedef enum {
 /**
  * @brief JSON data type
  */
-typedef enum {
-    JINT32,
-    JINT16,
-    JINT8,
-    JUINT32,
-    JUINT16,
-    JUINT8,
-    JFLOAT,
-    JDOUBLE,
-    JBOOL,
-    JSTRING,
-    JOBJECT
-} JsonDataType;
+typedef enum { JINT32, JINT16, JINT8, JUINT32, JUINT16, JUINT8, JFLOAT, JDOUBLE, JBOOL, JSTRING, JOBJECT } JsonDataType;
 
 /**
  * @brief Define a device property, as a JSON document node
  */
 typedef struct _JSONNode {
-    char         *key;    // Key of this JSON node
-    void         *data;   // Value of this JSON node
-    JsonDataType type;    // Data type of this JSON node
+    char *       key;   // Key of this JSON node
+    void *       data;  // Value of this JSON node
+    JsonDataType type;  // Data type of this JSON node
     bool         delta_arrived;
 } DeviceProperty;
-
 
 /**
  * @brief Data type of template
  */
 
-#define TYPE_TEMPLATE_INT       JINT32
-#define TYPE_TEMPLATEENUM       JINT32
-#define TYPE_TEMPLATE_FLOAT     JFLOAT
-#define TYPE_TEMPLATE_BOOL      JINT8
-#define TYPE_TEMPLATE_STRING    JSTRING
-#define TYPE_TEMPLATE_TIME      JUINT32
-#define TYPE_TEMPLATE_JOBJECT   JOBJECT
+#define TYPE_TEMPLATE_INT     JINT32
+#define TYPE_TEMPLATEENUM     JINT32
+#define TYPE_TEMPLATE_FLOAT   JFLOAT
+#define TYPE_TEMPLATE_BOOL    JINT8
+#define TYPE_TEMPLATE_STRING  JSTRING
+#define TYPE_TEMPLATE_TIME    JUINT32
+#define TYPE_TEMPLATE_JOBJECT JOBJECT
 
-
-
-typedef int32_t   TYPE_DEF_TEMPLATE_INT;
-typedef int32_t   TYPE_DEF_TEMPLATE_ENUM;
-typedef float     TYPE_DEF_TEMPLATE_FLOAT;
-typedef char      TYPE_DEF_TEMPLATE_BOOL;
-typedef char      TYPE_DEF_TEMPLATE_STRING;
-typedef uint32_t  TYPE_DEF_TEMPLATE_TIME;
-typedef void *    TYPE_DEF_TEMPLATE_OBJECT;
-
+typedef int32_t  TYPE_DEF_TEMPLATE_INT;
+typedef int32_t  TYPE_DEF_TEMPLATE_ENUM;
+typedef float    TYPE_DEF_TEMPLATE_FLOAT;
+typedef char     TYPE_DEF_TEMPLATE_BOOL;
+typedef char     TYPE_DEF_TEMPLATE_STRING;
+typedef uint32_t TYPE_DEF_TEMPLATE_TIME;
+typedef void *   TYPE_DEF_TEMPLATE_OBJECT;
 
 /**
  * @brief Define property status in data template
  */
 typedef enum _eDataState_ {
     eNOCHANGE = 0,
-    eCHANGED = 1,
+    eCHANGED  = 1,
 } eDataState;
 
 /**
@@ -141,9 +126,8 @@ typedef enum _eDataState_ {
  */
 typedef struct {
     DeviceProperty data_property;
-    eDataState state;
+    eDataState     state;
 } sDataPoint;
-
 
 /**
  * @brief Define MQTT shadow callback when request response arrived
@@ -154,7 +138,8 @@ typedef struct {
  * @param userContext    User context
  *
  */
-typedef void (*OnRequestCallback)(void *pClient, Method method, RequestAck requestAck, const char *pJsonDocument, void *userContext);
+typedef void (*OnRequestCallback)(void *pClient, Method method, RequestAck requestAck, const char *pJsonDocument,
+                                  void *userContext);
 
 /**
  * @brief Define callback when device property change
@@ -163,7 +148,8 @@ typedef void (*OnRequestCallback)(void *pClient, Method method, RequestAck reque
  * @param valueLength      property length
  * @param DeviceProperty   reference to device property
  */
-typedef void (*OnPropRegCallback)(void *pClient, const char *pJsonValueBuffer, uint32_t valueLength, DeviceProperty *pProperty);
+typedef void (*OnPropRegCallback)(void *pClient, const char *pJsonValueBuffer, uint32_t valueLength,
+                                  DeviceProperty *pProperty);
 
 /**
  * @brief Create MQTT Shadow client and connect to MQTT server
@@ -172,7 +158,7 @@ typedef void (*OnPropRegCallback)(void *pClient, const char *pJsonValueBuffer, u
  *
  * @return a valid Shadow client handle when success, or NULL otherwise
  */
-void* IOT_Shadow_Construct(ShadowInitParams *pParams);
+void *IOT_Shadow_Construct(ShadowInitParams *pParams);
 
 /**
  * @brief Return the MQTT client dedicated to this shadow handle
@@ -253,7 +239,8 @@ int IOT_Shadow_Yield(void *pClient, uint32_t timeout_ms);
  * @param timeout_ms        timeout value for this operation (unit: ms)
  * @return                  QCLOUD_RET_SUCCESS when success, or err code for failure
  */
-int IOT_Shadow_Update(void *pClient, char *pJsonDoc, size_t sizeOfBuffer, OnRequestCallback callback, void *userContext, uint32_t timeout_ms);
+int IOT_Shadow_Update(void *pClient, char *pJsonDoc, size_t sizeOfBuffer, OnRequestCallback callback, void *userContext,
+                      uint32_t timeout_ms);
 
 /**
  * @brief Update device shadow document in synchronized way
@@ -317,7 +304,6 @@ int IOT_Shadow_UnRegister_Property(void *pClient, DeviceProperty *pProperty);
  */
 int IOT_Shadow_JSON_ConstructReport(void *pClient, char *jsonBuffer, size_t sizeOfBuffer, uint8_t count, ...);
 
-
 /**
  * @brief Add reported fields array in JSON document, don't overwrite
  *
@@ -328,8 +314,8 @@ int IOT_Shadow_JSON_ConstructReport(void *pClient, char *jsonBuffer, size_t size
  * @param pDeviceProperties         array of properties
  * @return              QCLOUD_RET_SUCCESS when success, or err code for failure */
 
-int IOT_Shadow_JSON_ConstructReportArray(void *pClient, char *jsonBuffer, size_t sizeOfBuffer, uint8_t count, DeviceProperty *pDeviceProperties[]);
-
+int IOT_Shadow_JSON_ConstructReportArray(void *pClient, char *jsonBuffer, size_t sizeOfBuffer, uint8_t count,
+                                         DeviceProperty *pDeviceProperties[]);
 
 /**
  * @brief Add reported fields in JSON document, overwrite
@@ -351,7 +337,8 @@ int IOT_Shadow_JSON_Construct_OverwriteReport(void *pClient, char *jsonBuffer, s
  * @param count         number of properties
  * @return              QCLOUD_RET_SUCCESS when success, or err code for failure
  */
-int IOT_Shadow_JSON_ConstructReportAndDesireAllNull(void *pClient, char *jsonBuffer, size_t sizeOfBuffer, uint8_t count, ...);
+int IOT_Shadow_JSON_ConstructReportAndDesireAllNull(void *pClient, char *jsonBuffer, size_t sizeOfBuffer, uint8_t count,
+                                                    ...);
 
 /**
  * @brief Set desire field as null

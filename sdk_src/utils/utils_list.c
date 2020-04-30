@@ -1,6 +1,6 @@
 /*
  * Tencent is pleased to support the open source community by making IoT Hub available.
- * Copyright (C) 2016 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2018-2020 THL A29 Limited, a Tencent company. All rights reserved.
 
  * Licensed under the MIT License (the "License"); you may not use this file except in
  * compliance with the License. You may obtain a copy of the License at
@@ -13,15 +13,14 @@
  *
  */
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 #include "utils_list.h"
 
-#include "qcloud_iot_import.h"
 #include "qcloud_iot_export_log.h"
+#include "qcloud_iot_import.h"
 
 /*
  * create list, return NULL if fail
@@ -33,11 +32,11 @@ List *list_new(void)
     if (!self) {
         return NULL;
     }
-    self->head = NULL;
-    self->tail = NULL;
-    self->free = NULL;
+    self->head  = NULL;
+    self->tail  = NULL;
+    self->free  = NULL;
     self->match = NULL;
-    self->len = 0;
+    self->len   = 0;
     return self;
 }
 
@@ -47,8 +46,8 @@ List *list_new(void)
 void list_destroy(List *self)
 {
     unsigned int len = self->len;
-    ListNode *next;
-    ListNode *curr = self->head;
+    ListNode *   next;
+    ListNode *   curr = self->head;
 
     while (len--) {
         next = curr->next;
@@ -72,10 +71,10 @@ ListNode *list_rpush(List *self, ListNode *node)
     }
 
     if (self->len) {
-        node->prev = self->tail;
-        node->next = NULL;
+        node->prev       = self->tail;
+        node->next       = NULL;
         self->tail->next = node;
-        self->tail = node;
+        self->tail       = node;
     } else {
         self->head = self->tail = node;
         node->prev = node->next = NULL;
@@ -139,10 +138,10 @@ ListNode *list_lpush(List *self, ListNode *node)
     }
 
     if (self->len) {
-        node->next = self->head;
-        node->prev = NULL;
+        node->next       = self->head;
+        node->prev       = NULL;
         self->head->prev = node;
-        self->head = node;
+        self->head       = node;
     } else {
         self->head = self->tail = node;
         node->prev = node->next = NULL;
@@ -158,7 +157,7 @@ ListNode *list_lpush(List *self, ListNode *node)
 ListNode *list_find(List *self, void *val)
 {
     ListIterator *it;
-    ListNode *node;
+    ListNode *    node;
 
     if (NULL == (it = list_iterator_new(self, LIST_HEAD))) {
         return NULL;
@@ -192,12 +191,12 @@ ListNode *list_at(List *self, int index)
 
     if (index < 0) {
         direction = LIST_TAIL;
-        index = ~index;
+        index     = ~index;
     }
 
-    if ((unsigned) index < self->len) {
+    if ((unsigned)index < self->len) {
         ListIterator *it;
-        ListNode *node;
+        ListNode *    node;
 
         if (NULL == (it = list_iterator_new(self, direction))) {
             return NULL;
@@ -251,7 +250,7 @@ ListIterator *list_iterator_new_from_node(ListNode *node, ListDirection directio
     if (!self) {
         return NULL;
     }
-    self->next = node;
+    self->next      = node;
     self->direction = direction;
     return self;
 }
@@ -289,7 +288,7 @@ ListNode *list_node_new(void *val)
 
     self->prev = NULL;
     self->next = NULL;
-    self->val = val;
+    self->val  = val;
     return self;
 }
 

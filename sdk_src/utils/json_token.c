@@ -1,26 +1,19 @@
 /*
- * Copyright (c) 2017-2019 Tencent Group. All rights reserved.
- * License-Identifier: Apache-2.0
- *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may
- * not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *    http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
+ * Tencent is pleased to support the open source community by making IoT Hub available.
+ * Copyright (C) 2018-2020 THL A29 Limited, a Tencent company. All rights reserved.
+
+ * Licensed under the MIT License (the "License"); you may not use this file except in
+ * compliance with the License. You may obtain a copy of the License at
+ * http://opensource.org/licenses/MIT
+
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is
+ * distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+ * either express or implied. See the License for the specific language governing permissions and
  * limitations under the License.
  *
  */
-/**
- * Edit by shockcao@tencent.com 2018/3/15
- */
 
 #include "json_parser.h"
-
 #include "lite-utils.h"
 #include "qcloud_iot_export_error.h"
 
@@ -34,26 +27,26 @@
 
 char *LITE_json_value_of(char *key, char *src)
 {
-    char       *value = NULL;
-    int         value_len = -1;
-    char       *ret = NULL;
+    char *value     = NULL;
+    int   value_len = -1;
+    char *ret       = NULL;
 
-    char       *delim = NULL;
-    char       *key_iter;
-    char       *key_next;
-    int         key_len;
-    char       *src_iter;
+    char *delim = NULL;
+    char *key_iter;
+    char *key_next;
+    int   key_len;
+    char *src_iter;
 
     src_iter = src;
     key_iter = key;
 
     do {
         if ((delim = strchr(key_iter, '.')) != NULL) {
-            key_len = delim - key_iter;
+            key_len  = delim - key_iter;
             key_next = HAL_Malloc(key_len + 1);
             strncpy(key_next, key_iter, key_len);
             key_next[key_len] = '\0';
-            value = json_get_value_by_name(src_iter, strlen(src_iter), key_next, &value_len, 0);
+            value             = json_get_value_by_name(src_iter, strlen(src_iter), key_next, &value_len, 0);
 
             if (value == NULL) {
                 HAL_Free(key_next);
@@ -80,10 +73,10 @@ char *LITE_json_value_of(char *key, char *src)
 
 list_head_t *LITE_json_keys_of(char *src, char *prefix)
 {
-    static              LIST_HEAD(keylist);
+    static LIST_HEAD(keylist);
 
-    char    *pos = 0, *key = 0, *val = 0;
-    int     klen = 0, vlen = 0, vtype = 0;
+    char *pos = 0, *key = 0, *val = 0;
+    int   klen = 0, vlen = 0, vtype = 0;
 
     if (src == NULL || prefix == NULL) {
         return NULL;
@@ -93,10 +86,10 @@ list_head_t *LITE_json_keys_of(char *src, char *prefix)
         INIT_LIST_HEAD(&keylist);
     }
 
-    json_object_for_each_kv(src, pos, key, klen, val, vlen, vtype) {
+    json_object_for_each_kv(src, pos, key, klen, val, vlen, vtype)
+    {
         if (key && klen && val && vlen) {
-
-            json_key_t     *entry = NULL;
+            json_key_t *entry = NULL;
 
             entry = HAL_Malloc(sizeof(json_key_t));
             memset(entry, 0, sizeof(json_key_t));
@@ -114,7 +107,7 @@ list_head_t *LITE_json_keys_of(char *src, char *prefix)
     }
 
     if (!strcmp("", prefix)) {
-        json_key_t     *entry = NULL;
+        json_key_t *entry = NULL;
 
         entry = HAL_Malloc(sizeof(json_key_t));
         memset(entry, 0, sizeof(json_key_t));
@@ -128,9 +121,10 @@ list_head_t *LITE_json_keys_of(char *src, char *prefix)
 
 void LITE_json_keys_release(list_head_t *keylist)
 {
-    json_key_t         *pos, *tmp;
+    json_key_t *pos, *tmp;
 
-    list_for_each_entry_safe(pos, tmp, keylist, list, json_key_t) {
+    list_for_each_entry_safe(pos, tmp, keylist, list, json_key_t)
+    {
         if (pos->key) {
             HAL_Free(pos->key);
         }
@@ -138,7 +132,6 @@ void LITE_json_keys_release(list_head_t *keylist)
         HAL_Free(pos);
     }
 }
-
 
 static void _strip_transfer(char *src)
 {
@@ -153,18 +146,15 @@ static void _strip_transfer(char *src)
     }
 }
 
-
-char *  LITE_json_string_value_strip_transfer(char *key, char *src)
+char *LITE_json_string_value_strip_transfer(char *key, char *src)
 {
-    char * str = LITE_json_value_of(key, src);
+    char *str = LITE_json_value_of(key, src);
 
     if (NULL != str) {
         _strip_transfer(str);
     }
     return str;
 }
-
-
 
 int LITE_get_int32(int32_t *value, char *src)
 {
@@ -216,4 +206,3 @@ int LITE_get_boolean(bool *value, char *src)
 
     return QCLOUD_RET_SUCCESS;
 }
-

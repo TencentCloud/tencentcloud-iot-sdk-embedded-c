@@ -1,6 +1,6 @@
 /*
  * Tencent is pleased to support the open source community by making IoT Hub available.
- * Copyright (C) 2019 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2018-2020 THL A29 Limited, a Tencent company. All rights reserved.
 
  * Licensed under the MIT License (the "License"); you may not use this file except in
  * compliance with the License. You may obtain a copy of the License at
@@ -13,7 +13,6 @@
  *
  */
 
-
 #ifndef __AT_UART_HAL_H__
 #define __AT_UART_HAL_H__
 
@@ -21,12 +20,12 @@
  * UART data width
  */
 typedef enum {
-    BAUDRATE_2400   = 2400,
-    BAUDRATE_4800   = 4800,
-    BAUDRATE_9600   = 9600,
-    BAUDRATE_19200  = 19200,
-    BAUDRATE_115200 = 115200,
-    BAUDRATE_921600 = 921600,
+    BAUDRATE_2400    = 2400,
+    BAUDRATE_4800    = 4800,
+    BAUDRATE_9600    = 9600,
+    BAUDRATE_19200   = 19200,
+    BAUDRATE_115200  = 115200,
+    BAUDRATE_921600  = 921600,
     BAUDRATE_DEFAULT = 115200
 } hal_uart_baudr_t;
 
@@ -44,10 +43,7 @@ typedef enum {
 /*
  * UART stop bits
  */
-typedef enum {
-    STOP_BITS_1,
-    STOP_BITS_2
-} hal_uart_stop_bits_t;
+typedef enum { STOP_BITS_1, STOP_BITS_2 } hal_uart_stop_bits_t;
 
 /*
  * UART flow control
@@ -62,20 +58,12 @@ typedef enum {
 /*
  * UART parity
  */
-typedef enum {
-    NO_PARITY,
-    ODD_PARITY,
-    EVEN_PARITY
-} hal_uart_parity_t;
+typedef enum { NO_PARITY, ODD_PARITY, EVEN_PARITY } hal_uart_parity_t;
 
 /*
  * UART mode
  */
-typedef enum {
-    MODE_TX,
-    MODE_RX,
-    MODE_TX_RX
-} hal_uart_mode_t;
+typedef enum { MODE_TX, MODE_RX, MODE_TX_RX } hal_uart_mode_t;
 
 /*
  * UART state
@@ -100,12 +88,12 @@ typedef struct {
 
 typedef struct {
 #ifdef __linux__
-    int                  fd;            /* uart fd */
+    int fd; /* uart fd */
 #else
-    void                 *uart_handle;  /* uart handle,like stm32 UART_HandleTypeDef */
+    void *uart_handle; /* uart handle,like stm32 UART_HandleTypeDef */
 #endif
-    hal_uart_state_t     state;   /* uart state */
-    uart_config_t        config;  /* uart config */
+    hal_uart_state_t state;  /* uart state */
+    uart_config_t    config; /* uart config */
 } uart_dev_t;
 
 #ifdef __cplusplus
@@ -113,4 +101,3 @@ typedef struct {
 #endif
 
 #endif /* __AT_H__ */
-

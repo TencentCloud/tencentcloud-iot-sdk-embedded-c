@@ -1,30 +1,24 @@
 /*
- * Copyright (c) 2017-2019 Tencent Group. All rights reserved.
- * License-Identifier: Apache-2.0
- *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may
- * not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *    http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
+ * Tencent is pleased to support the open source community by making IoT Hub available.
+ * Copyright (C) 2018-2020 THL A29 Limited, a Tencent company. All rights reserved.
+
+ * Licensed under the MIT License (the "License"); you may not use this file except in
+ * compliance with the License. You may obtain a copy of the License at
+ * http://opensource.org/licenses/MIT
+
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is
+ * distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+ * either express or implied. See the License for the specific language governing permissions and
  * limitations under the License.
  *
  */
-/**
- * Edit by shockcao@tencent.com 2018/3/15
- */
 
+#include "json_parser.h"
+
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdarg.h>
-
-#include "json_parser.h"
 
 #include "lite-utils.h"
 #include "qcloud_iot_export_log.h"
@@ -32,17 +26,17 @@
 #define json_debug Log_d
 
 typedef struct JSON_NV {
-    int         nLen;
-    int         vLen;
-    int         vType;
-    char       *pN;
-    char       *pV;
+    int   nLen;
+    int   vLen;
+    int   vType;
+    char *pN;
+    char *pV;
 } JSON_NV;
 
 char *json_get_object(int type, char *str)
 {
     char *pos = 0;
-    char ch = (type == JSOBJECT) ? '{' : '[';
+    char  ch  = (type == JSOBJECT) ? '{' : '[';
     while (str != 0 && *str != 0) {
         if (*str == ' ') {
             str++;
@@ -54,13 +48,12 @@ char *json_get_object(int type, char *str)
     return pos;
 }
 
-char *json_get_next_object(int type, char *str, char **key, int *key_len,
-                           char **val, int *val_len, int *val_type)
+char *json_get_next_object(int type, char *str, char **key, int *key_len, char **val, int *val_len, int *val_type)
 {
-    char    JsonMark[JSTYPEMAX][2] = { { '\"', '\"' }, { '{', '}' }, { '[', ']' }, { '0', ' ' } };
-    int     iMarkDepth = 0, iValueType = JSNONE, iNameLen = 0, iValueLen = 0;
-    char   *p_cName = 0, *p_cValue = 0, *p_cPos = str;
-    char    lastchr = ' ';
+    char  JsonMark[JSTYPEMAX][2] = {{'\"', '\"'}, {'{', '}'}, {'[', ']'}, {'0', ' '}};
+    int   iMarkDepth = 0, iValueType = JSNONE, iNameLen = 0, iValueLen = 0;
+    char *p_cName = 0, *p_cValue = 0, *p_cPos = str;
+    char  lastchr = ' ';
 
     if (type == JSOBJECT) {
         /* Get Key */
@@ -69,7 +62,7 @@ char *json_get_next_object(int type, char *str, char **key, int *key_len,
             return 0;
         }
         p_cName = ++p_cPos;
-        p_cPos = strchr(p_cPos, '"');
+        p_cPos  = strchr(p_cPos, '"');
         if (!p_cPos) {
             return 0;
         }
@@ -81,62 +74,59 @@ char *json_get_next_object(int type, char *str, char **key, int *key_len,
     while (p_cPos && *p_cPos) {
         if (*p_cPos == '"') {
             iValueType = JSSTRING;
-            lastchr = *p_cPos;
-            p_cValue = ++p_cPos;
+            lastchr    = *p_cPos;
+            p_cValue   = ++p_cPos;
             break;
         } else if (*p_cPos == '{') {
             iValueType = JSOBJECT;
-            p_cValue = p_cPos++;
+            p_cValue   = p_cPos++;
             break;
         } else if (*p_cPos == '[') {
             iValueType = JSARRAY;
-            p_cValue = p_cPos++;
+            p_cValue   = p_cPos++;
             break;
         } else if ((*p_cPos == '-') || (*p_cPos >= '0' && *p_cPos <= '9')) {
             iValueType = JSNUMBER;
-            p_cValue = p_cPos++;
+            p_cValue   = p_cPos++;
             break;
         } else if (*p_cPos == 't' || *p_cPos == 'T' || *p_cPos == 'f' || *p_cPos == 'F') {
             iValueType = JSBOOLEAN;
-            p_cValue = p_cPos;
+            p_cValue   = p_cPos;
             break;
         } else if (*p_cPos == 'n' || *p_cPos == 'N') {
             iValueType = JSNULL;
-            p_cValue = p_cPos;
+            p_cValue   = p_cPos;
             break;
         }
         p_cPos++;
     }
     while (p_cPos && *p_cPos && iValueType > JSNONE) {
         if (iValueType == JSBOOLEAN) {
-            int     len = strlen(p_cValue);
+            int len = strlen(p_cValue);
 
-            if ((*p_cValue == 't' || *p_cValue == 'T') && len >= 4
-                && (!strncmp(p_cValue, "true", 4)
-                    || !strncmp(p_cValue, "TRUE", 4))) {
+            if ((*p_cValue == 't' || *p_cValue == 'T') && len >= 4 &&
+                (!strncmp(p_cValue, "true", 4) || !strncmp(p_cValue, "TRUE", 4))) {
                 iValueLen = 4;
-                p_cPos = p_cValue + iValueLen;
+                // p_cPos = p_cValue + iValueLen;
                 break;
-            } else if ((*p_cValue == 'f' || *p_cValue == 'F') && len >= 5
-                       && (!strncmp(p_cValue, "false", 5)
-                           || !strncmp(p_cValue, "FALSE", 5))) {
+            } else if ((*p_cValue == 'f' || *p_cValue == 'F') && len >= 5 &&
+                       (!strncmp(p_cValue, "false", 5) || !strncmp(p_cValue, "FALSE", 5))) {
                 iValueLen = 5;
-                p_cPos = p_cValue + iValueLen;
+                // p_cPos = p_cValue + iValueLen;
                 break;
             }
-        } else if (iValueType == JSNULL) { //support null/NULL
-            int     nlen = strlen(p_cValue);
+        } else if (iValueType == JSNULL) {  // support null/NULL
+            int nlen = strlen(p_cValue);
 
-            if ((*p_cValue == 'n' || *p_cValue == 'N') && nlen >= 4
-                && (!strncmp(p_cValue, "null", 4)
-                    || !strncmp(p_cValue, "NULL", 4))) {
+            if ((*p_cValue == 'n' || *p_cValue == 'N') && nlen >= 4 &&
+                (!strncmp(p_cValue, "null", 4) || !strncmp(p_cValue, "NULL", 4))) {
                 iValueLen = 4;
-                p_cPos = p_cValue + iValueLen;
+                // p_cPos = p_cValue + iValueLen;
                 break;
             }
         } else if (iValueType == JSNUMBER) {
-            //if (*p_cPos < '0' || *p_cPos > '9') {
-            if ((*p_cPos < '0' || *p_cPos > '9') && (*p_cPos != '.')) { //support float
+            // if (*p_cPos < '0' || *p_cPos > '9') {
+            if ((*p_cPos < '0' || *p_cPos > '9') && (*p_cPos != '.')) {  // support float
                 iValueLen = p_cPos - p_cValue;
                 break;
             }
@@ -161,12 +151,12 @@ char *json_get_next_object(int type, char *str, char **key, int *key_len,
     }
 
     if (type == JSOBJECT) {
-        *key = p_cName;
+        *key     = p_cName;
         *key_len = iNameLen;
     }
 
-    *val = p_cValue;
-    *val_len = iValueLen;
+    *val      = p_cValue;
+    *val_len  = iValueLen;
     *val_type = iValueType;
     if (iValueType == JSSTRING) {
         return p_cValue + iValueLen + 1;
@@ -177,10 +167,10 @@ char *json_get_next_object(int type, char *str, char **key, int *key_len,
 
 int json_parse_name_value(char *p_cJsonStr, int iStrLen, json_parse_cb pfnCB, void *p_CBData)
 {
-    char    *pos = 0, *key = 0, *val = 0;
-    int     klen = 0, vlen = 0, vtype = 0;
-    char    last_char = 0;
-    int     ret = JSON_RESULT_ERR;
+    char *pos = 0, *key = 0, *val = 0;
+    int   klen = 0, vlen = 0, vtype = 0;
+    char  last_char = 0;
+    int   ret       = JSON_RESULT_ERR;
 
     if (p_cJsonStr == NULL || iStrLen == 0 || pfnCB == NULL) {
         return ret;
@@ -191,7 +181,8 @@ int json_parse_name_value(char *p_cJsonStr, int iStrLen, json_parse_cb pfnCB, vo
         backup_json_str_last_char(p_cJsonStr, iStrLen, last_char);
     }
 
-    json_object_for_each_kv(p_cJsonStr, pos, key, klen, val, vlen, vtype) {
+    json_object_for_each_kv(p_cJsonStr, pos, key, klen, val, vlen, vtype)
+    {
         if (key && klen && val && vlen) {
             ret = JSON_RESULT_OK;
             if (JSON_PARSE_FINISH == pfnCB(key, klen, val, vlen, vtype, p_CBData)) {
@@ -210,10 +201,10 @@ int json_parse_name_value(char *p_cJsonStr, int iStrLen, json_parse_cb pfnCB, vo
 int json_get_value_by_name_cb(char *p_cName, int iNameLen, char *p_cValue, int iValueLen, int iValueType,
                               void *p_CBData)
 {
-    JSON_NV     *p_stNameValue = (JSON_NV *)p_CBData;
+    JSON_NV *p_stNameValue = (JSON_NV *)p_CBData;
 
 #if (JSON_DEBUG == 1)
-    int         i;
+    int i;
 
     if (p_cName) {
         json_debug("Name:");
@@ -231,9 +222,8 @@ int json_get_value_by_name_cb(char *p_cName, int iNameLen, char *p_cValue, int i
 #endif
 
     if ((iNameLen == p_stNameValue->nLen) && !strncmp(p_cName, p_stNameValue->pN, p_stNameValue->nLen)) {
-
-        p_stNameValue->pV = p_cValue;
-        p_stNameValue->vLen = iValueLen;
+        p_stNameValue->pV    = p_cValue;
+        p_stNameValue->vLen  = iValueLen;
         p_stNameValue->vType = iValueType;
         return JSON_PARSE_FINISH;
     } else {
@@ -243,10 +233,10 @@ int json_get_value_by_name_cb(char *p_cName, int iNameLen, char *p_cValue, int i
 
 char *json_get_value_by_name(char *p_cJsonStr, int iStrLen, char *p_cName, int *p_iValueLen, int *p_iValueType)
 {
-    JSON_NV     stNV;
+    JSON_NV stNV;
 
     memset(&stNV, 0, sizeof(stNV));
-    stNV.pN = p_cName;
+    stNV.pN   = p_cName;
     stNV.nLen = strlen(p_cName);
     if (JSON_RESULT_OK == json_parse_name_value(p_cJsonStr, iStrLen, json_get_value_by_name_cb, (void *)&stNV)) {
         if (p_iValueLen) {
@@ -261,4 +251,3 @@ char *json_get_value_by_name(char *p_cJsonStr, int iStrLen, char *p_cName, int *
     }
     return stNV.pV;
 }
-

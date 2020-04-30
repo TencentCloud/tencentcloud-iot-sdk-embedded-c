@@ -1,6 +1,6 @@
 /*
  * Tencent is pleased to support the open source community by making IoT Hub available.
- * Copyright (C) 2016 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2018-2020 THL A29 Limited, a Tencent company. All rights reserved.
 
  * Licensed under the MIT License (the "License"); you may not use this file except in
  * compliance with the License. You may obtain a copy of the License at
@@ -22,37 +22,36 @@ extern "C" {
 
 #include <stdbool.h>
 
+#include "mqtt_client.h"
+#include "qcloud_iot_device.h"
 #include "qcloud_iot_export.h"
 #include "qcloud_iot_import.h"
-#include "utils_param_check.h"
-#include "qcloud_iot_device.h"
-#include "mqtt_client.h"
 #include "shadow_client_json.h"
+#include "utils_param_check.h"
 
 /* Max number of requests in appending state */
-#define MAX_APPENDING_REQUEST_AT_ANY_GIVEN_TIME                     (10)
+#define MAX_APPENDING_REQUEST_AT_ANY_GIVEN_TIME (10)
 
 /* Max size of clientToken */
-#define MAX_SIZE_OF_CLIENT_TOKEN                                    (MAX_SIZE_OF_CLIENT_ID + 10)
+#define MAX_SIZE_OF_CLIENT_TOKEN (MAX_SIZE_OF_CLIENT_ID + 10)
 
 /* Max size of JSON string which only contain clientToken field */
-#define MAX_SIZE_OF_JSON_WITH_CLIENT_TOKEN                          (MAX_SIZE_OF_CLIENT_TOKEN + 20)
+#define MAX_SIZE_OF_JSON_WITH_CLIENT_TOKEN (MAX_SIZE_OF_CLIENT_TOKEN + 20)
 
 /* Size of buffer to receive JSON document from server */
-#define CLOUD_IOT_JSON_RX_BUF_LEN                                   (QCLOUD_IOT_MQTT_RX_BUF_LEN + 1)
+#define CLOUD_IOT_JSON_RX_BUF_LEN (QCLOUD_IOT_MQTT_RX_BUF_LEN + 1)
 
 /**
  * @brief define type of request parameters
  */
 typedef struct _RequestParam {
+    Method method;  // method type: GET, UPDATE, DELETE
 
-    Method                  method;                 // method type: GET, UPDATE, DELETE
+    uint32_t timeout_sec;  // request timeout in second
 
-    uint32_t                timeout_sec;            // request timeout in second
+    OnRequestCallback request_callback;  // request callback
 
-    OnRequestCallback       request_callback;       // request callback
-
-    void                    *user_context;          // user context for callback
+    void *user_context;  // user context for callback
 
 } RequestParams;
 
@@ -62,7 +61,6 @@ typedef struct _RequestParam {
  * @brief for property and it's callback
  */
 typedef struct {
-
     void *property;
 
     OnPropRegCallback callback;
@@ -71,18 +69,19 @@ typedef struct {
 
 typedef struct _ShadowInnerData {
     uint32_t token_num;
-    int32_t sync_status;
-    List *request_list;
-    List *property_handle_list;
-    char *result_topic;
+    int32_t  sync_status;
+    List *   request_list;
+    List *   property_handle_list;
+    char *   result_topic;
 } ShadowInnerData;
 
 typedef struct _Shadow {
-    void *mqtt;
-    void *mutex;
-    eShadowType shadow_type;
+    void *           mqtt;
+    void *           mutex;
+    eShadowType      shadow_type;
     MQTTEventHandler event_handle;
-    ShadowInnerData inner_data;
+    ShadowInnerData  inner_data;
+    char             shadow_recv_buf[CLOUD_IOT_JSON_RX_BUF_LEN];
 } Qcloud_IoT_Shadow;
 
 int qcloud_iot_shadow_init(Qcloud_IoT_Shadow *pShadow);

@@ -1,6 +1,6 @@
 /*
  * Tencent is pleased to support the open source community by making IoT Hub available.
- * Copyright (C) 2016 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2018-2020 THL A29 Limited, a Tencent company. All rights reserved.
 
  * Licensed under the MIT License (the "License"); you may not use this file except in
  * compliance with the License. You may obtain a copy of the License at
@@ -17,23 +17,22 @@
 extern "C" {
 #endif
 
+#include <errno.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdint.h>
 #include <time.h>
-#include <errno.h>
-
-#include "qcloud_iot_export.h"
-#include "qcloud_iot_import.h"
 
 #include "coap_client.h"
-
+#include "qcloud_iot_export.h"
+#include "qcloud_iot_import.h"
 #include "utils_param_check.h"
 
-#define COAP_MSG_OPLIST_LAST(list)         ((list)->last)                   /**< Get the last option in an option linked-list */
-#define COAP_MSG_OPLIST_EMPTY(list)        ((list)->first == NULL)          /**< Indicate whether or not an option linked-list is empty */
+#define COAP_MSG_OPLIST_LAST(list) ((list)->last) /**< Get the last option in an option linked-list */
+#define COAP_MSG_OPLIST_EMPTY(list) \
+    ((list)->first == NULL) /**< Indicate whether or not an option linked-list is empty */
 
-#define Swap16(A) ((((uint16_t)(A) & 0xff00) >> 8) | (((uint16_t)(A) & 0x00ff) << 8))
+#define Swap16(A) ((((uint16_t)(A)&0xff00) >> 8) | (((uint16_t)(A)&0x00ff) << 8))
 
 /**
  *  @brief Check a message for correctness
@@ -62,8 +61,8 @@ static int _coap_msg_check(CoAPMessage *msg)
 
     if ((msg->code_class == 0) && (msg->code_detail == 0)) {
         /* empty message */
-        if ((msg->type == COAP_MSG_NON) || (msg->token_len != 0) || (!COAP_MSG_OPLIST_EMPTY(&msg->op_list))
-            || (msg->pay_load_len != 0)) {
+        if ((msg->type == COAP_MSG_NON) || (msg->token_len != 0) || (!COAP_MSG_OPLIST_EMPTY(&msg->op_list)) ||
+            (msg->pay_load_len != 0)) {
             Log_e("coap msg op list is not empty");
             IOT_FUNC_EXIT_RC(QCLOUD_ERR_COAP_DATA_SIZE)
         }
@@ -102,10 +101,10 @@ static int _coap_msg_op_list_add_last(CoAPMsgOptionList *list, unsigned num, uns
 
     if (list->first == NULL) {
         list->first = option;
-        list->last = option;
+        list->last  = option;
     } else {
         list->last->next = option;
-        list->last = option;
+        list->last       = option;
     }
 
     IOT_FUNC_EXIT_RC(QCLOUD_RET_SUCCESS)
@@ -137,23 +136,22 @@ static ssize_t _coap_message_deserialize_header(CoAPMessage *msg, char *buf, siz
         return -EINVAL;
     }
 
-    msg->type = (p[0] >> 4) & 0x03;
+    msg->type      = (p[0] >> 4) & 0x03;
     msg->token_len = p[0] & 0x0f;
     if (msg->token_len > sizeof(msg->token)) {
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_COAP_DATA_SIZE)
     }
 
     msg->code_detail = p[1] & 0x1f;
-    msg->code_class = (p[1] >> 5) & 0x07;
+    msg->code_class  = (p[1] >> 5) & 0x07;
 
-    if ((msg->code_class != COAP_MSG_REQ) && (msg->code_class != COAP_MSG_SUCCESS)
-        && (msg->code_class != COAP_MSG_CLIENT_ERR) && (msg->code_class != COAP_MSG_SERVER_ERR)) {
+    if ((msg->code_class != COAP_MSG_REQ) && (msg->code_class != COAP_MSG_SUCCESS) &&
+        (msg->code_class != COAP_MSG_CLIENT_ERR) && (msg->code_class != COAP_MSG_SERVER_ERR)) {
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_COAP_BADMSG)
     }
 
     msg->msg_id = Swap16(*((uint16_t *)(&p[2])));
     p += 4;
-    len -= 4;
 
     IOT_FUNC_EXIT_RC(p - buf)
 }
@@ -197,18 +195,18 @@ static ssize_t _coap_message_deserialize_option(CoAPMessage *msg, char *buf, siz
 {
     IOT_FUNC_ENTRY
 
-    CoAPMsgOption *prev = NULL;
-    unsigned op_delta = 0;
-    unsigned op_len = 0;
-    unsigned op_num = 0;
-    char *p = buf;
-    int ret = 0;
+    CoAPMsgOption *prev     = NULL;
+    unsigned       op_delta = 0;
+    unsigned       op_len   = 0;
+    unsigned       op_num   = 0;
+    char *         p        = buf;
+    int            ret      = 0;
 
     if (len < 1) {
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_COAP_DATA_SIZE)
     }
     op_delta = (p[0] >> 4) & 0x0f;
-    op_len = p[0] & 0x0f;
+    op_len   = p[0] & 0x0f;
     if ((op_delta == 15) || (op_len == 15)) {
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_COAP_DATA_SIZE)
     }
@@ -278,7 +276,7 @@ static ssize_t _coap_message_deserialize_options(CoAPMessage *msg, char *buf, si
     IOT_FUNC_ENTRY
 
     ssize_t num = 0;
-    char *p = buf;
+    char *  p   = buf;
 
     while (1) {
         if (((p[0] & 0xff) == 0xff) || (len == 0)) {
@@ -342,7 +340,7 @@ ssize_t deserialize_coap_message(CoAPMessage *message, char *buf, size_t len)
     IOT_FUNC_ENTRY
 
     ssize_t num = 0;
-    char *p = buf;
+    char *  p   = buf;
 
     num = _coap_message_deserialize_header(message, p, len);
     if (num < 0) {
@@ -387,4 +385,3 @@ error:
 #ifdef __cplusplus
 }
 #endif
-

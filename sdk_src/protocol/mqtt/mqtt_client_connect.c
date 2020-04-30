@@ -18,43 +18,42 @@
 extern "C" {
 #endif
 
-#include <string.h>
 #include <limits.h>
+#include <string.h>
 
-#include "qcloud_iot_common.h"
 #include "mqtt_client.h"
+#include "qcloud_iot_common.h"
 #include "utils_hmac.h"
 
+#define MQTT_CONNECT_FLAG_USERNAME    0x80
+#define MQTT_CONNECT_FLAG_PASSWORD    0x40
+#define MQTT_CONNECT_FLAG_WILL_RETAIN 0x20
+#define MQTT_CONNECT_FLAG_WILL_QOS2   0x18
+#define MQTT_CONNECT_FLAG_WILL_QOS1   0x08
+#define MQTT_CONNECT_FLAG_WILL_QOS0   0x00
+#define MQTT_CONNECT_FLAG_WILL_FLAG   0x04
+#define MQTT_CONNECT_FLAG_CLEAN_SES   0x02
 
-#define MQTT_CONNECT_FLAG_USERNAME      0x80
-#define MQTT_CONNECT_FLAG_PASSWORD      0x40
-#define MQTT_CONNECT_FLAG_WILL_RETAIN   0x20
-#define MQTT_CONNECT_FLAG_WILL_QOS2     0x18
-#define MQTT_CONNECT_FLAG_WILL_QOS1     0x08
-#define MQTT_CONNECT_FLAG_WILL_QOS0     0x00
-#define MQTT_CONNECT_FLAG_WILL_FLAG     0x04
-#define MQTT_CONNECT_FLAG_CLEAN_SES     0x02
-
-#define MQTT_CONNACK_FLAG_SES_PRE       0x01
+#define MQTT_CONNACK_FLAG_SES_PRE 0x01
 
 /**
  * Connect return code
  */
 typedef enum {
-    CONNACK_CONNECTION_ACCEPTED = 0,    // connection accepted
-    CONANCK_UNACCEPTABLE_PROTOCOL_VERSION_ERROR = 1,    // connection refused: unaccpeted protocol verison
-    CONNACK_IDENTIFIER_REJECTED_ERROR = 2,    // connection refused: identifier rejected
-    CONNACK_SERVER_UNAVAILABLE_ERROR = 3,    // connection refused: server unavailable
-    CONNACK_BAD_USERDATA_ERROR = 4,    // connection refused: bad user name or password
-    CONNACK_NOT_AUTHORIZED_ERROR = 5     // connection refused: not authorized
+    CONNACK_CONNECTION_ACCEPTED                 = 0,  // connection accepted
+    CONANCK_UNACCEPTABLE_PROTOCOL_VERSION_ERROR = 1,  // connection refused: unaccpeted protocol verison
+    CONNACK_IDENTIFIER_REJECTED_ERROR           = 2,  // connection refused: identifier rejected
+    CONNACK_SERVER_UNAVAILABLE_ERROR            = 3,  // connection refused: server unavailable
+    CONNACK_BAD_USERDATA_ERROR                  = 4,  // connection refused: bad user name or password
+    CONNACK_NOT_AUTHORIZED_ERROR                = 5   // connection refused: not authorized
 } MQTTConnackReturnCodes;
 
 /**
-  * Determines the length of the MQTT connect packet that would be produced using the supplied connect options.
-  * @param options the options to be used to build the connect packet
-  * @param the length of buffer needed to contain the serialized version of the packet
-  * @return int indicating function execution status
-  */
+ * Determines the length of the MQTT connect packet that would be produced using the supplied connect options.
+ * @param options the options to be used to build the connect packet
+ * @param the length of buffer needed to contain the serialized version of the packet
+ * @return int indicating function execution status
+ */
 static uint32_t _get_packet_connect_rem_len(MQTTConnectParams *options)
 {
     size_t len = 0;
@@ -75,12 +74,11 @@ static uint32_t _get_packet_connect_rem_len(MQTTConnectParams *options)
         len += strlen(options->password) + 2;
     }
 
-    return (uint32_t) len;
+    return (uint32_t)len;
 }
 
 static void _copy_connect_params(MQTTConnectParams *destination, MQTTConnectParams *source)
 {
-
     POINTER_SANITY_CHECK_RTN(destination);
     POINTER_SANITY_CHECK_RTN(source);
 
@@ -89,27 +87,28 @@ static void _copy_connect_params(MQTTConnectParams *destination, MQTTConnectPara
         return;
     }
 
-    destination->mqtt_version = source->mqtt_version;
-    destination->client_id = source->client_id;
-    destination->username = source->username;
+    destination->mqtt_version        = source->mqtt_version;
+    destination->client_id           = source->client_id;
+    destination->username            = source->username;
     destination->keep_alive_interval = source->keep_alive_interval;
-    destination->clean_session = source->clean_session;
+    destination->clean_session       = source->clean_session;
     destination->auto_connect_enable = source->auto_connect_enable;
 #ifdef AUTH_WITH_NOTLS
-    destination->device_secret = source->device_secret;
+    destination->device_secret     = source->device_secret;
     destination->device_secret_len = source->device_secret_len;
 #endif
 }
 
 /**
-  * Serializes the connect options into the buffer.
-  * @param buf the buffer into which the packet will be serialized
-  * @param len the length in bytes of the supplied buffer
-  * @param options the options to be used to build the connect packet
-  * @param serialized length
-  * @return int indicating function execution status
-  */
-static int _serialize_connect_packet(unsigned char *buf, size_t buf_len, MQTTConnectParams *options, uint32_t *serialized_len)
+ * Serializes the connect options into the buffer.
+ * @param buf the buffer into which the packet will be serialized
+ * @param len the length in bytes of the supplied buffer
+ * @param options the options to be used to build the connect packet
+ * @param serialized length
+ * @return int indicating function execution status
+ */
+static int _serialize_connect_packet(unsigned char *buf, size_t buf_len, MQTTConnectParams *options,
+                                     uint32_t *serialized_len)
 {
     IOT_FUNC_ENTRY;
 
@@ -118,46 +117,62 @@ static int _serialize_connect_packet(unsigned char *buf, size_t buf_len, MQTTCon
     STRING_PTR_SANITY_CHECK(options->client_id, QCLOUD_ERR_INVAL);
     POINTER_SANITY_CHECK(serialized_len, QCLOUD_ERR_INVAL);
 
-    unsigned char *ptr = buf;
-    unsigned char header = 0;
-    unsigned char flags = 0;
-    uint32_t rem_len = 0;
-    int rc;
+    unsigned char *ptr     = buf;
+    unsigned char  header  = 0;
+    unsigned char  flags   = 0;
+    uint32_t       rem_len = 0;
+    int            rc;
 
     long cur_timesec = HAL_Timer_current_sec() + MAX_ACCESS_EXPIRE_TIMEOUT / 1000;
     if (cur_timesec <= 0 || MAX_ACCESS_EXPIRE_TIMEOUT <= 0) {
         cur_timesec = LONG_MAX;
     }
     long cur_timesec_bak = cur_timesec;
-    int cur_timesec_len = 0;
+    int  cur_timesec_len = 0;
     while (cur_timesec_bak != 0) {
         cur_timesec_bak /= 10;
         ++cur_timesec_len;
     }
 
-    int username_len = strlen(options->client_id) + strlen(QCLOUD_IOT_DEVICE_SDK_APPID) + MAX_CONN_ID_LEN + cur_timesec_len + 4;
-    options->username = (char*)HAL_Malloc(username_len);
+    int username_len =
+        strlen(options->client_id) + strlen(QCLOUD_IOT_DEVICE_SDK_APPID) + MAX_CONN_ID_LEN + cur_timesec_len + 4;
+    options->username = (char *)HAL_Malloc(username_len);
+    if (options->username == NULL) {
+        Log_e("malloc username failed!");
+        rc = QCLOUD_ERR_MALLOC;
+        goto err_exit;
+    }
+
     get_next_conn_id(options->conn_id);
-    HAL_Snprintf(options->username, username_len, "%s;%s;%s;%ld", options->client_id, QCLOUD_IOT_DEVICE_SDK_APPID, options->conn_id, cur_timesec);
+    HAL_Snprintf(options->username, username_len, "%s;%s;%s;%ld", options->client_id, QCLOUD_IOT_DEVICE_SDK_APPID,
+                 options->conn_id, cur_timesec);
 
 #if defined(AUTH_WITH_NOTLS) && defined(AUTH_MODE_KEY)
     if (options->device_secret != NULL && options->username != NULL) {
-        char                sign[41]   = {0};
-        utils_hmac_sha1(options->username, strlen(options->username), sign, options->device_secret, options->device_secret_len);
-        options->password = (char*) HAL_Malloc (51);
-        if (options->password == NULL) IOT_FUNC_EXIT_RC(QCLOUD_ERR_INVAL);
+        char sign[41] = {0};
+        utils_hmac_sha1(options->username, strlen(options->username), sign, options->device_secret,
+                        options->device_secret_len);
+        options->password = (char *)HAL_Malloc(51);
+        if (options->password == NULL) {
+            Log_e("malloc password failed!");
+            rc = QCLOUD_ERR_MALLOC;
+            goto err_exit;
+        }
         HAL_Snprintf(options->password, 51, "%s;hmacsha1", sign);
     }
 #endif
 
     rem_len = _get_packet_connect_rem_len(options);
     if (get_mqtt_packet_len(rem_len) > buf_len) {
-        IOT_FUNC_EXIT_RC(QCLOUD_ERR_BUF_TOO_SHORT);
+        Log_e("get_mqtt_packet_len failed!");
+        rc = QCLOUD_ERR_BUF_TOO_SHORT;
+        goto err_exit;
     }
 
     rc = mqtt_init_packet_header(&header, CONNECT, QOS0, 0, 0);
     if (QCLOUD_RET_SUCCESS != rc) {
-        IOT_FUNC_EXIT_RC(rc);
+        Log_e("mqtt_init_packet_header failed!");
+        goto err_exit;
     }
 
     // 1st byte in fixed header
@@ -169,10 +184,10 @@ static int _serialize_connect_packet(unsigned char *buf, size_t buf_len, MQTTCon
     // MQTT protocol name and version in variable header
     if (4 == options->mqtt_version) {
         mqtt_write_utf8_string(&ptr, "MQTT");
-        mqtt_write_char(&ptr, (unsigned char) 4);
+        mqtt_write_char(&ptr, (unsigned char)4);
     } else {
         mqtt_write_utf8_string(&ptr, "MQIsdp");
-        mqtt_write_char(&ptr, (unsigned char) 3);
+        mqtt_write_char(&ptr, (unsigned char)3);
     }
 
     // flags in variable header
@@ -203,19 +218,28 @@ static int _serialize_connect_packet(unsigned char *buf, size_t buf_len, MQTTCon
         options->password = NULL;
     }
 
-    *serialized_len = (uint32_t) (ptr - buf);
+    *serialized_len = (uint32_t)(ptr - buf);
 
     IOT_FUNC_EXIT_RC(QCLOUD_RET_SUCCESS);
+
+err_exit:
+    HAL_Free(options->username);
+    options->username = NULL;
+
+    HAL_Free(options->password);
+    options->password = NULL;
+
+    IOT_FUNC_EXIT_RC(rc);
 }
 
 /**
-  * Deserializes the supplied (wire) buffer into connack data - return code
-  * @param sessionPresent the session present flag returned (only for MQTT 3.1.1)
-  * @param connack_rc returned integer value of the connack return code
-  * @param buf the raw buffer data, of the correct length determined by the remaining length field
-  * @param buflen the length in bytes of the data in the supplied buffer
-  * @return int indicating function execution status
-  */
+ * Deserializes the supplied (wire) buffer into connack data - return code
+ * @param sessionPresent the session present flag returned (only for MQTT 3.1.1)
+ * @param connack_rc returned integer value of the connack return code
+ * @param buf the raw buffer data, of the correct length determined by the remaining length field
+ * @param buflen the length in bytes of the data in the supplied buffer
+ * @return int indicating function execution status
+ */
 static int _deserialize_connack_packet(uint8_t *sessionPresent, int *connack_rc, unsigned char *buf, size_t buflen)
 {
     IOT_FUNC_ENTRY;
@@ -224,13 +248,13 @@ static int _deserialize_connack_packet(uint8_t *sessionPresent, int *connack_rc,
     POINTER_SANITY_CHECK(connack_rc, QCLOUD_ERR_INVAL);
     POINTER_SANITY_CHECK(buf, QCLOUD_ERR_INVAL);
 
-    unsigned char header, type = 0;
+    unsigned char  header, type = 0;
     unsigned char *curdata = buf;
     unsigned char *enddata = NULL;
-    int rc;
-    uint32_t decodedLen = 0, readBytesLen = 0;
-    unsigned char flags = 0;
-    unsigned char connack_rc_char;
+    int            rc;
+    uint32_t       decodedLen = 0, readBytesLen = 0;
+    unsigned char  flags = 0;
+    unsigned char  connack_rc_char;
 
     // CONNACK: 2 bytes in fixed header and 2 bytes in variable header, no payload
     if (4 > buflen) {
@@ -238,7 +262,7 @@ static int _deserialize_connack_packet(uint8_t *sessionPresent, int *connack_rc,
     }
 
     header = mqtt_read_char(&curdata);
-    type = (header & MQTT_HEADER_TYPE_MASK) >> MQTT_HEADER_TYPE_SHIFT;
+    type   = (header & MQTT_HEADER_TYPE_MASK) >> MQTT_HEADER_TYPE_SHIFT;
     if (CONNACK != type) {
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
     }
@@ -254,7 +278,7 @@ static int _deserialize_connack_packet(uint8_t *sessionPresent, int *connack_rc,
     }
 
     // variable header - connack flag, refer to MQTT spec 3.2.2.1
-    flags = mqtt_read_char(&curdata);
+    flags           = mqtt_read_char(&curdata);
     *sessionPresent = flags & MQTT_CONNACK_FLAG_SES_PRE;
 
     // variable header - return code, refer to MQTT spec 3.2.2.3
@@ -295,13 +319,12 @@ static int _deserialize_connack_packet(uint8_t *sessionPresent, int *connack_rc,
  */
 static int _mqtt_connect(Qcloud_IoT_Client *pClient, MQTTConnectParams *options)
 {
-
     IOT_FUNC_ENTRY;
 
-    Timer connect_timer;
-    int connack_rc = QCLOUD_ERR_FAILURE, rc = QCLOUD_ERR_FAILURE;
-    uint8_t sessionPresent = 0;
-    uint32_t len = 0;
+    Timer    connect_timer;
+    int      connack_rc = QCLOUD_ERR_FAILURE, rc = QCLOUD_ERR_FAILURE;
+    uint8_t  sessionPresent = 0;
+    uint32_t len            = 0;
 
     InitTimer(&connect_timer);
     countdown_ms(&connect_timer, pClient->command_timeout_ms);
@@ -351,7 +374,7 @@ static int _mqtt_connect(Qcloud_IoT_Client *pClient, MQTTConnectParams *options)
     set_client_conn_state(pClient, CONNECTED);
     HAL_MutexLock(pClient->lock_generic);
     pClient->was_manually_disconnected = 0;
-    pClient->is_ping_outstanding = 0;
+    pClient->is_ping_outstanding       = 0;
     countdown(&pClient->ping_timer, pClient->options.keep_alive_interval);
     HAL_MutexUnlock(pClient->lock_generic);
 
@@ -360,7 +383,6 @@ static int _mqtt_connect(Qcloud_IoT_Client *pClient, MQTTConnectParams *options)
 
 int qcloud_iot_mqtt_connect(Qcloud_IoT_Client *pClient, MQTTConnectParams *pParams)
 {
-
     IOT_FUNC_ENTRY;
     int rc;
     POINTER_SANITY_CHECK(pClient, QCLOUD_ERR_INVAL);
@@ -383,7 +405,6 @@ int qcloud_iot_mqtt_connect(Qcloud_IoT_Client *pClient, MQTTConnectParams *pPara
 
 int qcloud_iot_mqtt_attempt_reconnect(Qcloud_IoT_Client *pClient)
 {
-
     IOT_FUNC_ENTRY;
 
     int rc;
@@ -411,13 +432,12 @@ int qcloud_iot_mqtt_attempt_reconnect(Qcloud_IoT_Client *pClient)
 
 int qcloud_iot_mqtt_disconnect(Qcloud_IoT_Client *pClient)
 {
-
     IOT_FUNC_ENTRY;
 
     int rc;
     POINTER_SANITY_CHECK(pClient, QCLOUD_ERR_INVAL);
 
-    Timer timer;
+    Timer    timer;
     uint32_t serialized_len = 0;
 
     if (get_client_conn_state(pClient) == 0) {
@@ -455,5 +475,3 @@ int qcloud_iot_mqtt_disconnect(Qcloud_IoT_Client *pClient)
 #ifdef __cplusplus
 }
 #endif
-
-

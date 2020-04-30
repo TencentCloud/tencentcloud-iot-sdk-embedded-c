@@ -30,22 +30,22 @@ HAL层主要有几大块的移植，分别是OS相关的、网络及TLS相关的
 SDK在 **platform/os** 目录示例了Linux、Windows、FreeRTOS及nonOS四个场景的硬件抽象层实现，可以参考最相近的目录展开目标平台的移植。
 
 #### OS相关接口
+以下函数跟线程/互斥锁/信号量相关的，只有在使能多线程/多任务情况下（MULTITHREAD_ENABLED）才需要移植
 
 | 序号 | 函数名                 | 说明                                       |
 | ---- | ---------------------- | ------------------------------------------ |
 | 1    | HAL_Malloc             | 动态申请内存块     |
 | 2    | HAL_Free               | 释放内存块                              |
 | 3   | HAL_ThreadCreate        | 线程创建                                |
-| 4   | HAL_ThreadDestroy        | 线程销毁                               |
-| 5   | HAL_MutexCreate        | 创建互斥锁                               |
-| 6   | HAL_MutexDestroy       | 销毁互斥锁                               |
-| 7   | HAL_MutexLock          | mutex 加锁                               |
-| 8   | HAL_MutexUnlock        | mutex 解锁                               |
-| 9   | HAL_SemaphoreCreate        | 创建信号量                               |
-| 10   | HAL_SemaphoreDestroy        | 销毁信号量                               |
-| 11   | HAL_SemaphoreWait        | 等待信号量                               |
-| 12   | HAL_SemaphorePost        | 释放信号量                               |
-| 13    | HAL_SleepMs            | 休眠                                     |
+| 4   | HAL_MutexCreate        | 创建互斥锁                               |
+| 5   | HAL_MutexDestroy       | 销毁互斥锁                               |
+| 6   | HAL_MutexLock          | mutex 加锁                               |
+| 7   | HAL_MutexUnlock        | mutex 解锁                               |
+| 8   | HAL_SemaphoreCreate        | 创建信号量                               |
+| 9   | HAL_SemaphoreDestroy        | 销毁信号量                               |
+| 10   | HAL_SemaphoreWait        | 等待信号量                               |
+| 11   | HAL_SemaphorePost        | 释放信号量                               |
+| 12    | HAL_SleepMs            | 休眠                                     |
 
 #### 网络及TLS相关的HAL接口
 

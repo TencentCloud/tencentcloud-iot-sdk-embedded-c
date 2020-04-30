@@ -1,6 +1,6 @@
 /*
  * Tencent is pleased to support the open source community by making IoT Hub available.
- * Copyright (C) 2019 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2018-2020 THL A29 Limited, a Tencent company. All rights reserved.
 
  * Licensed under the MIT License (the "License"); you may not use this file except in
  * compliance with the License. You may obtain a copy of the License at
@@ -13,27 +13,27 @@
  *
  */
 
-#include "qcloud_iot_export.h"
-#include "qcloud_iot_import.h"
+#include "at_client.h"
 
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdarg.h>
 
+#include "at_utils.h"
+#include "qcloud_iot_export.h"
+#include "qcloud_iot_import.h"
 #include "utils_param_check.h"
 #include "utils_timer.h"
-#include "at_client.h"
-#include "at_utils.h"
 
-#define AT_RESP_END_OK                 "OK"
-#define AT_RESP_END_ERROR              "ERROR"
-#define AT_RESP_END_FAIL               "FAIL"
-#define AT_END_CR_LF                   "\r\n"
+#define AT_RESP_END_OK    "OK"
+#define AT_RESP_END_ERROR "ERROR"
+#define AT_RESP_END_FAIL  "FAIL"
+#define AT_END_CR_LF      "\r\n"
 
-sRingbuff g_ring_buff;
-static at_client sg_at_client;
-static uint32_t sg_flags = 0;
+sRingbuff        g_ring_buff;
+static at_client sg_at_client = {0};
+static uint32_t  sg_flags     = 0;
 
 /*this function can be called only by at_uart_isr, just push the data to the at_client ringbuffer.*/
 void at_client_uart_rx_isr_cb(uint8_t *pdata, uint8_t len)
@@ -57,23 +57,23 @@ at_response_t at_create_resp(uint32_t buf_size, uint32_t line_num, uint32_t time
 {
     at_response_t resp = NULL;
 
-    resp = (at_response_t) HAL_Malloc(sizeof(at_response));
+    resp = (at_response_t)HAL_Malloc(sizeof(at_response));
     if (resp == NULL) {
         Log_e("AT create response object failed! No memory for response object!");
         return NULL;
     }
 
-    resp->buf = (char *) HAL_Malloc(buf_size);
+    resp->buf = (char *)HAL_Malloc(buf_size);
     if (resp->buf == NULL) {
         Log_e("AT create response object failed! No memory for response buffer!");
         HAL_Free(resp);
         return NULL;
     }
 
-    resp->buf_size = buf_size;
-    resp->line_num = line_num;
+    resp->buf_size    = buf_size;
+    resp->line_num    = line_num;
     resp->line_counts = 0;
-    resp->timeout = timeout;
+    resp->timeout     = timeout;
 
     return resp;
 }
@@ -102,7 +102,6 @@ void at_delayms(uint32_t delayms)
 #else
     HAL_DelayMs(delayms);
 #endif
-
 }
 
 void at_setFlag(uint32_t flag)
@@ -123,11 +122,11 @@ uint32_t at_getFlag(void)
 bool at_waitFlag(uint32_t flag, uint32_t timeout)
 {
     Timer timer;
-    bool Ret = false;
+    bool  Ret = false;
 
     countdown_ms(&timer, timeout);
     do {
-        if (flag == (at_getFlag()&flag)) {
+        if (flag == (at_getFlag() & flag)) {
             Ret = true;
             break;
         }
@@ -148,9 +147,9 @@ bool at_waitFlag(uint32_t flag, uint32_t timeout)
  */
 const char *at_resp_get_line(at_response_t resp, uint32_t resp_line)
 {
-    char *resp_buf = resp->buf;
+    char *resp_buf      = resp->buf;
     char *resp_line_buf = NULL;
-    int line_num = 1;
+    int   line_num      = 1;
 
     POINTER_SANITY_CHECK(resp, NULL);
 
@@ -183,9 +182,9 @@ const char *at_resp_get_line(at_response_t resp, uint32_t resp_line)
  */
 const char *at_resp_get_line_by_kw(at_response_t resp, const char *keyword)
 {
-    char *resp_buf = resp->buf;
+    char *resp_buf      = resp->buf;
     char *resp_line_buf = NULL;
-    int line_num = 1;
+    int   line_num      = 1;
 
     POINTER_SANITY_CHECK(resp, NULL);
     POINTER_SANITY_CHECK(keyword, NULL);
@@ -216,10 +215,9 @@ const char *at_resp_get_line_by_kw(at_response_t resp, const char *keyword)
  */
 int at_resp_parse_line_args(at_response_t resp, uint32_t resp_line, const char *resp_expr, ...)
 {
-    va_list args;
-    int resp_args_num = 0;
+    va_list     args;
+    int         resp_args_num = 0;
     const char *resp_line_buf = NULL;
-
 
     POINTER_SANITY_CHECK(resp, -1);
     POINTER_SANITY_CHECK(resp_expr, -1);
@@ -249,10 +247,9 @@ int at_resp_parse_line_args(at_response_t resp, uint32_t resp_line, const char *
  */
 int at_resp_parse_line_args_by_kw(at_response_t resp, const char *keyword, const char *resp_expr, ...)
 {
-    va_list args;
-    int resp_args_num = 0;
+    va_list     args;
+    int         resp_args_num = 0;
     const char *resp_line_buf = NULL;
-
 
     POINTER_SANITY_CHECK(resp, -1);
     POINTER_SANITY_CHECK(resp_expr, -1);
@@ -284,12 +281,11 @@ int at_obj_exec_cmd(at_response_t resp, const char *cmd_expr, ...)
 {
     POINTER_SANITY_CHECK(cmd_expr, QCLOUD_ERR_INVAL);
 
-    va_list args;
-    int cmd_size = 0;
-    int result = QCLOUD_RET_SUCCESS;
-    const char *cmd = NULL;
-    at_client_t client = at_client_get();
-
+    va_list     args;
+    int         cmd_size = 0;
+    int         result   = QCLOUD_RET_SUCCESS;
+    const char *cmd      = NULL;
+    at_client_t client   = at_client_get();
 
     if (client == NULL) {
         Log_e("input AT Client object is NULL, please create or get AT Client object!");
@@ -297,9 +293,9 @@ int at_obj_exec_cmd(at_response_t resp, const char *cmd_expr, ...)
     }
 
     HAL_MutexLock(client->lock);
-    resp->line_counts = 0;
+    resp->line_counts   = 0;
     client->resp_status = AT_RESP_OK;
-    client->resp = resp;
+    client->resp        = resp;
 
     va_start(args, cmd_expr);
     at_vprintfln(cmd_expr, args);
@@ -366,21 +362,20 @@ int at_client_send(at_client_t client, const char *buf, int size, uint32_t timeo
     return HAL_AT_Uart_Send((void *)buf, size);
 }
 
-
 static int at_client_getchar(at_client_t client, char *pch, uint32_t timeout)
 {
-    int ret = QCLOUD_RET_SUCCESS;
+    int   ret = QCLOUD_RET_SUCCESS;
     Timer timer;
 
     countdown_ms(&timer, timeout);
     do {
-
 #ifndef AT_UART_RECV_IRQ
         if (0 == HAL_AT_Uart_Recv((void *)pch, 1, NULL, timeout)) {
             continue;
         }
 #else
-        if (0 == ring_buff_pop_data(client->pRingBuff, (uint8_t *)pch, 1)) { //push data to ringbuff @ AT_UART_IRQHandler
+        if (0 ==
+            ring_buff_pop_data(client->pRingBuff, (uint8_t *)pch, 1)) {  // push data to ringbuff @ AT_UART_IRQHandler
             continue;
         }
 #endif
@@ -411,8 +406,8 @@ static int at_client_getchar(at_client_t client, char *pch, uint32_t timeout)
  */
 int at_client_obj_recv(char *buf, int size, int timeout)
 {
-    int read_idx = 0;
-    int result = QCLOUD_RET_SUCCESS;
+    int  read_idx = 0;
+    int  result   = QCLOUD_RET_SUCCESS;
     char ch;
 
     POINTER_SANITY_CHECK(buf, 0);
@@ -483,7 +478,7 @@ void at_set_urc_table(at_client_t client, const at_urc_t urc_table, uint32_t tab
         POINTER_SANITY_CHECK_RTN(urc_table[idx].cmd_suffix);
     }
 
-    client->urc_table = urc_table;
+    client->urc_table      = urc_table;
     client->urc_table_size = table_sz;
 }
 
@@ -494,8 +489,8 @@ at_client_t at_client_get(void)
 
 static const at_urc *get_urc_obj(at_client_t client)
 {
-    int i, prefix_len, suffix_len;
-    int buf_sz;
+    int   i, prefix_len, suffix_len;
+    int   buf_sz;
     char *buffer = NULL;
 
     if (client->urc_table == NULL) {
@@ -511,9 +506,9 @@ static const at_urc *get_urc_obj(at_client_t client)
         if (buf_sz < prefix_len + suffix_len) {
             continue;
         }
-        if ((prefix_len ? !strncmp(buffer, client->urc_table[i].cmd_prefix, prefix_len) : 1)
-            && (suffix_len ? !strncmp(buffer + buf_sz - suffix_len, client->urc_table[i].cmd_suffix, suffix_len) : 1)) {
-            //Log_d("matched:%s", client->urc_table[i].cmd_prefix);
+        if ((prefix_len ? !strncmp(buffer, client->urc_table[i].cmd_prefix, prefix_len) : 1) &&
+            (suffix_len ? !strncmp(buffer + buf_sz - suffix_len, client->urc_table[i].cmd_suffix, suffix_len) : 1)) {
+            // Log_d("matched:%s", client->urc_table[i].cmd_prefix);
             return &client->urc_table[i];
         }
     }
@@ -523,10 +518,10 @@ static const at_urc *get_urc_obj(at_client_t client)
 
 static int at_recv_readline(at_client_t client)
 {
-    int read_len = 0;
+    int  read_len = 0;
     char ch = 0, last_ch = 0;
     bool is_full = false;
-    int ret;
+    int  ret;
 
     memset(client->recv_buffer, 0x00, client->recv_bufsz);
     client->cur_recv_len = 0;
@@ -540,14 +535,14 @@ static int at_recv_readline(at_client_t client)
 
         if (read_len < client->recv_bufsz) {
             client->recv_buffer[read_len++] = ch;
-            client->cur_recv_len = read_len;
+            client->cur_recv_len            = read_len;
         } else {
             is_full = true;
         }
 
         /* is newline or URC data */
-        if ((ch == '\n' && last_ch == '\r') || (client->end_sign != 0 && ch == client->end_sign) || get_urc_obj(client)) {
-
+        if ((ch == '\n' && last_ch == '\r') || (client->end_sign != 0 && ch == client->end_sign) ||
+            get_urc_obj(client)) {
             if (is_full) {
                 Log_e("read line failed. The line data length is out of buffer size(%d)!", client->recv_bufsz);
                 memset(client->recv_buffer, 0x00, client->recv_bufsz);
@@ -567,25 +562,23 @@ static int at_recv_readline(at_client_t client)
     return read_len;
 }
 
-
 #ifdef AT_OS_USED
-static void *client_parser(void *userContex)
+static void client_parser(void *userContex)
 {
-    int resp_buf_len = 0;
+    int           resp_buf_len = 0;
     const at_urc *urc;
-    int line_counts = 0;
-    at_client_t client = at_client_get();
+    int           line_counts = 0;
+    at_client_t   client      = at_client_get();
 
     Log_d("client_parser start...");
 
     while (1) {
         if (at_recv_readline(client) > 0) {
-
-#ifdef  AT_DEBUG
-            const char *cmd = NULL;
-            int cmdsize = 0;
-            cmd = at_get_last_cmd(&cmdsize);
-            Log_d("last_cmd:(%.*s), readline:%s",  cmdsize, cmd, client->recv_buffer);
+#ifdef AT_DEBUG
+            const char *cmd     = NULL;
+            int         cmdsize = 0;
+            cmd                 = at_get_last_cmd(&cmdsize);
+            Log_d("last_cmd:(%.*s), readline:%s", cmdsize, cmd, client->recv_buffer);
 #endif
             if ((urc = get_urc_obj(client)) != NULL) {
                 /* current receive is request, try to execute related operations */
@@ -594,7 +587,7 @@ static void *client_parser(void *userContex)
                 }
 
             } else if (client->resp != NULL) {
-                if (client->end_sign != 0) { // handle endsign
+                if (client->end_sign != 0) {  // handle endsign
                     if (client->recv_buffer[client->cur_recv_len - 1] != client->end_sign) {
                         continue;
                     } else {
@@ -612,15 +605,16 @@ static void *client_parser(void *userContex)
                     line_counts++;
                 } else {
                     client->resp_status = AT_RESP_BUFF_FULL;
-                    Log_e("Read response buffer failed. The Response buffer size is out of buffer size(%d)!", client->resp->buf_size);
+                    Log_e("Read response buffer failed. The Response buffer size is out of buffer size(%d)!",
+                          client->resp->buf_size);
                 }
                 /* check response result */
-                if (memcmp(client->recv_buffer, AT_RESP_END_OK, strlen(AT_RESP_END_OK)) == 0
-                    && client->resp->line_num == 0) {
+                if (memcmp(client->recv_buffer, AT_RESP_END_OK, strlen(AT_RESP_END_OK)) == 0 &&
+                    client->resp->line_num == 0) {
                     /* get the end data by response result, return response state END_OK. */
                     client->resp_status = AT_RESP_OK;
-                } else if (strstr(client->recv_buffer, AT_RESP_END_ERROR)
-                           || (memcmp(client->recv_buffer, AT_RESP_END_FAIL, strlen(AT_RESP_END_FAIL)) == 0)) {
+                } else if (strstr(client->recv_buffer, AT_RESP_END_ERROR) ||
+                           (memcmp(client->recv_buffer, AT_RESP_END_FAIL, strlen(AT_RESP_END_FAIL)) == 0)) {
                     client->resp_status = AT_RESP_ERROR;
                 } else if (line_counts == client->resp->line_num && client->resp->line_num) {
                     /* get the end data by response line, return response state END_OK.*/
@@ -630,19 +624,17 @@ static void *client_parser(void *userContex)
                 }
             exit:
                 client->resp->line_counts = line_counts;
-                client->resp = NULL;
-                resp_buf_len = 0;
-                line_counts = 0;
+                client->resp              = NULL;
+                resp_buf_len              = 0;
+                line_counts               = 0;
                 HAL_SemaphorePost(client->resp_sem);
             } else {
-//                Log_d("unrecognized line: %.*s", client->cur_recv_len, client->recv_buffer);
+                //                Log_d("unrecognized line: %.*s", client->cur_recv_len, client->recv_buffer);
             }
         } else {
-            //Log_d("read no new line");
+            // Log_d("read no new line");
         }
-
     }
-    return NULL;
 }
 #else
 void at_client_yeild(at_urc *expect_urc, uint32_t timeout)
@@ -659,11 +651,11 @@ void at_client_yeild(at_urc *expect_urc, uint32_t timeout)
     countdown_ms(&timer, timeout);
     do {
         if (at_recv_readline(client) > 0) {
-#ifdef  AT_DEBUG
+#ifdef AT_DEBUG
             const char *cmd = NULL;
             int cmdsize = 0;
             cmd = at_get_last_cmd(&cmdsize);
-            Log_d("last_cmd:(%.*s), readline:%s",  cmdsize, cmd, client->recv_buffer);
+            Log_d("last_cmd:(%.*s), readline:%s", cmdsize, cmd, client->recv_buffer);
 #endif
             if ((urc = get_urc_obj(client)) != NULL) {
                 /* current receive is request, try to execute related operations */
@@ -675,21 +667,21 @@ void at_client_yeild(at_urc *expect_urc, uint32_t timeout)
                 if (expect_urc != NULL) {
                     prefix_len = strlen(expect_urc->cmd_prefix);
                     suffix_len = strlen(expect_urc->cmd_suffix);
-                    if ((prefix_len ? !strncmp(urc->cmd_prefix, expect_urc->cmd_prefix, prefix_len) : 1)
-                        && (suffix_len ? !strncmp(urc->cmd_suffix, expect_urc->cmd_suffix, suffix_len) : 1)) {
+                    if ((prefix_len ? !strncmp(urc->cmd_prefix, expect_urc->cmd_prefix, prefix_len) : 1) &&
+                        (suffix_len ? !strncmp(urc->cmd_suffix, expect_urc->cmd_suffix, suffix_len) : 1)) {
                         client->resp_status = AT_RESP_OK;
                         break;
                     }
                 }
             } else if (client->resp != NULL) {
-                if (client->end_sign != 0) { // handle endsign
+                if (client->end_sign != 0) {  // handle endsign
                     if (client->recv_buffer[client->cur_recv_len - 1] != client->end_sign) {
                         continue;
                     } else {
                         client->resp_status = AT_RESP_OK;
                         client->resp->line_counts = line_counts;
                         client->resp = NULL;
-                        //client->resp_notice = true;
+                        // client->resp_notice = true;
                         resp_buf_len = 0;
                         line_counts = 0;
                         break;
@@ -706,15 +698,16 @@ void at_client_yeild(at_urc *expect_urc, uint32_t timeout)
                     line_counts++;
                 } else {
                     client->resp_status = AT_RESP_BUFF_FULL;
-                    Log_e("Read response buffer failed. The Response buffer size is out of buffer size(%d)!", client->resp->buf_size);
+                    Log_e("Read response buffer failed. The Response buffer size is out of buffer size(%d)!",
+                          client->resp->buf_size);
                 }
                 /* check response result */
-                if (memcmp(client->recv_buffer, AT_RESP_END_OK, strlen(AT_RESP_END_OK)) == 0
-                    && client->resp->line_num == 0) {
+                if (memcmp(client->recv_buffer, AT_RESP_END_OK, strlen(AT_RESP_END_OK)) == 0 &&
+                    client->resp->line_num == 0) {
                     /* get the end data by response result, return response state END_OK. */
                     client->resp_status = AT_RESP_OK;
-                } else if (strstr(client->recv_buffer, AT_RESP_END_ERROR)
-                           || (memcmp(client->recv_buffer, AT_RESP_END_FAIL, strlen(AT_RESP_END_FAIL)) == 0)) {
+                } else if (strstr(client->recv_buffer, AT_RESP_END_ERROR) ||
+                           (memcmp(client->recv_buffer, AT_RESP_END_FAIL, strlen(AT_RESP_END_FAIL)) == 0)) {
                     client->resp_status = AT_RESP_ERROR;
                 } else if (line_counts == client->resp->line_num && client->resp->line_num) {
                     /* get the end data by response line, return response state END_OK.*/
@@ -729,7 +722,7 @@ void at_client_yeild(at_urc *expect_urc, uint32_t timeout)
 
                 client->resp->line_counts = line_counts;
                 client->resp = NULL;
-                //client->resp_notice = true;
+                // client->resp_notice = true;
                 resp_buf_len = 0;
                 line_counts = 0;
                 break;
@@ -737,7 +730,7 @@ void at_client_yeild(at_urc *expect_urc, uint32_t timeout)
                 // Log_d("unrecognized line: %.*s", client->cur_recv_len, client->recv_buffer);
             }
         } else {
-            //Log_d("read no new line");
+            // Log_d("read no new line");
         }
     } while (!expired(&timer));
 }
@@ -746,6 +739,9 @@ void at_client_yeild(at_urc *expect_urc, uint32_t timeout)
 /* initialize the client parameters */
 int at_client_para_init(at_client_t client)
 {
+    char *ringBuff = NULL;
+    char *recvBuff = NULL;
+
     client->lock = HAL_MutexCreate();
     if (NULL == client->lock) {
         Log_e("create lock err");
@@ -756,38 +752,50 @@ int at_client_para_init(at_client_t client)
     client->resp_sem = HAL_SemaphoreCreate();
     if (NULL == client->resp_sem) {
         Log_e("create sem err");
-        return QCLOUD_ERR_FAILURE;
+        goto err_exit;
     }
 
     client->parser = client_parser;
 #endif
 
-    char * ringBuff = HAL_Malloc(RING_BUFF_LEN);
+    ringBuff = HAL_Malloc(RING_BUFF_LEN);
     if (NULL == ringBuff) {
         Log_e("malloc ringbuff err");
-        return QCLOUD_ERR_FAILURE;
+        goto err_exit;
     }
-    ring_buff_init(&g_ring_buff, ringBuff,  RING_BUFF_LEN);
+    ring_buff_init(&g_ring_buff, ringBuff, RING_BUFF_LEN);
 
-    char * recvBuff = HAL_Malloc(CLINET_BUFF_LEN);
+    recvBuff = HAL_Malloc(CLINET_BUFF_LEN);
     if (NULL == recvBuff) {
         Log_e("malloc recvbuff err");
-        return QCLOUD_ERR_FAILURE;
+        goto err_exit;
     }
-    client->recv_buffer = recvBuff;
-
-
-    client->pRingBuff = &g_ring_buff;
-    client->recv_bufsz = CLINET_BUFF_LEN;
-    client->cur_recv_len = 0;
-
-    client->resp = NULL;
-
-    client->urc_table = NULL;
+    client->recv_buffer    = recvBuff;
+    client->pRingBuff      = &g_ring_buff;
+    client->recv_bufsz     = CLINET_BUFF_LEN;
+    client->cur_recv_len   = 0;
+    client->resp           = NULL;
+    client->urc_table      = NULL;
     client->urc_table_size = 0;
-    client->end_sign = 0;
+    client->end_sign       = 0;
 
     return QCLOUD_RET_SUCCESS;
+
+err_exit:
+    if (client->lock) {
+        HAL_MutexDestroy(client->lock);
+        client->lock = NULL;
+    }
+
+    if (client->resp_sem) {
+        HAL_SemaphoreDestroy(client->resp_sem);
+        client->resp_sem = NULL;
+    }
+
+    HAL_Free(ringBuff);
+    HAL_Free(recvBuff);
+
+    return QCLOUD_ERR_FAILURE;
 }
 
 /**
@@ -800,7 +808,7 @@ int at_client_init(at_client_t *pClient)
 {
     POINTER_SANITY_CHECK(pClient, QCLOUD_ERR_INVAL);
     at_client_t client;
-    int result;
+    int         result;
 
     client = at_client_get();
 
@@ -820,35 +828,34 @@ int at_client_init(at_client_t *pClient)
     if (result == QCLOUD_RET_SUCCESS) {
         Log_d("AT client(V%s) initialize success.", AT_FRAME_VERSION);
         client->status = AT_STATUS_INITIALIZED;
-        *pClient = client;
+        *pClient       = client;
 
-#ifdef AT_OS_USED
+#if defined(AT_OS_USED) && defined(MULTITHREAD_ENABLED)
         //  create thread for at parser
         if (NULL != client->parser) {
-#define AT_PARSER_THREAD_STACK      6144
-#define AT_PARSER_THREAD_PRIORITY   0
+#define AT_PARSER_THREAD_STACK    6144
+#define AT_PARSER_THREAD_PRIORITY 0
+            ThreadParams thread_params = {0};
+            thread_params.thread_func  = client->parser;
+            thread_params.thread_name  = "at_client_parser";
+            thread_params.user_arg     = client;
+            thread_params.stack_size   = AT_PARSER_THREAD_STACK;
+            thread_params.priority     = AT_PARSER_THREAD_PRIORITY;
 
-            client->thread_t = HAL_ThreadCreate(
-                                   AT_PARSER_THREAD_STACK, \
-                                   AT_PARSER_THREAD_PRIORITY,
-                                   "at_client_parser",
-                                   client->parser, \
-                                   client);
-
-            result = client->thread_t ?  QCLOUD_RET_SUCCESS : QCLOUD_ERR_FAILURE;
+            result = HAL_ThreadCreate(&thread_params);
             if (QCLOUD_RET_SUCCESS == result) {
                 Log_d("create at_parser thread success!");
             } else {
-                Log_d("create at_parser thread fail!");
+                Log_e("create at_parser thread fail!");
             }
 
-#undef  AT_PARSER_THREAD_STACK
-#undef  AT_PARSER_THREAD_PRIORITY
+#undef AT_PARSER_THREAD_STACK
+#undef AT_PARSER_THREAD_PRIORITY
         }
 #endif
 
     } else {
-        *pClient = NULL;
+        *pClient       = NULL;
         client->status = AT_STATUS_UNINITIALIZED;
         Log_e("AT client(V%s) initialize failed(%d).", AT_FRAME_VERSION, result);
     }
@@ -860,7 +867,6 @@ exit:
 
 int at_client_deinit(at_client_t pClient)
 {
-
-    //TO DO:
+    // TO DO:
     return QCLOUD_RET_SUCCESS;
 }

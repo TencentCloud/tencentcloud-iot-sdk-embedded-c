@@ -1,6 +1,6 @@
 /*
  * Tencent is pleased to support the open source community by making IoT Hub available.
- * Copyright (C) 2016 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2018-2020 THL A29 Limited, a Tencent company. All rights reserved.
 
  * Licensed under the MIT License (the "License"); you may not use this file except in
  * compliance with the License. You may obtain a copy of the License at
@@ -20,21 +20,22 @@
 extern "C" {
 #endif
 
+#include <stdarg.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
-#include <stdarg.h>
+
 #include "qcloud_iot_export_variables.h"
 
 /**
  * SDK log print/upload level
  */
 typedef enum {
-    eLOG_DISABLE = 0,
-    eLOG_ERROR = 1,
-    eLOG_WARN = 2,
-    eLOG_INFO = 3,
-    eLOG_DEBUG = 4
+    eLOG_DISABLE = 0,  // disable log print/upload
+    eLOG_ERROR   = 1,  // error log level
+    eLOG_WARN    = 2,  // warning log level
+    eLOG_INFO    = 3,  // info log level
+    eLOG_DEBUG   = 4,  // debug log level
 } LOG_LEVEL;
 
 /**
@@ -48,7 +49,7 @@ extern LOG_LEVEL g_log_print_level;
 extern LOG_LEVEL g_log_upload_level;
 
 /* user's self defined log handler callback */
-typedef bool (*LogMessageHandler)(const char* message);
+typedef bool (*LogMessageHandler)(const char *message);
 
 /**
  * @brief user callback for saving/reading logs into/from NVS(files/FLASH) after upload fail/recover
@@ -67,17 +68,16 @@ typedef size_t (*LogGetSizeFunc)();
  */
 typedef struct {
     /* device info */
-    const char      *product_id;
-    const char      *device_name;
+    const char *product_id;
+    const char *device_name;
     /* auth key, use device secret for PSK device and cert file path for cert device */
-    const char      *sign_key;
+    const char *sign_key;
     /* user callback saving/reading logs into/from NVS(files/FLASH) */
-    LogSaveFunc     save_func;
-    LogReadFunc     read_func;
-    LogDelFunc      del_func;
-    LogGetSizeFunc  get_size_func;
+    LogSaveFunc    save_func;
+    LogReadFunc    read_func;
+    LogDelFunc     del_func;
+    LogGetSizeFunc get_size_func;
 } LogUploadInitParams;
-
 
 /**
  * @brief Set the global log level of print
@@ -107,7 +107,6 @@ void IOT_Log_Set_Upload_Level(LOG_LEVEL level);
  */
 LOG_LEVEL IOT_Log_Get_Upload_Level(void);
 
-
 /**
  * @brief Set user callback to print log into whereever you want
  *
@@ -115,7 +114,6 @@ LOG_LEVEL IOT_Log_Get_Upload_Level(void);
  *
  */
 void IOT_Log_Set_MessageHandler(LogMessageHandler handler);
-
 
 /**
  * @brief Init the resource for log upload
@@ -141,7 +139,6 @@ void IOT_Log_Fini_Uploader(void);
  */
 int IOT_Log_Upload(bool force_upload);
 
-
 /**
  * @brief Generate log for print/upload, call LogMessageHandler if defined
  *
@@ -156,47 +153,46 @@ void IOT_Log_Gen(const char *file, const char *func, const int line, const int l
 
 /* Simple APIs for log generation in different level */
 #define Log_d(fmt, ...) IOT_Log_Gen(__FILE__, __FUNCTION__, __LINE__, eLOG_DEBUG, fmt, ##__VA_ARGS__)
-#define Log_i(fmt, ...) IOT_Log_Gen(__FILE__, __FUNCTION__, __LINE__, eLOG_INFO,  fmt, ##__VA_ARGS__)
-#define Log_w(fmt, ...) IOT_Log_Gen(__FILE__, __FUNCTION__, __LINE__, eLOG_WARN,  fmt, ##__VA_ARGS__)
+#define Log_i(fmt, ...) IOT_Log_Gen(__FILE__, __FUNCTION__, __LINE__, eLOG_INFO, fmt, ##__VA_ARGS__)
+#define Log_w(fmt, ...) IOT_Log_Gen(__FILE__, __FUNCTION__, __LINE__, eLOG_WARN, fmt, ##__VA_ARGS__)
 #define Log_e(fmt, ...) IOT_Log_Gen(__FILE__, __FUNCTION__, __LINE__, eLOG_ERROR, fmt, ##__VA_ARGS__)
 
 /* Macro for debug mode */
 #ifdef IOT_DEBUG
-#define IOT_FUNC_ENTRY    \
-     {\
-     printf("FUNC_ENTRY:   %s L#%d \n", __FUNCTION__, __LINE__);  \
-     }
-#define IOT_FUNC_EXIT    \
-     {\
-     printf("FUNC_EXIT:   %s L#%d \n", __FUNCTION__, __LINE__);  \
-     return;\
-     }
-#define IOT_FUNC_EXIT_RC(x)    \
-     {\
-     printf("FUNC_EXIT:   %s L#%d Return Code : %ld \n", __FUNCTION__, __LINE__, (long)(x));  \
-     return x; \
-     }
+#define IOT_FUNC_ENTRY                                              \
+    {                                                               \
+        printf("FUNC_ENTRY:   %s L#%d \n", __FUNCTION__, __LINE__); \
+    }
+#define IOT_FUNC_EXIT                                              \
+    {                                                              \
+        printf("FUNC_EXIT:   %s L#%d \n", __FUNCTION__, __LINE__); \
+        return;                                                    \
+    }
+#define IOT_FUNC_EXIT_RC(x)                                                                     \
+    {                                                                                           \
+        printf("FUNC_EXIT:   %s L#%d Return Code : %ld \n", __FUNCTION__, __LINE__, (long)(x)); \
+        return x;                                                                               \
+    }
 #else
 #define IOT_FUNC_ENTRY
-#define IOT_FUNC_EXIT           \
-     {\
-         return;\
-     }
-#define IOT_FUNC_EXIT_RC(x)     \
-     {\
-         return x; \
-     }
+#define IOT_FUNC_EXIT \
+    {                 \
+        return;       \
+    }
+#define IOT_FUNC_EXIT_RC(x) \
+    {                       \
+        return x;           \
+    }
 #endif
 
 /* Macro for interval debug */
 //#define LOG_UPLOAD_DEBUG
 #ifdef LOG_UPLOAD_DEBUG
-#define UPLOAD_DBG(fmt, ...)   HAL_Printf(">>LOG-DBG>>%s(%d): " fmt "\n", __FUNCTION__, __LINE__, ##__VA_ARGS__)
+#define UPLOAD_DBG(fmt, ...) HAL_Printf(">>LOG-DBG>>%s(%d): " fmt "\n", __FUNCTION__, __LINE__, ##__VA_ARGS__)
 #else
 #define UPLOAD_DBG(...)
 #endif
-#define UPLOAD_ERR(fmt, ...)   HAL_Printf(">>LOG-ERR>>%s(%d): " fmt "\n", __FUNCTION__, __LINE__, ##__VA_ARGS__)
-
+#define UPLOAD_ERR(fmt, ...) HAL_Printf(">>LOG-ERR>>%s(%d): " fmt "\n", __FUNCTION__, __LINE__, ##__VA_ARGS__)
 
 #ifdef __cplusplus
 }

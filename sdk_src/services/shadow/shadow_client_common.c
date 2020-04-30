@@ -1,6 +1,6 @@
 /*
  * Tencent is pleased to support the open source community by making IoT Hub available.
- * Copyright (C) 2016 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2018-2020 THL A29 Limited, a Tencent company. All rights reserved.
 
  * Licensed under the MIT License (the "License"); you may not use this file except in
  * compliance with the License. You may obtain a copy of the License at
@@ -18,10 +18,11 @@ extern "C" {
 #endif
 
 #include "shadow_client_common.h"
+
 #include "qcloud_iot_import.h"
 
-
-static int _add_property_handle_to_list(Qcloud_IoT_Shadow *pShadow, DeviceProperty *pProperty, OnPropRegCallback callback)
+static int _add_property_handle_to_list(Qcloud_IoT_Shadow *pShadow, DeviceProperty *pProperty,
+                                        OnPropRegCallback callback)
 {
     IOT_FUNC_ENTRY;
 
@@ -37,6 +38,7 @@ static int _add_property_handle_to_list(Qcloud_IoT_Shadow *pShadow, DeviceProper
     ListNode *node = list_node_new(property_handle);
     if (NULL == node) {
         Log_e("run list_node_new is error!");
+        HAL_Free(property_handle);
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
     }
     list_rpush(pShadow->inner_data.property_handle_list, node);
@@ -73,7 +75,8 @@ int shadow_common_remove_property(Qcloud_IoT_Shadow *pshadow, DeviceProperty *pP
     return rc;
 }
 
-int shadow_common_register_property_on_delta(Qcloud_IoT_Shadow *pShadow, DeviceProperty *pProperty, OnPropRegCallback callback)
+int shadow_common_register_property_on_delta(Qcloud_IoT_Shadow *pShadow, DeviceProperty *pProperty,
+                                             OnPropRegCallback callback)
 {
     IOT_FUNC_ENTRY;
 

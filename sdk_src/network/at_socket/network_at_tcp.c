@@ -1,17 +1,14 @@
 /*
- * Copyright (c) 2019-2021 Tencent Group. All rights reserved.
- * License-Identifier: Apache-2.0
- *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may
- * not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *    http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
+ * Tencent is pleased to support the open source community by making IoT Hub available.
+ * Copyright (C) 2018-2020 THL A29 Limited, a Tencent company. All rights reserved.
+
+ * Licensed under the MIT License (the "License"); you may not use this file except in
+ * compliance with the License. You may obtain a copy of the License at
+ * http://opensource.org/licenses/MIT
+
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is
+ * distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+ * either express or implied. See the License for the specific language governing permissions and
  * limitations under the License.
  *
  */
@@ -21,14 +18,14 @@
 
 #ifdef AT_TCP_ENABLED
 
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <stdint.h>
 
+#include "at_socket_inf.h"
 #include "network_interface.h"
 #include "utils_param_check.h"
 #include "utils_timer.h"
-#include "at_socket_inf.h"
 
 int network_at_tcp_init(Network *pNetwork)
 {
@@ -69,9 +66,9 @@ int network_at_tcp_connect(Network *pNetwork)
 
 int network_at_tcp_read(Network *pNetwork, unsigned char *data, size_t datalen, uint32_t timeout_ms, size_t *read_len)
 {
-    int ret, err_code;
+    int      ret, err_code;
     uint32_t len_recv;
-    Timer timer;
+    Timer    timer;
 
     InitTimer(&timer);
     countdown_ms(&timer, timeout_ms);
@@ -91,7 +88,7 @@ int network_at_tcp_read(Network *pNetwork, unsigned char *data, size_t datalen, 
             len_recv += ret;
         } else if (ret == 0) {
             err_code = QCLOUD_ERR_TCP_NOTHING_TO_READ;
-        } else { //ret < 0
+        } else {  // ret < 0
             Log_e("recv fail\n");
             err_code = QCLOUD_ERR_TCP_READ_FAIL;
             break;
@@ -108,18 +105,19 @@ int network_at_tcp_read(Network *pNetwork, unsigned char *data, size_t datalen, 
     return (datalen == len_recv) ? QCLOUD_RET_SUCCESS : err_code;
 }
 
-int network_at_tcp_write(Network *pNetwork, unsigned char *data, size_t datalen, uint32_t timeout_ms, size_t *written_len)
+int network_at_tcp_write(Network *pNetwork, unsigned char *data, size_t datalen, uint32_t timeout_ms,
+                         size_t *written_len)
 {
-    int ret;
+    int      ret;
     uint32_t len_sent;
-    Timer timer;
-    int net_err = 0;
+    Timer    timer;
+    int      net_err = 0;
 
     InitTimer(&timer);
     countdown_ms(&timer, timeout_ms);
 
     len_sent = 0;
-    ret = 1; /* send one time if timeout_ms is value 0 */
+    ret      = 1; /* send one time if timeout_ms is value 0 */
 
     do {
         ret = at_socket_send(pNetwork->handle, data + len_sent, datalen - len_sent);
@@ -149,7 +147,7 @@ void network_at_tcp_disconnect(Network *pNetwork)
         Log_e("socket close error\n");
     }
 
-    return ;
+    return;
 }
 
 #endif

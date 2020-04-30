@@ -1,6 +1,6 @@
 /*
  * Tencent is pleased to support the open source community by making IoT Hub available.
- * Copyright (C) 2016 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2018-2020 THL A29 Limited, a Tencent company. All rights reserved.
 
  * Licensed under the MIT License (the "License"); you may not use this file except in
  * compliance with the License. You may obtain a copy of the License at
@@ -13,48 +13,63 @@
  *
  */
 
+#include <memory.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdarg.h>
-#include <memory.h>
 
+#include "qcloud_iot_export_error.h"
 #include "qcloud_iot_import.h"
-#include "qcloud_iot_export.h"
-
 
 void *HAL_MutexCreate(void)
 {
-    HANDLE mutex = CreateMutex(
-                       NULL,
-                       FALSE,
-                       NULL
-                   );
+#ifdef MULTITHREAD_ENABLED
+    HANDLE mutex = CreateMutex(NULL, FALSE, NULL);
 
     if (mutex == NULL) {
         HAL_Printf("%s: create mutex failed\n", __FUNCTION__);
     }
 
     return (void *)mutex;
+#else
+    return (void *)0xFFFFFFFF;
+#endif
 }
 
 void HAL_MutexDestroy(_IN_ void *mutex)
 {
+#ifdef MULTITHREAD_ENABLED
     CloseHandle((HANDLE)mutex);
+#else
+    return;
+#endif
 }
 
 void HAL_MutexLock(_IN_ void *mutex)
 {
+#ifdef MULTITHREAD_ENABLED
     WaitForSingleObject((HANDLE)mutex, INFINITE);
+#else
+    return;
+#endif
 }
 
 int HAL_MutexTryLock(_IN_ void *mutex)
 {
+#ifdef MULTITHREAD_ENABLED
     return WaitForSingleObject((HANDLE)mutex, 0) == WAIT_OBJECT_0 ? 0 : -1;
+#else
+    return 0;
+#endif
 }
 
 void HAL_MutexUnlock(_IN_ void *mutex)
 {
+#ifdef MULTITHREAD_ENABLED
     ReleaseMutex((HANDLE)mutex);
+#else
+    return;
+#endif
 }
 
 void *HAL_Malloc(_IN_ uint32_t size)
@@ -64,7 +79,8 @@ void *HAL_Malloc(_IN_ uint32_t size)
 
 void HAL_Free(_IN_ void *ptr)
 {
-    free(ptr);
+    if (ptr)
+        free(ptr);
 }
 
 void HAL_Printf(_IN_ const char *fmt, ...)
@@ -81,7 +97,7 @@ void HAL_Printf(_IN_ const char *fmt, ...)
 int HAL_Snprintf(_IN_ char *str, const int len, const char *fmt, ...)
 {
     va_list args;
-    int rc;
+    int     rc;
 
     va_start(args, fmt);
     rc = vsnprintf(str, len, fmt, args);
@@ -105,17 +121,36 @@ void HAL_SleepMs(_IN_ uint32_t ms)
     Sleep(ms);
 }
 
-#ifdef AT_TCP_ENABLED
+#ifdef MULTITHREAD_ENABLED
 
-void * HAL_ThreadCreate(uint16_t stack_size, int priority, char * taskname, void *(*fn)(void*), void* arg)
+// platform-dependant thread routine/entry function
+static void _HAL_thread_func_wrapper_(void *ptr)
 {
-    return NULL;
+    ThreadParams *params = (ThreadParams *)ptr;
+
+    params->thread_func(params->user_arg);
+
+    _endthread();
 }
 
-int HAL_ThreadDestroy(void *thread_t)
+// platform-dependant thread create function
+int HAL_ThreadCreate(ThreadParams *params)
 {
+    if (params == NULL)
+        return QCLOUD_ERR_INVAL;
+
+    uintptr_t ret = _beginthread(_HAL_thread_func_wrapper_, params->stack_size, (void *)params);
+    if (ret == -1L) {
+        HAL_Printf("%s: _beginthread failed: %d\n", __FUNCTION__, errno);
+        return QCLOUD_ERR_FAILURE;
+    }
+
     return QCLOUD_RET_SUCCESS;
 }
+
+#endif
+
+#ifdef AT_TCP_ENABLED
 
 void *HAL_SemaphoreCreate(void)
 {

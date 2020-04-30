@@ -59,6 +59,7 @@ sdk_src为SDK的核心逻辑及协议相关代码，一般不需要修改，其�
 | FEATURE_OTA_SIGNAL_CHANNEL       | MQTT/COAP     | OTA信令通道类型                                              |
 | FEATURE_AUTH_MODE                | KEY/CERT      | 接入认证方式                                                 |
 | FEATURE_AUTH_WITH_NOTLS          | ON/OFF        | OFF: TLS使能, ON: TLS关闭                                    |
+| FEATURE_MULTITHREAD_ENABLED      | ON/OFF        | 是否使能SDK对多线程环境的支持                                |
 | FEATURE_DEV_DYN_REG_ENABLED      | ON/OFF        | 设备动态注册开关                                             |
 | FEATURE_LOG_UPLOAD_ENABLED       | ON/OFF        | 日志上报开关                                                 |
 | FEATURE_DEBUG_DEV_INFO_USED      | ON/OFF        | 设备信息获取来源开关                                         |
@@ -68,7 +69,7 @@ sdk_src为SDK的核心逻辑及协议相关代码，一般不需要修改，其�
 | FEATURE_AT_UART_RECV_IRQ         | ON/OFF        | AT模组中断接受功能开关                                       |
 | FEATURE_AT_OS_USED               | ON/OFF        | AT模组多线程功能开关                                         |
 | FEATURE_AT_DEBUG                 | ON/OFF        | AT模组调试功能开关                                           |
-| FEATURE_MULTITHREAD_TEST_ENABLED | ON/OFF        | 是否编译Linux多线程测试例程                                  |
+
 
 配置选项之间存在依赖关系，当依赖选项的值为有效值时，部分配置选项才有效，主要如下：
 

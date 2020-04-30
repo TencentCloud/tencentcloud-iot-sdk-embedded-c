@@ -1,6 +1,6 @@
 /*
  * Tencent is pleased to support the open source community by making IoT Hub available.
- * Copyright (C) 2016 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2018-2020 THL A29 Limited, a Tencent company. All rights reserved.
 
  * Licensed under the MIT License (the "License"); you may not use this file except in
  * compliance with the License. You may obtain a copy of the License at
@@ -16,9 +16,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "qcloud_iot_import.h"
-#include "qcloud_iot_export_log.h"
 #include "qcloud_iot_export_error.h"
+#include "qcloud_iot_export_log.h"
+#include "qcloud_iot_import.h"
 
 #ifdef LOG_UPLOAD
 
@@ -26,10 +26,10 @@
 
 size_t HAL_Log_Save(const char *log, size_t wLen)
 {
-    FILE *fp;
+    FILE * fp;
     size_t len;
 
-    if ( ( fp = fopen(LOG_SAVE_FILE_PATH, "a+" ) ) == NULL ) {
+    if ((fp = fopen(LOG_SAVE_FILE_PATH, "a+")) == NULL) {
         Log_e("fail to open file %s", LOG_SAVE_FILE_PATH);
         return 0;
     }
@@ -42,13 +42,12 @@ size_t HAL_Log_Save(const char *log, size_t wLen)
     return len;
 }
 
-
-size_t HAL_Log_Read   (char *buff, size_t rLen)
+size_t HAL_Log_Read(char *buff, size_t rLen)
 {
-    FILE *fp;
+    FILE * fp;
     size_t len;
 
-    if ( ( fp = fopen(LOG_SAVE_FILE_PATH, "r" ) ) == NULL ) {
+    if ((fp = fopen(LOG_SAVE_FILE_PATH, "r")) == NULL) {
         Log_e("fail to open file %s", LOG_SAVE_FILE_PATH);
         return 0;
     }
@@ -61,23 +60,21 @@ size_t HAL_Log_Read   (char *buff, size_t rLen)
     return len;
 }
 
-
 int HAL_Log_Del(void)
 {
     return remove(LOG_SAVE_FILE_PATH);
 }
 
-
 size_t HAL_Log_Get_Size(void)
 {
-    long length;
+    long  length;
     FILE *fp;
 
     /* check if file exists */
     if (access(LOG_SAVE_FILE_PATH, 0))
         return 0;
 
-    if ( ( fp = fopen(LOG_SAVE_FILE_PATH, "r" ) ) == NULL ) {
+    if ((fp = fopen(LOG_SAVE_FILE_PATH, "r")) == NULL) {
         Log_e("fail to open file %s", LOG_SAVE_FILE_PATH);
         return 0;
     }
@@ -92,4 +89,3 @@ size_t HAL_Log_Get_Size(void)
 }
 
 #endif
-
