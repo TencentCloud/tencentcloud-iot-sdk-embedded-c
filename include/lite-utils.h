@@ -56,7 +56,6 @@ char *LITE_format_string(const char *fmt, ...);
 char *LITE_format_nstring(const int len, const char *fmt, ...);
 void  LITE_hexbuf_convert(unsigned char *digest, char *out, int buflen, int uppercase);
 void  LITE_hexstr_convert(char *hexstr, uint8_t *out_buf, int len);
-void  LITE_replace_substr(char orig[], char key[], char swap[]);
 
 char *       LITE_json_value_of(char *key, char *src);
 list_head_t *LITE_json_keys_of(char *src, char *prefix);

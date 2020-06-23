@@ -33,7 +33,7 @@ extern "C" {
 
 #define HTTP_CLIENT_AUTHB_SIZE 128
 
-#define HTTP_CLIENT_CHUNK_SIZE    1024
+#define HTTP_CLIENT_CHUNK_SIZE    1025
 #define HTTP_CLIENT_SEND_BUF_SIZE 1024
 
 #define HTTP_CLIENT_MAX_HOST_LEN 64
@@ -351,8 +351,7 @@ static int _http_client_recv(HTTPClient *client, char *buf, int min_len, int max
         IOT_FUNC_EXIT_RC(rc);
     }
 
-    // IOT_FUNC_EXIT_RC(rc);
-    IOT_FUNC_EXIT_RC(QCLOUD_RET_SUCCESS);
+    IOT_FUNC_EXIT_RC(rc);
 }
 
 static int _http_client_retrieve_content(HTTPClient *client, char *data, int len, uint32_t timeout_ms,
@@ -392,7 +391,7 @@ static int _http_client_retrieve_content(HTTPClient *client, char *data, int len
             if (rc != QCLOUD_RET_SUCCESS) {
                 IOT_FUNC_EXIT_RC(rc);
             }
-            if (0 == left_ms(&timer)) {
+            if (0 >= left_ms(&timer)) {
                 Log_e("HTTP read timeout!");
                 IOT_FUNC_EXIT_RC(QCLOUD_ERR_HTTP_TIMEOUT);
             }
@@ -431,7 +430,8 @@ static int _http_client_retrieve_content(HTTPClient *client, char *data, int len
                         rc = _http_client_recv(client, data + len, 0, HTTP_CLIENT_CHUNK_SIZE - len - 1, &new_trf_len,
                                                left_ms(&timer), client_data);
                         len += new_trf_len;
-                        if (rc != QCLOUD_RET_SUCCESS) {
+                        if ((rc != QCLOUD_RET_SUCCESS) || (0 >= left_ms(&timer))) {
+                            Log_w("_http_client_recv ret: %d, left_time: %d", rc, left_ms(&timer));
                             IOT_FUNC_EXIT_RC(rc);
                         } else {
                             continue;
@@ -495,9 +495,10 @@ static int _http_client_retrieve_content(HTTPClient *client, char *data, int len
                 max_len     = HTTP_CLIENT_MIN(max_len, readLen);
                 rc          = _http_client_recv(client, data, 1, max_len, &len, left_ms(&timer), client_data);
                 if (rc != QCLOUD_RET_SUCCESS) {
+                    Log_w("_http_client_recv ret: %d, left_time: %d", rc, left_ms(&timer));
                     IOT_FUNC_EXIT_RC(rc);
                 }
-                if (left_ms(&timer) == 0) {
+                if (left_ms(&timer) <= 0) {
                     Log_e("HTTP read timeout!");
                     IOT_FUNC_EXIT_RC(QCLOUD_ERR_HTTP_TIMEOUT);
                 }
@@ -510,7 +511,8 @@ static int _http_client_retrieve_content(HTTPClient *client, char *data, int len
                 /* Read missing chars to find end of chunk */
                 rc = _http_client_recv(client, data + len, 2 - len, HTTP_CLIENT_CHUNK_SIZE - len - 1, &new_trf_len,
                                        left_ms(&timer), client_data);
-                if ((rc != QCLOUD_RET_SUCCESS) || (0 == left_ms(&timer))) {
+                if ((rc != QCLOUD_RET_SUCCESS) || (0 >= left_ms(&timer))) {
+                    Log_w("_http_client_recv ret: %d, left_time: %d", rc, left_ms(&timer));
                     IOT_FUNC_EXIT_RC(rc);
                 }
                 len += new_trf_len;
