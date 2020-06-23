@@ -65,6 +65,7 @@ void *IOT_MQTT_Construct(MQTTInitParams *pParams)
     // create and init MQTTClient
     if ((mqtt_client = (Qcloud_IoT_Client *)HAL_Malloc(sizeof(Qcloud_IoT_Client))) == NULL) {
         Log_e("malloc MQTTClient failed");
+        pParams->err_code = QCLOUD_ERR_MALLOC;
         return NULL;
     }
 
@@ -72,6 +73,7 @@ void *IOT_MQTT_Construct(MQTTInitParams *pParams)
     if (rc != QCLOUD_RET_SUCCESS) {
         Log_e("mqtt init failed: %d", rc);
         HAL_Free(mqtt_client);
+        pParams->err_code = rc;
         return NULL;
     }
 
@@ -86,6 +88,7 @@ void *IOT_MQTT_Construct(MQTTInitParams *pParams)
         Log_e("Device secret is null!");
         qcloud_iot_mqtt_fini(mqtt_client);
         HAL_Free(mqtt_client);
+		pParams->err_code = QCLOUD_ERR_INVAL;
         return NULL;
     }
     size_t src_len = strlen(pParams->device_secret);
@@ -99,6 +102,7 @@ void *IOT_MQTT_Construct(MQTTInitParams *pParams)
         Log_e("Device secret decode err, secret:%s", pParams->device_secret);
         qcloud_iot_mqtt_fini(mqtt_client);
         HAL_Free(mqtt_client);
+		pParams->err_code = QCLOUD_ERR_INVAL;
         return NULL;
     }
 #endif
@@ -108,6 +112,7 @@ void *IOT_MQTT_Construct(MQTTInitParams *pParams)
         Log_e("mqtt connect with id: %s failed: %d", mqtt_client->options.conn_id, rc);
         qcloud_iot_mqtt_fini(mqtt_client);
         HAL_Free(mqtt_client);
+		pParams->err_code = rc;
         return NULL;
     } else {
         Log_i("mqtt connect with id: %s success", mqtt_client->options.conn_id);
@@ -324,6 +329,13 @@ bool IOT_MQTT_GetLoopStatus(void *pClient, int *exit_code)
     Qcloud_IoT_Client *mqtt_client = (Qcloud_IoT_Client *)pClient;
     *exit_code                     = mqtt_client->thread_exit_code;
     return mqtt_client->thread_running;
+}
+
+void IOT_MQTT_SetLoopStatus(void *pClient, bool loop_status)
+{
+    POINTER_SANITY_CHECK_RTN(pClient);
+    Qcloud_IoT_Client *mqtt_client = (Qcloud_IoT_Client *)pClient;
+    mqtt_client->thread_running    = loop_status;
 }
 
 #endif

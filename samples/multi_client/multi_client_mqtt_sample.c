@@ -290,7 +290,7 @@ static void _mqtt_client_thread_runner(void *ptr)
     if (client != NULL) {
         Log_i("Cloud Device Construct Success");
     } else {
-        Log_e("MQTT Construct failed!");
+        Log_e("MQTT Construct failed: %d", init_params.err_code);
         goto thread_exit;
     }
 

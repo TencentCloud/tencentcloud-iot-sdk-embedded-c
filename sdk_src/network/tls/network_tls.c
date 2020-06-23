@@ -32,7 +32,7 @@ int network_tls_connect(Network *pNetwork)
 {
     POINTER_SANITY_CHECK(pNetwork, QCLOUD_ERR_INVAL);
 
-    int ret = QCLOUD_ERR_FAILURE;
+    int ret = QCLOUD_ERR_SSL_CONNECT;
 
     pNetwork->handle = (uintptr_t)HAL_TLS_Connect(&(pNetwork->ssl_connect_params), pNetwork->host, pNetwork->port);
     if (pNetwork->handle != 0) {

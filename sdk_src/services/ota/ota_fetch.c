@@ -135,11 +135,14 @@ int32_t qcloud_ofc_fetch(void *handle, char *buf, uint32_t bufLen, uint32_t time
 
 int qcloud_ofc_deinit(void *handle)
 {
-    IOT_FUNC_ENTRY;
-    if (NULL != handle) {
-        HAL_Free(handle);
-    }
+    OTAHTTPStruct *h_odc = (OTAHTTPStruct *)handle;
+    if (NULL == handle)
+        IOT_FUNC_EXIT_RC(QCLOUD_RET_SUCCESS);
 
+    if (h_odc->http.network_stack.is_connected(&h_odc->http.network_stack))
+        h_odc->http.network_stack.disconnect(&h_odc->http.network_stack);
+
+    HAL_Free(handle);
     IOT_FUNC_EXIT_RC(QCLOUD_RET_SUCCESS);
 }
 

@@ -135,31 +135,3 @@ void LITE_hexstr_convert(char *hexstr, uint8_t *out_buf, int in_len)
     }
 }
 
-void LITE_replace_substr(char originalString[], char key[], char swap[])
-{
-    int  lengthOfOriginalString, lengthOfKey, lengthOfSwap, i, j, flag;
-    char tmp[512];
-
-    lengthOfOriginalString = strlen(originalString);
-    lengthOfKey            = strlen(key);
-    lengthOfSwap           = strlen(swap);
-
-    for (i = 0; i <= lengthOfOriginalString - lengthOfKey; i++) {
-        flag = 1;
-        for (j = 0; j < lengthOfKey; j++) {
-            if (originalString[i + j] != key[j]) {
-                flag = 0;
-                break;
-            }
-        }
-
-        if (flag) {
-            strcpy(tmp, originalString);
-            strcpy(&tmp[i], swap);
-            strcpy(&tmp[i + lengthOfSwap], &originalString[i + lengthOfKey]);
-            strcpy(originalString, tmp);
-            i += lengthOfSwap - 1;
-            lengthOfOriginalString = strlen(originalString);
-        }
-    }
-}

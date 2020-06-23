@@ -175,6 +175,8 @@ typedef struct {
     uint8_t          auto_connect_enable;     // flag of auto reconnection, 1 is enable and recommended
     MQTTEventHandler event_handle;            // event callback
 
+    int              err_code;
+
 } MQTTInitParams;
 
 /**
@@ -183,12 +185,12 @@ typedef struct {
 #ifdef AUTH_MODE_CERT
 #define DEFAULT_MQTTINIT_PARAMS                             \
     {                                                       \
-        NULL, NULL, {0}, {0}, 5000, 240 * 1000, 1, 1, { 0 } \
+        NULL, NULL, {0}, {0}, 5000, 240 * 1000, 1, 1, { 0 }, 0 \
     }
 #else
 #define DEFAULT_MQTTINIT_PARAMS                         \
     {                                                   \
-        NULL, NULL, NULL, 5000, 240 * 1000, 1, 1, { 0 } \
+        NULL, NULL, NULL, 5000, 240 * 1000, 1, 1, { 0 }, 0 \
     }
 #endif
 
@@ -311,6 +313,7 @@ void IOT_MQTT_StopLoop(void *pClient);
  */
 bool IOT_MQTT_GetLoopStatus(void *pClient, int *exit_code);
 
+void IOT_MQTT_SetLoopStatus(void *pClient, bool loop_status);
 #endif
 
 #ifdef __cplusplus
