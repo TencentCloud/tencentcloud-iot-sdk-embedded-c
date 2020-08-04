@@ -170,8 +170,7 @@ int utils_hmac_sha1_hex(const char *msg, int msg_len, char *digest, const char *
     utils_sha1_update(&context, out, SHA1_DIGEST_SIZE);  /* then results of 1st hash */
     utils_sha1_finish(&context, out);                    /* finish up 2nd pass */
 
-	memcpy(digest, out, SHA1_DIGEST_SIZE);
+    memcpy(digest, out, SHA1_DIGEST_SIZE);
 
-	return SHA1_DIGEST_SIZE;
+    return SHA1_DIGEST_SIZE;
 }
-

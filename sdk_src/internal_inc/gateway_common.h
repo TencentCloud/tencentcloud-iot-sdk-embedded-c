@@ -28,7 +28,6 @@
 #define GATEWAY_BIND_OP_STR        "bind"
 #define GATEWAY_UNBIND_OP_STR      "unbind"
 
-
 /* The format of operation of gateway topic */
 #define GATEWAY_TOPIC_OPERATION_FMT "$gateway/operation/%s/%s"
 
@@ -39,13 +38,13 @@
 #define GATEWAY_CLIENT_ID_FMT "%s/%s"
 
 /* The format of operation result of gateway topic */
-#define GATEWAY_PAYLOAD_STATUS_FMT \
+#define GATEWAY_PAYLOAD_STATUS_FMT                                       \
     "{\"type\":\"%s\",\"payload\":{\"devices\":[{\"product_id\":\"%s\"," \
     "\"device_name\":\"%s\"}]}}"
 
 /* The format of bind cmd payload */
-#define GATEWAY_PAYLOAD_OP_FMT                                       \
-    "{\"type\":\"%s\",\"payload\":{\"devices\":[{\"product_id\":\"%s\"," \
+#define GATEWAY_PAYLOAD_OP_FMT                                                    \
+    "{\"type\":\"%s\",\"payload\":{\"devices\":[{\"product_id\":\"%s\","          \
     "\"device_name\":\"%s\",\"signature\":\"%s\",\"random\":%d,\"timestamp\":%d," \
     "\"signmethod\":\"%s\",\"authtype\":\"%s\"}]}}"
 

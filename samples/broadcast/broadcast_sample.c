@@ -135,7 +135,7 @@ static void _broadcast_message_handler(void *pClient, const char *msg, uint32_t 
 }
 
 static int sg_loop_count = 5;
-static int  parse_arguments(int argc, char **argv)
+static int parse_arguments(int argc, char **argv)
 {
     int c;
     while ((c = utils_getopt(argc, argv, "c:l:")) != EOF) switch (c) {

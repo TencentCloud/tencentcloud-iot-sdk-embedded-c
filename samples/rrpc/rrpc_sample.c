@@ -132,7 +132,7 @@ static int _setup_connect_init_params(MQTTInitParams *initParams, DeviceInfo *de
 static void _rrpc_message_handler(void *pClient, const char *msg, uint32_t msgLen)
 {
     char   sg_rrpc_reply_buffer[128] = {0};
-    size_t sg_rrpc_reply_buffersize = sizeof(sg_rrpc_reply_buffer) / sizeof(sg_rrpc_reply_buffer[0]);
+    size_t sg_rrpc_reply_buffersize  = sizeof(sg_rrpc_reply_buffer) / sizeof(sg_rrpc_reply_buffer[0]);
 
     Log_i("rrpc message=%.*s", msgLen, msg);
 

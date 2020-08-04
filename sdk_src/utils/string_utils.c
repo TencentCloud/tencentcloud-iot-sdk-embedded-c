@@ -134,4 +134,3 @@ void LITE_hexstr_convert(char *hexstr, uint8_t *out_buf, int in_len)
         i++;
     }
 }
-

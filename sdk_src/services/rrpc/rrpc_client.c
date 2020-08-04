@@ -26,7 +26,7 @@ extern "C" {
 
 #ifdef RRPC_ENABLED
 
-static char sg_process_id_buffer[MAX_RRPC_PROCESS_ID_LEN + 1] = {0};    // process id buffer
+static char sg_process_id_buffer[MAX_RRPC_PROCESS_ID_LEN + 1] = {0};  // process id buffer
 
 /*static int _iot_construct_rrpc_json(void *client, char *jsonBuffer, size_t sizeOfBuffer, sRRPCReplyPara *replyPara)
 {
@@ -36,9 +36,9 @@ static char sg_process_id_buffer[MAX_RRPC_PROCESS_ID_LEN + 1] = {0};    // proce
 static int _publish_rrpc_to_cloud(void *client, const char *processId, char *pJsonDoc)
 {
     IOT_FUNC_ENTRY;
-    int                  rc                             = QCLOUD_RET_SUCCESS;
-    char                 topic[MAX_SIZE_OF_CLOUD_TOPIC] = {0};
-    Qcloud_IoT_Client *mqtt_client = (Qcloud_IoT_Client *)client;
+    int                rc                             = QCLOUD_RET_SUCCESS;
+    char               topic[MAX_SIZE_OF_CLOUD_TOPIC] = {0};
+    Qcloud_IoT_Client *mqtt_client                    = (Qcloud_IoT_Client *)client;
 
     int size = HAL_Snprintf(topic, MAX_SIZE_OF_CLOUD_TOPIC, "$rrpc/txd/%s/%s/%s", mqtt_client->device_info.product_id,
                             mqtt_client->device_info.device_name, processId);
@@ -59,8 +59,8 @@ static int _publish_rrpc_to_cloud(void *client, const char *processId, char *pJs
 
 static int _rrpc_get_process_id(char *processIdBuffer, size_t sizeOfBuffer, const char *topic, size_t topic_len)
 {
-    char *p = NULL;
-    char ch = '/';
+    char *p  = NULL;
+    char  ch = '/';
 
     p = strrchr(topic, ch);
     if (p == NULL) {
@@ -127,7 +127,7 @@ static void _rrpc_event_callback(void *pClient, MQTTEventType event_type, void *
 
 int IOT_RRPC_Init(void *pClient, OnRRPCMessageCallback callback)
 {
-    int  rc                                     = QCLOUD_RET_SUCCESS;
+    int  rc                                      = QCLOUD_RET_SUCCESS;
     char rrpc_topic[MAX_SIZE_OF_CLOUD_TOPIC + 1] = {0};
 
     POINTER_SANITY_CHECK(pClient, QCLOUD_ERR_INVAL);

@@ -175,7 +175,7 @@ typedef struct {
     uint8_t          auto_connect_enable;     // flag of auto reconnection, 1 is enable and recommended
     MQTTEventHandler event_handle;            // event callback
 
-    int              err_code;
+    int err_code;
 
 } MQTTInitParams;
 
@@ -183,14 +183,14 @@ typedef struct {
  * Default MQTT init parameters
  */
 #ifdef AUTH_MODE_CERT
-#define DEFAULT_MQTTINIT_PARAMS                             \
-    {                                                       \
-        NULL, NULL, {0}, {0}, 5000, 240 * 1000, 1, 1, { 0 }, 0 \
+#define DEFAULT_MQTTINIT_PARAMS                              \
+    {                                                        \
+        NULL, NULL, {0}, {0}, 5000, 240 * 1000, 1, 1, {0}, 0 \
     }
 #else
-#define DEFAULT_MQTTINIT_PARAMS                         \
-    {                                                   \
-        NULL, NULL, NULL, 5000, 240 * 1000, 1, 1, { 0 }, 0 \
+#define DEFAULT_MQTTINIT_PARAMS                          \
+    {                                                    \
+        NULL, NULL, NULL, 5000, 240 * 1000, 1, 1, {0}, 0 \
     }
 #endif
 

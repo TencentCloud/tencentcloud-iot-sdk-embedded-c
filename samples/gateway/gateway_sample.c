@@ -210,7 +210,7 @@ static int _publish_subdev_msg(void *client, char *topic_keyword, QoS qos, Gatew
 // for reply code, pls check https://cloud.tencent.com/document/product/634/45960
 #define GATEWAY_RC_REPEAT_BIND 809
 static char *new_subdev_file = NULL;
-static int sg_loop_count = 5;
+static int   sg_loop_count   = 5;
 
 static int parse_arguments(int argc, char **argv)
 {
@@ -277,19 +277,19 @@ int main(int argc, char **argv)
 
     // make sub-device online
     GatewayParam gw_param = DEFAULT_GATEWAY_PARAMS;
-    gw_param.product_id  = gw_dev_info.gw_info.product_id;
-    gw_param.device_name = gw_dev_info.gw_info.device_name;
+    gw_param.product_id   = gw_dev_info.gw_info.product_id;
+    gw_param.device_name  = gw_dev_info.gw_info.device_name;
 
-    DeviceInfo *sub_dev_info = gw_dev_info.sub_dev_info;    
+    DeviceInfo *sub_dev_info = gw_dev_info.sub_dev_info;
 
     // to bind a new sub device
     DeviceInfo new_sub_dev = {0};
     if (new_subdev_file) {
-        do {            
+        do {
             rc = HAL_GetDevInfoFromFile(new_subdev_file, &new_sub_dev);
             if (rc) {
                 Log_e("get devinfo from file failed: %d", rc);
-                break;                
+                break;
             }
 
             rc = IOT_Gateway_Subdev_Bind(client, &gw_param, &new_sub_dev);
@@ -300,12 +300,11 @@ int main(int argc, char **argv)
             } else {
                 Log_e("bind subdev failed: %d", rc);
             }
-        } while(0);
+        } while (0);
     }
 
     gw_param.subdev_product_id  = sub_dev_info->product_id;
     gw_param.subdev_device_name = sub_dev_info->device_name;
-    
 
 #if 0
     // one GatewayParam only support one sub-device
@@ -366,7 +365,7 @@ int main(int argc, char **argv)
             Log_e("unbind failed: %d", rc);
         }
     }
-    
+
     rc = IOT_Gateway_Destroy(client);
 
     return rc;

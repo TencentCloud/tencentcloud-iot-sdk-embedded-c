@@ -252,36 +252,40 @@ int IOT_Gateway_Subdev_Offline(void *client, GatewayParam *param)
 
 int IOT_Gateway_Subdev_Bind(void *client, GatewayParam *param, DeviceInfo *pBindSubDevInfo)
 {
-    char           topic[MAX_SIZE_OF_CLOUD_TOPIC + 1];
-    char           payload[GATEWAY_PAYLOAD_BUFFER_LEN + 1];
-    int            size                                    = 0;
-    Gateway *      gateway                                 = (Gateway *)client;
+    char     topic[MAX_SIZE_OF_CLOUD_TOPIC + 1];
+    char     payload[GATEWAY_PAYLOAD_BUFFER_LEN + 1];
+    int      size    = 0;
+    Gateway *gateway = (Gateway *)client;
 
     memset(topic, 0, MAX_SIZE_OF_CLOUD_TOPIC);
-    size = HAL_Snprintf(topic, MAX_SIZE_OF_CLOUD_TOPIC + 1, GATEWAY_TOPIC_OPERATION_FMT, param->product_id, param->device_name);
+    size = HAL_Snprintf(topic, MAX_SIZE_OF_CLOUD_TOPIC + 1, GATEWAY_TOPIC_OPERATION_FMT, param->product_id,
+                        param->device_name);
     if (size < 0 || size > MAX_SIZE_OF_CLOUD_TOPIC) {
         Log_e("buf size < topic length!");
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
     }
 
     srand((unsigned)HAL_GetTimeMs());
-    int nonce     = rand();
-    long timestamp =  HAL_Timer_current_sec();
+    int  nonce     = rand();
+    long timestamp = HAL_Timer_current_sec();
 
     /*cal sign*/
     char sign[SUBDEV_BIND_SIGN_LEN];
     memset(sign, 0, SUBDEV_BIND_SIGN_LEN);
-    if (QCLOUD_RET_SUCCESS != subdev_bind_hmac_sha1_cal(pBindSubDevInfo, sign, SUBDEV_BIND_SIGN_LEN, nonce, timestamp)) {
+    if (QCLOUD_RET_SUCCESS !=
+        subdev_bind_hmac_sha1_cal(pBindSubDevInfo, sign, SUBDEV_BIND_SIGN_LEN, nonce, timestamp)) {
         Log_e("cal sign fail");
         return QCLOUD_ERR_FAILURE;
     }
     memset(payload, 0, GATEWAY_PAYLOAD_BUFFER_LEN);
 #ifdef AUTH_MODE_CERT
     size = HAL_Snprintf(payload, GATEWAY_PAYLOAD_BUFFER_LEN + 1, GATEWAY_PAYLOAD_OP_FMT, GATEWAY_BIND_OP_STR,
-                        pBindSubDevInfo->product_id, pBindSubDevInfo->device_name, sign, nonce, timestamp, "hmacsha1", "certificate");
+                        pBindSubDevInfo->product_id, pBindSubDevInfo->device_name, sign, nonce, timestamp, "hmacsha1",
+                        "certificate");
 #else
     size = HAL_Snprintf(payload, GATEWAY_PAYLOAD_BUFFER_LEN + 1, GATEWAY_PAYLOAD_OP_FMT, GATEWAY_BIND_OP_STR,
-                        pBindSubDevInfo->product_id, pBindSubDevInfo->device_name, sign, nonce, timestamp, "hmacsha1", "psk");
+                        pBindSubDevInfo->product_id, pBindSubDevInfo->device_name, sign, nonce, timestamp, "hmacsha1",
+                        "psk");
 #endif
 
     if (size < 0 || size > GATEWAY_PAYLOAD_BUFFER_LEN) {
@@ -313,13 +317,14 @@ int IOT_Gateway_Subdev_Bind(void *client, GatewayParam *param, DeviceInfo *pBind
 
 int IOT_Gateway_Subdev_Unbind(void *client, GatewayParam *param, DeviceInfo *pSubDevInfo)
 {
-    char           topic[MAX_SIZE_OF_CLOUD_TOPIC + 1];
-    char           payload[GATEWAY_PAYLOAD_BUFFER_LEN + 1];
-    int            size                                    = 0;
-    Gateway *      gateway                                 = (Gateway *)client;
+    char     topic[MAX_SIZE_OF_CLOUD_TOPIC + 1];
+    char     payload[GATEWAY_PAYLOAD_BUFFER_LEN + 1];
+    int      size    = 0;
+    Gateway *gateway = (Gateway *)client;
 
     memset(topic, 0, MAX_SIZE_OF_CLOUD_TOPIC);
-    size = HAL_Snprintf(topic, MAX_SIZE_OF_CLOUD_TOPIC + 1, GATEWAY_TOPIC_OPERATION_FMT, param->product_id, param->device_name);
+    size = HAL_Snprintf(topic, MAX_SIZE_OF_CLOUD_TOPIC + 1, GATEWAY_TOPIC_OPERATION_FMT, param->product_id,
+                        param->device_name);
     if (size < 0 || size > MAX_SIZE_OF_CLOUD_TOPIC) {
         Log_e("buf size < topic length!");
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
