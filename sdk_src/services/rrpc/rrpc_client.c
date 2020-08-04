@@ -28,11 +28,6 @@ extern "C" {
 
 static char sg_process_id_buffer[MAX_RRPC_PROCESS_ID_LEN + 1] = {0};  // process id buffer
 
-/*static int _iot_construct_rrpc_json(void *client, char *jsonBuffer, size_t sizeOfBuffer, sRRPCReplyPara *replyPara)
-{
-    return QCLOUD_RET_SUCCESS;
-}*/
-
 static int _publish_rrpc_to_cloud(void *client, const char *processId, char *pJsonDoc)
 {
     IOT_FUNC_ENTRY;
@@ -168,13 +163,6 @@ int IOT_RRPC_Init(void *pClient, OnRRPCMessageCallback callback)
 int IOT_RRPC_Reply(void *pClient, char *pJsonDoc, size_t sizeOfBuffer, sRRPCReplyPara *replyPara)
 {
     int rc = QCLOUD_RET_SUCCESS;
-
-    // TODO：数据格式暂不确定
-    /*rc = _iot_construct_rrpc_json(pClient, pJsonDoc, sizeOfBuffer, replyPara);
-    if (rc != QCLOUD_RET_SUCCESS) {
-        Log_e("construct rrpc json fail, %d", rc);
-        return rc;
-    }*/
 
     rc = _publish_rrpc_to_cloud(pClient, sg_process_id_buffer, pJsonDoc);
     if (rc < 0) {
