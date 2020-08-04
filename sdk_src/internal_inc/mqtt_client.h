@@ -239,6 +239,14 @@ typedef struct Client {
     SysMQTTState sys_state;
 #endif
 
+#ifdef BROADCAST_ENABLED
+    bool broadcast_state;  // using in broadcast
+#endif
+
+#ifdef RRPC_ENABLED
+    bool rrpc_state;
+#endif
+
 #ifdef MULTITHREAD_ENABLED
     bool thread_running;
     int  thread_exit_code;

@@ -24,7 +24,7 @@ extern "C" {
 #include "platform.h"
 
 /* IoT C-SDK version info */
-#define QCLOUD_IOT_DEVICE_SDK_VERSION "3.2.0"
+#define QCLOUD_IOT_DEVICE_SDK_VERSION "3.2.1"
 
 /**************** QCloud IoT C-SDK constants begin ************************/
 
@@ -76,6 +76,8 @@ typedef struct {
 } GatewayDeviceInfo;
 #endif
 
+#include "qcloud_iot_export_rrpc.h"
+#include "qcloud_iot_export_broadcast.h"
 #include "qcloud_iot_export_coap.h"
 #include "qcloud_iot_export_dynreg.h"
 #include "qcloud_iot_export_error.h"

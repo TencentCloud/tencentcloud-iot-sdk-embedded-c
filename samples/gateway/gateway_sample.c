@@ -207,14 +207,22 @@ static int _publish_subdev_msg(void *client, char *topic_keyword, QoS qos, Gatew
     return IOT_Gateway_Publish(client, topic_name, &pub_params);
 }
 
+// for reply code, pls check https://cloud.tencent.com/document/product/634/45960
+#define GATEWAY_RC_REPEAT_BIND 809
+static char *new_subdev_file = NULL;
 static int sg_loop_count = 5;
+
 static int parse_arguments(int argc, char **argv)
 {
     int c;
-    while ((c = utils_getopt(argc, argv, "c:l:")) != EOF) switch (c) {
+    while ((c = utils_getopt(argc, argv, "c:b:l:")) != EOF) switch (c) {
             case 'c':
                 if (HAL_SetDevInfoFile(utils_optarg))
                     return -1;
+                break;
+
+            case 'b':
+                new_subdev_file = utils_optarg;
                 break;
 
             case 'l':
@@ -229,6 +237,7 @@ static int parse_arguments(int argc, char **argv)
                 HAL_Printf(
                     "usage: %s [options]\n"
                     "  [-c <config file for DeviceInfo>] \n"
+                    "  [-b <config file for new SubDevice to bind>] \n"
                     "  [-l <loop count>] \n",
                     argv[0]);
                 return -1;
@@ -268,15 +277,35 @@ int main(int argc, char **argv)
 
     // make sub-device online
     GatewayParam gw_param = DEFAULT_GATEWAY_PARAMS;
-    ;
     gw_param.product_id  = gw_dev_info.gw_info.product_id;
     gw_param.device_name = gw_dev_info.gw_info.device_name;
 
-    DeviceInfo *sub_dev_info;
-    sub_dev_info = gw_dev_info.sub_dev_info;
+    DeviceInfo *sub_dev_info = gw_dev_info.sub_dev_info;    
+
+    // to bind a new sub device
+    DeviceInfo new_sub_dev = {0};
+    if (new_subdev_file) {
+        do {            
+            rc = HAL_GetDevInfoFromFile(new_subdev_file, &new_sub_dev);
+            if (rc) {
+                Log_e("get devinfo from file failed: %d", rc);
+                break;                
+            }
+
+            rc = IOT_Gateway_Subdev_Bind(client, &gw_param, &new_sub_dev);
+            if (rc == QCLOUD_RET_SUCCESS || rc == GATEWAY_RC_REPEAT_BIND) {
+                Log_i("bind sub-device %s-%s success", new_sub_dev.product_id, new_sub_dev.device_name);
+                sub_dev_info = &new_sub_dev;
+                break;
+            } else {
+                Log_e("bind subdev failed: %d", rc);
+            }
+        } while(0);
+    }
 
     gw_param.subdev_product_id  = sub_dev_info->product_id;
     gw_param.subdev_device_name = sub_dev_info->device_name;
+    
 
 #if 0
     // one GatewayParam only support one sub-device
@@ -331,6 +360,13 @@ int main(int argc, char **argv)
         return rc;
     }
 
+    if (new_subdev_file) {
+        rc = IOT_Gateway_Subdev_Unbind(client, &gw_param, &new_sub_dev);
+        if (rc) {
+            Log_e("unbind failed: %d", rc);
+        }
+    }
+    
     rc = IOT_Gateway_Destroy(client);
 
     return rc;

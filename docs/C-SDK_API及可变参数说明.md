@@ -41,6 +41,7 @@ C-SDK 的使用可以根据具体场景需求，配置相应的参数，满足�
 接口使用示例代码请参考samples目录下的对应代码，以及docs/IoT_Hub目录下的文档说明
 
 ### 1. MQTT 接口
+关于MQTT接口使用介绍，可以参考SDK docs/IoT_Hub/mqtt_sample_快速入门文档
 
 | 序号 | 函数名               | 说明                                            |
 | ---- | -------------------- | ----------------------------------------------- |
@@ -63,6 +64,7 @@ MQTT构造时候除了提供设备信息，还需要提供一个回调函数，�
 
 ### 2. 设备影子接口
 关于设备影子功能介绍，可以参考[设备影子详情](https://cloud.tencent.com/document/product/634/11918)
+同时可以参考SDK docs/IoT_Hub/设备影子文档
 
 | 序号  | 函数名                                             | 说明                                            |
 | ---- | -------------------------------------------------- | ---------------------------------------------- |
@@ -85,7 +87,8 @@ MQTT构造时候除了提供设备信息，还需要提供一个回调函数，�
 | 17   | IOT_Shadow_JSON_ConstructDesireAllNull             | 在JSON文档中添加 "desired": null 字段             |
 | 18   | IOT_Shadow_Get_Mqtt_Client                         | 获取该ShadowClient对应的MQTTclient             |
 
-### 3. CoAP 接口
+### CoAP 接口
+关于CoAP功能介绍，可以参考SDK docs/IoT_Hub/CoAP通讯文档
 
 | 序号 | 函数名                       | 说明                                                |
 | ---- | ---------------------------- | ------------------------------------------------- |
@@ -98,8 +101,9 @@ MQTT构造时候除了提供设备信息，还需要提供一个回调函数，�
 | 7    | IOT_COAP_GetMessageCode      | 获取 COAP Response 消息错误码                      |
 | 9    | IOT_COAP_GetDeviceInfo       | 获取该 COAPclien对应的设备信息             |
 
-### 4. OTA 接口
+### OTA 接口
 关于 OTA 固件下载功能介绍，可以参考[设备固件升级](https://cloud.tencent.com/document/product/634/14674)
+同时可以参考SDK docs/IoT_Hub/固件升级文档
 
 | 序号  | 函数名                        | 说明                                              |
 | ---- | ---------------------------- | ------------------------------------------------- |
@@ -117,8 +121,8 @@ MQTT构造时候除了提供设备信息，还需要提供一个回调函数，�
 | 12   | IOT_OTA_ReportUpgradeSuccess | 当固件升级成功之后，向服务器上报升级成功的状态                         |
 | 13   | IOT_OTA_ReportUpgradeFail    | 当固件升级失败之后，向服务器上报升级失败的状态        |
 
-### 5. 日志接口
-设备日志上报云端功能的详细说明可以参考SDK docs目录下物联网通信平台文档设备日志上报功能部分
+### 日志接口
+设备日志上报云端功能的说明可以参考SDK docs/IoT_Hub/设备日志上报文档
 
 | 序号 | 函数名                     | 说明                                          |
 | ---- | -------------------------- | --------------------------------------------- |
@@ -132,29 +136,47 @@ MQTT构造时候除了提供设备信息，还需要提供一个回调函数，�
 | 8    | IOT_Log_Get_Upload_Level   | 返回 SDK 日志上报的等级                            |
 | 9    | Log_d/i/w/e                | 按级别打印添加 SDK 日志的接口                         |
 
-### 6. 系统时间接口
+### 系统时间接口
 
 | 序号  | 函数名                      | 说明                                              |
 | ---- | ---------------------------- | ------------------------------------------------- |
 | 1    | IOT_Get_SysTime              | 获取 IoT hub 后台系统时间，目前仅支持 MQTT 通道对时功能 |
 
-### 7. 网关功能接口
-关于网关功能介绍，可以参考SDK docs目录下物联网通信平台文档网关产品部分
+### 网关功能接口
+关于网关功能介绍，可以参考SDK docs/IoT_Hub/网关功能文档
 
 | 序号 | 函数名                       | 说明                                                |
 | ---- | ---------------------------- | ------------------------------------------------- |
 | 1    | IOT_Gateway_Construct        | 构造 Gateway client 并完成 MQTT 连接                   |
 | 2    | IOT_Gateway_Destroy          | 关闭 MQTT 连接并销毁 Gateway client                    |
-| 3    | IOT_Gateway_Subdev_Online    | 子设备上线              |
-| 4    | IOT_Gateway_Subdev_Offline   | 子设备下线                                    |
-| 3    | IOT_Gateway_Yield            | 在当前线程上下文中，进行 MQTT 报文读取，消息处理，超时请求，心跳包及重连状态管理等任务 |
-| 4    | IOT_Gateway_Publish          | 发布 MQTT 消息                                  |
-| 5    | IOT_Gateway_Subscribe        | 订阅 MQTT 主题                                  |
-| 6    | IOT_Gateway_Unsubscribe      | 取消订阅已订阅的 MQTT 主题                      |
-| 18   | IOT_Gateway_Get_Mqtt_Client  | 获取该GatewayClient对应的MQTTclient             |
+| 3    | IOT_Gateway_Subdev_Bind      | 网关绑定子设备              |
+| 4    | IOT_Gateway_Subdev_Unbind    | 网关解绑子设备                                    |
+| 5    | IOT_Gateway_Subdev_Online    | 代理子设备上线              |
+| 6    | IOT_Gateway_Subdev_Offline   | 代理子设备下线                                    |
+| 7    | IOT_Gateway_Yield            | 在当前线程上下文中，进行 MQTT 报文读取，消息处理，超时请求，心跳包及重连状态管理等任务 |
+| 8    | IOT_Gateway_Publish          | 发布 MQTT 消息                                  |
+| 9    | IOT_Gateway_Subscribe        | 订阅 MQTT 主题                                  |
+| 10   | IOT_Gateway_Unsubscribe      | 取消订阅已订阅的 MQTT 主题                      |
+| 11   | IOT_Gateway_Get_Mqtt_Client  | 获取该GatewayClient对应的MQTTclient             |
 
-### 8. 动态注册接口
+### 动态注册接口
+关于动态注册功能介绍，可以参考SDK docs/IoT_Hub/动态注册文档
 
 | 序号  | 函数名                      | 说明                                              |
 | ---- | ---------------------------- | ------------------------------------------------- |
 | 1    | IOT_DynReg_Device            | 向后台动态注册设备并获取设备密钥或者证书 |
+
+### 广播通信接口
+关于广播通信功能介绍，可以参考SDK docs/IoT_Hub/广播通信文档
+
+| 序号  | 函数名                      | 说明                                              |
+| ---- | ---------------------------- | ------------------------------------------------- |
+| 1    | IOT_Broadcast_Subscribe      | 订阅接收广播消息的主题并提供消息回调处理函数 |
+
+### 同步通信接口
+关于同步通信rrpc功能介绍，可以参考SDK docs/IoT_Hub/同步通信文档
+
+| 序号  | 函数名                      | 说明                                              |
+| ---- | ---------------------------- | ------------------------------------------------- |
+| 1    | IOT_RRPC_Init            | 订阅接收rrpc消息的主题并提供消息回调处理函数 |
+| 2    | IOT_RRPC_Reply            | 回复rrpc消息 |
