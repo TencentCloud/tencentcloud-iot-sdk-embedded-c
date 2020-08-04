@@ -39,9 +39,11 @@ ifeq ($(FEATURE_AUTH_MODE),CERT)
 CFLAGS += -DAUTH_MODE_CERT
 endif
 
-.PHONY: mqtt_sample ota_mqtt_sample ota_coap_sample shadow_sample coap_sample gateway_sample multi_thread_mqtt_sample dynreg_dev_sample multi_client
+.PHONY: mqtt_sample ota_mqtt_sample ota_coap_sample shadow_sample coap_sample gateway_sample multi_thread_mqtt_sample \
+			dynreg_dev_sample multi_client broadcast_sample rrpc_sample
 
-all: mqtt_sample ota_mqtt_sample ota_coap_sample shadow_sample coap_sample gateway_sample multi_thread_mqtt_sample dynreg_dev_sample multi_client
+all: mqtt_sample ota_mqtt_sample ota_coap_sample shadow_sample coap_sample gateway_sample multi_thread_mqtt_sample \
+			dynreg_dev_sample multi_client broadcast_sample rrpc_sample
 
 ifneq (,$(filter -DMQTT_COMM_ENABLED,$(CFLAGS)))
 mqtt_sample:
@@ -151,6 +153,24 @@ ota_coap_sample:
 endif
 endif
 
+endif
+
+ifneq (,$(filter -DBROADCAST_ENABLED,$(CFLAGS)))
+broadcast_sample:
+	$(TOP_Q) \
+	$(PLATFORM_CC) $(CFLAGS) $(SAMPLE_DIR)/broadcast/$@.c $(LDFLAGS) -o $@
+
+	$(TOP_Q) \
+	mv $@ $(FINAL_DIR)/bin
+endif
+
+ifneq (,$(filter -DRRPC_ENABLED,$(CFLAGS)))
+rrpc_sample:
+	$(TOP_Q) \
+	$(PLATFORM_CC) $(CFLAGS) $(SAMPLE_DIR)/rrpc/$@.c $(LDFLAGS) -o $@
+
+	$(TOP_Q) \
+	mv $@ $(FINAL_DIR)/bin
 endif
 
 clean:

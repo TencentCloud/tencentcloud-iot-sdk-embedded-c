@@ -109,3 +109,15 @@ if(${FEATURE_OTA_COMM_ENABLED} STREQUAL "ON" AND ${FEATURE_OTA_SIGNAL_CHANNEL} S
 	add_executable(ota_coap_sample				${src_ota_coap_sample})
 	target_link_libraries(ota_coap_sample			 ${lib})
 endif()
+
+if(${FEATURE_BROADCAST_ENABLED} STREQUAL "ON")
+	file(GLOB src_broadcast_sample 				${PROJECT_SOURCE_DIR}/samples/broadcast/broadcast_sample.c)
+	add_executable(broadcast_sample				${src_broadcast_sample})
+	target_link_libraries(broadcast_sample			 ${lib})
+endif()
+
+if(${FEATURE_RRPC_ENABLED} STREQUAL "ON")
+	file(GLOB src_rrpc_sample 					${PROJECT_SOURCE_DIR}/samples/rrpc/rrpc_sample.c)
+	add_executable(rrpc_sample					${src_rrpc_sample})
+	target_link_libraries(rrpc_sample			 	${lib})
+endif()

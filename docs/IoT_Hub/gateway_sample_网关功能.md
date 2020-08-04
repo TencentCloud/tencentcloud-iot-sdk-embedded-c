@@ -132,6 +132,16 @@ INF|2019-09-16 14:35:35|gateway_sample.c|_message_handler(111): Receive Message 
 
 ## 三. 代码说明
 
+#### 如何通过SDK绑定子设备
+网关绑定和解绑子设备可以通过控制台操作，也可以由网关通过MQTT报文进行，SDK提供了对应的接口
+```
+int IOT_Gateway_Subdev_Bind(void *client, GatewayParam *param, DeviceInfo *pBindSubDevInfo);
+int IOT_Gateway_Subdev_Unbind(void *client, GatewayParam *param, DeviceInfo *pSubDevInfo);
+```
+使用方式可以参考gateway_sample示例代码
+当执行`gateway_sample -b psk_device_info.json`时，会先去绑定psk_device_info.json里面指定的子设备，再执行上下线及收发消息操作
+
+#### 如何代理多个子设备
 gateway_sample示例演示了网关代理一个子设备的情况，如果用户需要增加更多子设备，可以先在控制台添加子设备，然后在代码里面通过创建更多GatewayParam参数实例，并将GatewayParam参数传递给网关各个API，即可以实现网关代理多个子设备进行通讯。
 ```
     // one GatewayParam only support one sub-device

@@ -163,7 +163,7 @@ int IOT_Gateway_Subdev_Online(void *client, GatewayParam *param)
         Log_e("buf size < client_id length!");
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
     }
-    gateway->gateway_data.online.result = -1;
+    gateway->gateway_data.online.result = -1001;
 
     params.qos         = QOS0;
     params.payload_len = strlen(payload);
@@ -173,7 +173,7 @@ int IOT_Gateway_Subdev_Online(void *client, GatewayParam *param)
     rc = gateway_publish_sync(gateway, topic, &params, &gateway->gateway_data.online.result);
     if (QCLOUD_RET_SUCCESS != rc) {
         subdev_remove_session(gateway, param->subdev_product_id, param->subdev_device_name);
-        IOT_FUNC_EXIT_RC(rc);
+        IOT_FUNC_EXIT_RC(gateway->gateway_data.online.result);
     }
 
     session->session_status = SUBDEV_SEESION_STATUS_ONLINE;
@@ -229,7 +229,7 @@ int IOT_Gateway_Subdev_Offline(void *client, GatewayParam *param)
         Log_e("buf size < client_id length!");
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
     }
-    gateway->gateway_data.offline.result = -1;
+    gateway->gateway_data.offline.result = -1001;
 
     PublishParams params = DEFAULT_PUB_PARAMS;
     params.qos           = QOS0;
@@ -239,7 +239,7 @@ int IOT_Gateway_Subdev_Offline(void *client, GatewayParam *param)
     /* publish packet */
     rc = gateway_publish_sync(gateway, topic, &params, &gateway->gateway_data.offline.result);
     if (QCLOUD_RET_SUCCESS != rc) {
-        IOT_FUNC_EXIT_RC(rc);
+        IOT_FUNC_EXIT_RC(gateway->gateway_data.offline.result);
     }
 
     session->session_status = SUBDEV_SEESION_STATUS_OFFLINE;
@@ -250,11 +250,119 @@ int IOT_Gateway_Subdev_Offline(void *client, GatewayParam *param)
     IOT_FUNC_EXIT_RC(QCLOUD_RET_SUCCESS);
 }
 
-void *IOT_Gateway_Get_Mqtt_Client(void *handle)
+int IOT_Gateway_Subdev_Bind(void *client, GatewayParam *param, DeviceInfo *pBindSubDevInfo)
 {
-    POINTER_SANITY_CHECK(handle, NULL);
+    char     topic[MAX_SIZE_OF_CLOUD_TOPIC + 1];
+    char     payload[GATEWAY_PAYLOAD_BUFFER_LEN + 1];
+    int      size    = 0;
+    Gateway *gateway = (Gateway *)client;
 
-    Gateway *gateway = (Gateway *)handle;
+    memset(topic, 0, MAX_SIZE_OF_CLOUD_TOPIC);
+    size = HAL_Snprintf(topic, MAX_SIZE_OF_CLOUD_TOPIC + 1, GATEWAY_TOPIC_OPERATION_FMT, param->product_id,
+                        param->device_name);
+    if (size < 0 || size > MAX_SIZE_OF_CLOUD_TOPIC) {
+        Log_e("buf size < topic length!");
+        IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
+    }
+
+    srand((unsigned)HAL_GetTimeMs());
+    int  nonce     = rand();
+    long timestamp = HAL_Timer_current_sec();
+
+    /*cal sign*/
+    char sign[SUBDEV_BIND_SIGN_LEN];
+    memset(sign, 0, SUBDEV_BIND_SIGN_LEN);
+    if (QCLOUD_RET_SUCCESS !=
+        subdev_bind_hmac_sha1_cal(pBindSubDevInfo, sign, SUBDEV_BIND_SIGN_LEN, nonce, timestamp)) {
+        Log_e("cal sign fail");
+        return QCLOUD_ERR_FAILURE;
+    }
+    memset(payload, 0, GATEWAY_PAYLOAD_BUFFER_LEN);
+#ifdef AUTH_MODE_CERT
+    size = HAL_Snprintf(payload, GATEWAY_PAYLOAD_BUFFER_LEN + 1, GATEWAY_PAYLOAD_OP_FMT, GATEWAY_BIND_OP_STR,
+                        pBindSubDevInfo->product_id, pBindSubDevInfo->device_name, sign, nonce, timestamp, "hmacsha1",
+                        "certificate");
+#else
+    size = HAL_Snprintf(payload, GATEWAY_PAYLOAD_BUFFER_LEN + 1, GATEWAY_PAYLOAD_OP_FMT, GATEWAY_BIND_OP_STR,
+                        pBindSubDevInfo->product_id, pBindSubDevInfo->device_name, sign, nonce, timestamp, "hmacsha1",
+                        "psk");
+#endif
+
+    if (size < 0 || size > GATEWAY_PAYLOAD_BUFFER_LEN) {
+        Log_e("buf size < payload length!");
+        IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
+    }
+
+    size = HAL_Snprintf(gateway->gateway_data.bind.client_id, MAX_SIZE_OF_CLIENT_ID, GATEWAY_CLIENT_ID_FMT,
+                        pBindSubDevInfo->product_id, pBindSubDevInfo->device_name);
+    if (size < 0 || size > MAX_SIZE_OF_CLIENT_ID) {
+        Log_e("buf size < client_id length!");
+        IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
+    }
+
+    PublishParams params = DEFAULT_PUB_PARAMS;
+    params.qos           = QOS0;
+    params.payload_len   = strlen(payload);
+    params.payload       = (char *)payload;
+
+    /* publish packet */
+    gateway->gateway_data.bind.result = -1001;
+    int rc = gateway_publish_sync(gateway, topic, &params, &gateway->gateway_data.bind.result);
+    if (QCLOUD_RET_SUCCESS != rc) {
+        IOT_FUNC_EXIT_RC(gateway->gateway_data.bind.result);
+    }
+
+    IOT_FUNC_EXIT_RC(QCLOUD_RET_SUCCESS);
+}
+
+int IOT_Gateway_Subdev_Unbind(void *client, GatewayParam *param, DeviceInfo *pSubDevInfo)
+{
+    char     topic[MAX_SIZE_OF_CLOUD_TOPIC + 1];
+    char     payload[GATEWAY_PAYLOAD_BUFFER_LEN + 1];
+    int      size    = 0;
+    Gateway *gateway = (Gateway *)client;
+
+    memset(topic, 0, MAX_SIZE_OF_CLOUD_TOPIC);
+    size = HAL_Snprintf(topic, MAX_SIZE_OF_CLOUD_TOPIC + 1, GATEWAY_TOPIC_OPERATION_FMT, param->product_id,
+                        param->device_name);
+    if (size < 0 || size > MAX_SIZE_OF_CLOUD_TOPIC) {
+        Log_e("buf size < topic length!");
+        IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
+    }
+    memset(payload, 0, GATEWAY_PAYLOAD_BUFFER_LEN);
+    size = HAL_Snprintf(payload, GATEWAY_PAYLOAD_BUFFER_LEN + 1, GATEWAY_PAYLOAD_STATUS_FMT, GATEWAY_UNBIND_OP_STR,
+                        pSubDevInfo->product_id, pSubDevInfo->device_name);
+    if (size < 0 || size > GATEWAY_PAYLOAD_BUFFER_LEN) {
+        Log_e("buf size < payload length!");
+        IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
+    }
+
+    size = HAL_Snprintf(gateway->gateway_data.unbind.client_id, MAX_SIZE_OF_CLIENT_ID, GATEWAY_CLIENT_ID_FMT,
+                        pSubDevInfo->product_id, pSubDevInfo->device_name);
+    if (size < 0 || size > MAX_SIZE_OF_CLIENT_ID) {
+        Log_e("buf size < client_id length!");
+        IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
+    }
+
+    PublishParams params = DEFAULT_PUB_PARAMS;
+    params.qos           = QOS0;
+    params.payload_len   = strlen(payload);
+    params.payload       = (char *)payload;
+
+    /* publish packet */
+    gateway->gateway_data.unbind.result = -1001;
+    int rc = gateway_publish_sync(gateway, topic, &params, &gateway->gateway_data.unbind.result);
+    if (QCLOUD_RET_SUCCESS != rc) {
+        IOT_FUNC_EXIT_RC(gateway->gateway_data.unbind.result);
+    }
+
+    IOT_FUNC_EXIT_RC(QCLOUD_RET_SUCCESS);
+}
+
+void *IOT_Gateway_Get_Mqtt_Client(void *client)
+{
+    POINTER_SANITY_CHECK(client, NULL);
+    Gateway *gateway = (Gateway *)client;
 
     return gateway->mqtt;
 }

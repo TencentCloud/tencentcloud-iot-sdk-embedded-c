@@ -101,6 +101,28 @@ int IOT_Gateway_Subdev_Online(void *client, GatewayParam *param);
 int IOT_Gateway_Subdev_Offline(void *client, GatewayParam *param);
 
 /**
+ * @brief Bind a sub-device
+ *
+ * @param client    handle to gateway client
+ * @param param     gateway parameters
+ * @param pBindSubDevInfo   sub dev info to bind
+ *
+ * @return QCLOUD_RET_SUCCESS for success, or err code for failure
+ */
+int IOT_Gateway_Subdev_Bind(void *client, GatewayParam *param, DeviceInfo *pBindSubDevInfo);
+
+/**
+ * @brief Unbind a sub-device
+ *
+ * @param client    handle to gateway client
+ * @param param     gateway parameters
+ * @param pBindSubDevInfo   sub dev info to unbind
+ *
+ * @return QCLOUD_RET_SUCCESS for success, or err code for failure
+ */
+int IOT_Gateway_Subdev_Unbind(void *client, GatewayParam *param, DeviceInfo *pSubDevInfo);
+
+/**
  * @brief Publish gateway MQTT message
  *
  * @param client        handle to gateway client

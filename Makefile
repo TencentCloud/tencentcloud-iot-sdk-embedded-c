@@ -90,6 +90,14 @@ $(call CompLib_Map, AT_TCP_ENABLED, \
 	$(SRC_DIR)/network/at_socket \
 )
 
+$(call CompLib_Map, BROADCAST_ENABLED, \
+	$(SRC_DIR)/services/broadcast \
+)
+
+$(call CompLib_Map, RRPC_ENABLED, \
+	$(SRC_DIR)/services/rrpc \
+)
+
 IOTSDK_SRC_FILES := \
 
 $(foreach v, \

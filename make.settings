@@ -69,3 +69,9 @@ FEATURE_AT_OS_USED                      = n
 
 # 是否打开AT模组调试功能
 FEATURE_AT_DEBUG                        = n
+
+# 是否打开广播功能
+FEATURE_BROADCAST_ENABLED               = y
+
+# 是否打开RRPC功能
+FEATURE_RRPC_ENABLED                    = y

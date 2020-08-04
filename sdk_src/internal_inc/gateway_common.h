@@ -21,6 +21,12 @@
 #define GATEWAY_PAYLOAD_BUFFER_LEN 1024
 #define GATEWAY_RECEIVE_BUFFER_LEN 1024
 #define GATEWAY_LOOP_MAX_COUNT     100
+#define SUBDEV_BIND_SIGN_LEN       64
+#define BIND_SIGN_KEY_SIZE         MAX_SIZE_OF_DEVICE_SECRET
+#define GATEWAY_ONLINE_OP_STR      "online"
+#define GATEWAY_OFFLIN_OP_STR      "offline"
+#define GATEWAY_BIND_OP_STR        "bind"
+#define GATEWAY_UNBIND_OP_STR      "unbind"
 
 /* The format of operation of gateway topic */
 #define GATEWAY_TOPIC_OPERATION_FMT "$gateway/operation/%s/%s"
@@ -32,8 +38,15 @@
 #define GATEWAY_CLIENT_ID_FMT "%s/%s"
 
 /* The format of operation result of gateway topic */
-#define GATEWAY_PAYLOAD_STATUS_FMT \
-    "{\"type\":\"%s\",\"payload\":{\"devices\":[{\"product_id\":\"%s\",\"device_name\":\"%s\"}]}}"
+#define GATEWAY_PAYLOAD_STATUS_FMT                                       \
+    "{\"type\":\"%s\",\"payload\":{\"devices\":[{\"product_id\":\"%s\"," \
+    "\"device_name\":\"%s\"}]}}"
+
+/* The format of bind cmd payload */
+#define GATEWAY_PAYLOAD_OP_FMT                                                    \
+    "{\"type\":\"%s\",\"payload\":{\"devices\":[{\"product_id\":\"%s\","          \
+    "\"device_name\":\"%s\",\"signature\":\"%s\",\"random\":%d,\"timestamp\":%d," \
+    "\"signmethod\":\"%s\",\"authtype\":\"%s\"}]}}"
 
 /* Subdevice    seesion status */
 typedef enum _SubdevSessionStatus {
@@ -69,6 +82,8 @@ typedef struct _GatewayData {
     int32_t   sync_status;
     ReplyData online;
     ReplyData offline;
+    ReplyData bind;
+    ReplyData unbind;
 } GatewayData;
 
 /* The structure of gateway context */
@@ -93,5 +108,7 @@ int gateway_subscribe_unsubscribe_topic(Gateway *gateway, char *topic_filter, Su
 int gateway_subscribe_unsubscribe_default(Gateway *gateway, GatewayParam *param);
 
 int gateway_publish_sync(Gateway *gateway, char *topic, PublishParams *params, int32_t *result);
+
+int subdev_bind_hmac_sha1_cal(DeviceInfo *pDevInfo, char *signout, int max_signlen, int nonce, long timestamp);
 
 #endif /* IOT_GATEWAY_COMMON_H_ */

@@ -89,6 +89,8 @@ typedef enum {
     QCLOUD_ERR_GATEWAY_SESSION_TIMEOUT                    = -223,  // Gateway sub-device session timeout
     QCLOUD_ERR_GATEWAY_SUBDEV_ONLINE                      = -224,  // Gateway sub-device online
     QCLOUD_ERR_GATEWAY_SUBDEV_OFFLINE                     = -225,  // Gateway sub-device offline
+    QCLOUD_ERR_RRPC_REPLY_TIMEOUT                         = -230,  // RRPC reply timeout
+    QCLOUD_ERR_RRPC_REPLY_ERR                             = -231,  // RRPC reply error
     QCLOUD_ERR_TCP_SOCKET_FAILED                          = -601,  // TLS TCP socket connect fail
     QCLOUD_ERR_TCP_UNKNOWN_HOST                           = -602,  // TCP unknown host (DNS fail)
     QCLOUD_ERR_TCP_CONNECT                                = -603,  // TCP/UDP socket connect fail

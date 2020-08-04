@@ -94,6 +94,15 @@ if(${FEATURE_SYSTEM_COMM_ENABLED} STREQUAL "ON")
 	list(APPEND src_sdk ${src_system})
 endif()
 
+if(${FEATURE_BROADCAST_ENABLED} STREQUAL "ON")
+	file(GLOB src_broadcast ${CMAKE_CURRENT_SOURCE_DIR}/services/broadcast/*.c)
+	list(APPEND src_sdk ${src_broadcast})
+endif()
+
+if(${FEATURE_RRPC_ENABLED} STREQUAL "ON")
+	file(GLOB src_rrpc ${CMAKE_CURRENT_SOURCE_DIR}/services/rrpc/*.c)
+	list(APPEND src_sdk ${src_rrpc})
+endif()
 
 if(${EXTRACT_SRC} STREQUAL  "ON")
 	file(COPY ${src_sdk} DESTINATION ${PROJECT_SOURCE_DIR}/output/qcloud_iot_c_sdk/sdk_src/)

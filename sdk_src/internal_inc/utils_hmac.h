@@ -22,4 +22,6 @@ void utils_hmac_md5(const char *msg, int msg_len, char *digest, const char *key,
 
 void utils_hmac_sha1(const char *msg, int msg_len, char *digest, const char *key, int key_len);
 
+int utils_hmac_sha1_hex(const char *msg, int msg_len, char *digest, const char *key, int key_len);
+
 #endif

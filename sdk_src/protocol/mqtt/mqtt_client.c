@@ -88,7 +88,7 @@ void *IOT_MQTT_Construct(MQTTInitParams *pParams)
         Log_e("Device secret is null!");
         qcloud_iot_mqtt_fini(mqtt_client);
         HAL_Free(mqtt_client);
-		pParams->err_code = QCLOUD_ERR_INVAL;
+        pParams->err_code = QCLOUD_ERR_INVAL;
         return NULL;
     }
     size_t src_len = strlen(pParams->device_secret);
@@ -102,7 +102,7 @@ void *IOT_MQTT_Construct(MQTTInitParams *pParams)
         Log_e("Device secret decode err, secret:%s", pParams->device_secret);
         qcloud_iot_mqtt_fini(mqtt_client);
         HAL_Free(mqtt_client);
-		pParams->err_code = QCLOUD_ERR_INVAL;
+        pParams->err_code = QCLOUD_ERR_INVAL;
         return NULL;
     }
 #endif
@@ -112,7 +112,7 @@ void *IOT_MQTT_Construct(MQTTInitParams *pParams)
         Log_e("mqtt connect with id: %s failed: %d", mqtt_client->options.conn_id, rc);
         qcloud_iot_mqtt_fini(mqtt_client);
         HAL_Free(mqtt_client);
-		pParams->err_code = rc;
+        pParams->err_code = rc;
         return NULL;
     } else {
         Log_i("mqtt connect with id: %s success", mqtt_client->options.conn_id);
