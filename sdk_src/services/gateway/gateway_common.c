@@ -17,8 +17,8 @@
 #include "lite-utils.h"
 #include "mqtt_client.h"
 #include "utils_base64.h"
-#include "utils_md5.h"
 #include "utils_hmac.h"
+#include "utils_md5.h"
 
 static bool get_json_type(char *json, char **v)
 {

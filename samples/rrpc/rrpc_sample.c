@@ -136,7 +136,7 @@ static void _rrpc_message_handler(void *pClient, const char *msg, uint32_t msgLe
 
     Log_i("rrpc message=%.*s", msgLen, msg);
 
-    // add your logic here and set reply param which will be reported by IOT_RRPC_REPLY
+    // add your logic here and set reply param which will be reported by IOT_RRPC_Reply
     sg_rrpc_reply_buffer[0] = 'o';
     sg_rrpc_reply_buffer[1] = 'k';
 
@@ -147,7 +147,8 @@ static int sg_loop_count = 5;
 static int parse_arguments(int argc, char **argv)
 {
     int c;
-    while ((c = utils_getopt(argc, argv, "c:l:")) != EOF) switch (c) {
+    while ((c = utils_getopt(argc, argv, "c:l:")) != EOF)
+        switch (c) {
             case 'c':
                 if (HAL_SetDevInfoFile(utils_optarg))
                     return -1;

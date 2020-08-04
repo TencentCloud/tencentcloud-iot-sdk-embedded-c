@@ -215,7 +215,8 @@ static int   sg_loop_count   = 5;
 static int parse_arguments(int argc, char **argv)
 {
     int c;
-    while ((c = utils_getopt(argc, argv, "c:b:l:")) != EOF) switch (c) {
+    while ((c = utils_getopt(argc, argv, "c:b:l:")) != EOF)
+        switch (c) {
             case 'c':
                 if (HAL_SetDevInfoFile(utils_optarg))
                     return -1;

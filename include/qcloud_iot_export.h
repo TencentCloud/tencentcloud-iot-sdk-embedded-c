@@ -76,7 +76,6 @@ typedef struct {
 } GatewayDeviceInfo;
 #endif
 
-#include "qcloud_iot_export_rrpc.h"
 #include "qcloud_iot_export_broadcast.h"
 #include "qcloud_iot_export_coap.h"
 #include "qcloud_iot_export_dynreg.h"
@@ -85,6 +84,7 @@ typedef struct {
 #include "qcloud_iot_export_log.h"
 #include "qcloud_iot_export_mqtt.h"
 #include "qcloud_iot_export_ota.h"
+#include "qcloud_iot_export_rrpc.h"
 #include "qcloud_iot_export_shadow.h"
 #include "qcloud_iot_export_system.h"
 #include "qcloud_iot_export_variables.h"

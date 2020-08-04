@@ -60,6 +60,12 @@ set(FEATURE_SYSTEM_COMM_ENABLED ON)
 # 是否使用HTTPS下载固件
 set(FEATURE_OTA_USE_HTTPS ON)
 
+# 是否打开广播功能
+set(FEATURE_BROADCAST_ENABLED ON)
+
+# 是否打开RRPC功能
+set(FEATURE_RRPC_ENABLED ON)
+
 # 是否打开AT模组TCP功能
 set(FEATURE_AT_TCP_ENABLED OFF)
 
@@ -74,12 +80,6 @@ set(FEATURE_AT_OS_USED OFF)
 
 # 是否打开AT模组调试功能
 set(FEATURE_AT_DEBUG OFF)
-
-# 是否打开广播功能
-set(FEATURE_BROADCAST_ENABLED ON)
-
-# 是否打开RRPC功能
-set(FEATURE_RRPC_ENABLED ON)
 
 ######################CONFIG END######################################
 
