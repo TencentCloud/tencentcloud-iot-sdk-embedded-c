@@ -787,10 +787,12 @@ err_exit:
         client->lock = NULL;
     }
 
+#ifdef AT_OS_USED
     if (client->resp_sem) {
         HAL_SemaphoreDestroy(client->resp_sem);
         client->resp_sem = NULL;
     }
+#endif
 
     HAL_Free(ringBuff);
     HAL_Free(recvBuff);
