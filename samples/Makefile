@@ -40,10 +40,10 @@ CFLAGS += -DAUTH_MODE_CERT
 endif
 
 .PHONY: mqtt_sample ota_mqtt_sample ota_coap_sample shadow_sample coap_sample gateway_sample multi_thread_mqtt_sample \
-			dynreg_dev_sample multi_client broadcast_sample rrpc_sample
+			dynreg_dev_sample multi_client broadcast_sample rrpc_sample remote_config_mqtt_sample
 
 all: mqtt_sample ota_mqtt_sample ota_coap_sample shadow_sample coap_sample gateway_sample multi_thread_mqtt_sample \
-			dynreg_dev_sample multi_client broadcast_sample rrpc_sample
+			dynreg_dev_sample multi_client broadcast_sample rrpc_sample remote_config_mqtt_sample
 
 ifneq (,$(filter -DMQTT_COMM_ENABLED,$(CFLAGS)))
 mqtt_sample:
@@ -168,6 +168,15 @@ ifneq (,$(filter -DRRPC_ENABLED,$(CFLAGS)))
 rrpc_sample:
 	$(TOP_Q) \
 	$(PLATFORM_CC) $(CFLAGS) $(SAMPLE_DIR)/rrpc/$@.c $(LDFLAGS) -o $@
+
+	$(TOP_Q) \
+	mv $@ $(FINAL_DIR)/bin
+endif
+
+ifneq (,$(filter -DREMOTE_CONFIG_MQTT_ENABLED,$(CFLAGS)))
+remote_config_mqtt_sample:
+	$(TOP_Q) \
+	$(PLATFORM_CC) $(CFLAGS) $(SAMPLE_DIR)/config/$@.c $(LDFLAGS) -o $@
 
 	$(TOP_Q) \
 	mv $@ $(FINAL_DIR)/bin

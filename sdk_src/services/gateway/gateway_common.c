@@ -17,8 +17,9 @@
 #include "lite-utils.h"
 #include "mqtt_client.h"
 #include "utils_base64.h"
-#include "utils_hmac.h"
 #include "utils_md5.h"
+#include "utils_hmac.h"
+#include "json_parser.h"
 
 static bool get_json_type(char *json, char **v)
 {
@@ -56,6 +57,68 @@ static bool get_json_device_name(char *json, char **v)
 {
     *v = LITE_json_value_of("device_name", json);
     return *v == NULL ? false : true;
+}
+
+#define MIN(a, b) ((a > b) ? b : a)
+static SubdevBindInfo *_subdev_add_bindinfo(Gateway *gateway, char *subdev_product_id, char *subdev_device_name)
+{
+    SubdevBindInfo *bindinfo = NULL;
+
+    POINTER_SANITY_CHECK(gateway, NULL);
+    STRING_PTR_SANITY_CHECK(subdev_product_id, NULL);
+    STRING_PTR_SANITY_CHECK(subdev_device_name, NULL);
+
+    bindinfo = HAL_Malloc(sizeof(SubdevBindInfo));
+    if (bindinfo == NULL) {
+        Log_e("add bindinfo not enough memory");
+        IOT_FUNC_EXIT_RC(NULL);
+    }
+
+    memset(bindinfo, 0, sizeof(SubdevBindInfo));
+    /* add subdev bind info to list */
+    bindinfo->next                   = gateway->bind_list.bindlist_head;
+    gateway->bind_list.bindlist_head = bindinfo;
+
+    strncpy(bindinfo->product_id, subdev_product_id, MAX_SIZE_OF_PRODUCT_ID);
+    bindinfo->product_id[MAX_SIZE_OF_PRODUCT_ID] = '\0';
+    int size = strlen(subdev_device_name);
+    strncpy(bindinfo->device_name, subdev_device_name, MIN(size, MAX_SIZE_OF_DEVICE_NAME));
+    bindinfo->device_name[MIN(size, MAX_SIZE_OF_DEVICE_NAME)] = '\0';
+
+    gateway->bind_list.bind_num += 1;
+
+    IOT_FUNC_EXIT_RC(bindinfo);
+}
+#undef MIN
+
+static void _subdev_proc_get_bindlist(Gateway *gateway, char *devices)
+{
+    char *subdev_product_id = NULL;
+    char *subdev_device_name = NULL;
+    char * pos = NULL;
+    char * entry = NULL;
+    int entry_len = 0;
+    int entry_type = 0;
+    char old_ch = 0;
+
+    // parser json array
+    json_array_for_each_entry(devices, pos, entry, entry_len, entry_type) {
+        if (entry != NULL) {
+            backup_json_str_last_char(entry, entry_len, old_ch);
+            if (false == get_json_product_id(entry, &subdev_product_id)) {
+                continue ;
+            }
+            if (false == get_json_device_name(entry, &subdev_device_name)) {
+                continue ;
+            }
+            if (NULL == _subdev_add_bindinfo(gateway, subdev_product_id, subdev_device_name)) {
+                break ;
+            }
+            restore_json_str_last_char(entry, entry_len, old_ch);
+        }
+    }
+
+    return ;
 }
 
 static void _gateway_message_handler(void *client, MQTTMessage *message, void *user_data)
@@ -107,6 +170,14 @@ static void _gateway_message_handler(void *client, MQTTMessage *message, void *u
     if (!get_json_devices(json_buf, &devices)) {
         Log_e("Fail to parse devices from msg: %s", json_buf);
         HAL_Free(type);
+        return;
+    }
+
+    if(strncmp(type, GATEWAY_DESCRIBE_SUBDEVIES_OP_STR, sizeof(GATEWAY_DESCRIBE_SUBDEVIES_OP_STR) - 1) == 0) {
+        _subdev_proc_get_bindlist(gateway, devices);
+        gateway->gateway_data.get_bindlist.result = 0;
+        HAL_Free(type);
+        HAL_Free(devices);
         return;
     }
 

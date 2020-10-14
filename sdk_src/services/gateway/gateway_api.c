@@ -250,6 +250,71 @@ int IOT_Gateway_Subdev_Offline(void *client, GatewayParam *param)
     IOT_FUNC_EXIT_RC(QCLOUD_RET_SUCCESS);
 }
 
+int IOT_Gateway_Subdev_GetBindList(void *client, GatewayParam *param, SubdevBindList *subdev_bindlist)
+{
+    POINTER_SANITY_CHECK(client, QCLOUD_ERR_INVAL);
+    POINTER_SANITY_CHECK(param, QCLOUD_ERR_INVAL);
+    POINTER_SANITY_CHECK(subdev_bindlist, QCLOUD_ERR_INVAL);
+
+    char     topic[MAX_SIZE_OF_CLOUD_TOPIC + 1];
+    char     payload[GATEWAY_PAYLOAD_BUFFER_LEN + 1];
+    int      size    = 0;
+    Gateway *gateway = (Gateway *)client;
+
+    gateway->bind_list.bindlist_head = NULL;
+    gateway->bind_list.bind_num = 0;
+
+    memset(topic, 0, MAX_SIZE_OF_CLOUD_TOPIC);
+    size = HAL_Snprintf(topic, MAX_SIZE_OF_CLOUD_TOPIC + 1, GATEWAY_TOPIC_OPERATION_FMT, param->product_id,
+                        param->device_name);
+    if (size < 0 || size > MAX_SIZE_OF_CLOUD_TOPIC) {
+        Log_e("buf size < topic length!");
+        IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
+    }
+
+    size = HAL_Snprintf(payload, GATEWAY_PAYLOAD_BUFFER_LEN, "{\"type\":\"%s\"}", GATEWAY_DESCRIBE_SUBDEVIES_OP_STR);
+    if (size < 0 || size > GATEWAY_PAYLOAD_BUFFER_LEN) {
+        Log_e("buf size < payload length!");
+        IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
+    }
+
+    PublishParams params = DEFAULT_PUB_PARAMS;
+    params.qos           = QOS0;
+    params.payload_len   = strlen(payload);
+    params.payload       = (char *)payload;
+
+    /* publish packet */
+    gateway->gateway_data.get_bindlist.result = -1001;
+    int rc = gateway_publish_sync(gateway, topic, &params, &gateway->gateway_data.get_bindlist.result);
+    if (QCLOUD_RET_SUCCESS != rc) {
+        Log_e("get bind list failed :%d!", rc);
+        IOT_FUNC_EXIT_RC(gateway->gateway_data.get_bindlist.result);
+    }
+
+    subdev_bindlist->bindlist_head = gateway->bind_list.bindlist_head;
+    subdev_bindlist->bind_num = gateway->bind_list.bind_num;
+
+    gateway->bind_list.bindlist_head = NULL;
+    gateway->bind_list.bind_num = 0;
+
+    IOT_FUNC_EXIT_RC(QCLOUD_RET_SUCCESS);
+}
+
+void IOT_Gateway_Subdev_DestoryBindList(SubdevBindList *subdev_bindlist)
+{
+    POINTER_SANITY_CHECK_RTN(subdev_bindlist);
+    
+    SubdevBindInfo *cur_bindinfo = subdev_bindlist->bindlist_head;
+    while (cur_bindinfo) {
+        SubdevBindInfo *bindinfo = cur_bindinfo;
+        cur_bindinfo             = cur_bindinfo->next;
+        HAL_Free(bindinfo);
+    }
+
+    subdev_bindlist->bindlist_head = NULL;
+    subdev_bindlist->bind_num = 0;
+}
+
 int IOT_Gateway_Subdev_Bind(void *client, GatewayParam *param, DeviceInfo *pBindSubDevInfo)
 {
     char     topic[MAX_SIZE_OF_CLOUD_TOPIC + 1];

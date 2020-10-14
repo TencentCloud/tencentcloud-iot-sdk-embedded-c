@@ -98,6 +98,10 @@ $(call CompLib_Map, RRPC_ENABLED, \
 	$(SRC_DIR)/services/rrpc \
 )
 
+$(call CompLib_Map, REMOTE_CONFIG_MQTT_ENABLED, \
+	$(SRC_DIR)/services/config \
+)
+
 IOTSDK_SRC_FILES := \
 
 $(foreach v, \

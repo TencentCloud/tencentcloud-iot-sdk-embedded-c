@@ -15,3 +15,6 @@
 /* #undef AT_DEBUG */
 #define OTA_USE_HTTPS
 #define MULTITHREAD_ENABLED
+#define BROADCAST_ENABLED
+#define RRPC_ENABLED
+#define REMOTE_CONFIG_MQTT

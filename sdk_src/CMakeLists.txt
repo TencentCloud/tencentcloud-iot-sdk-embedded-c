@@ -94,6 +94,11 @@ if(${FEATURE_SYSTEM_COMM_ENABLED} STREQUAL "ON")
 	list(APPEND src_sdk ${src_system})
 endif()
 
+if(${FEATURE_REMOTE_CONFIG_MQTT_ENABLED} STREQUAL "ON")
+	file(GLOB src_config_mqtt ${CMAKE_CURRENT_SOURCE_DIR}/services/config/*.c)
+	list(APPEND src_sdk ${src_config_mqtt})
+endif()
+
 if(${FEATURE_BROADCAST_ENABLED} STREQUAL "ON")
 	file(GLOB src_broadcast ${CMAKE_CURRENT_SOURCE_DIR}/services/broadcast/*.c)
 	list(APPEND src_sdk ${src_broadcast})

@@ -75,3 +75,6 @@ FEATURE_BROADCAST_ENABLED               = y
 
 # 是否打开RRPC功能
 FEATURE_RRPC_ENABLED                    = y
+
+# 是否打开MQTT远程配置功能
+FEATURE_REMOTE_CONFIG_MQTT_ENABLED      = y

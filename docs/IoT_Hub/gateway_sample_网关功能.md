@@ -156,3 +156,11 @@ gateway_sample示例演示了网关代理一个子设备的情况，如果用户
     IOT_Gateway_Subdev_Online(client, &gw_param1);
 ```
 
+#### 获取网关在云平台上已绑定的设备列表
+网关在进行子设备绑定前可获取云平台上已绑定的子设备列表，SDK 提供了对应的接口
+```
+int IOT_Gateway_Subdev_GetBindList(void *client, GatewayParam *param, SubdevBindList *subdev_bindlist);
+void IOT_Gateway_Subdev_DestoryBindList(SubdevBindList *subdev_bindlist);
+
+```
+
