@@ -121,3 +121,10 @@ if(${FEATURE_RRPC_ENABLED} STREQUAL "ON")
 	add_executable(rrpc_sample					${src_rrpc_sample})
 	target_link_libraries(rrpc_sample			 	${lib})
 endif()
+
+if(${FEATURE_REMOTE_CONFIG_MQTT_ENABLED} STREQUAL "ON")
+	file(GLOB src_remote_config_mqtt_sample 				${PROJECT_SOURCE_DIR}/samples/config/remote_config_mqtt_sample.c)
+	add_executable(remote_config_mqtt_sample					${src_remote_config_mqtt_sample})
+	target_link_libraries(remote_config_mqtt_sample			 	${lib})
+endif()
+

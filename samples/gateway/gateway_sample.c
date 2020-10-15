@@ -207,6 +207,40 @@ static int _publish_subdev_msg(void *client, char *topic_keyword, QoS qos, Gatew
     return IOT_Gateway_Publish(client, topic_name, &pub_params);
 }
 
+static void _get_gw_subdev_bindlist(void *client, GatewayParam *gw_param)
+{
+    SubdevBindList bindlist;
+    SubdevBindInfo *cur_bindinfo = NULL;
+    int rc;
+
+    bindlist.bindlist_head = NULL;
+    bindlist.bind_num = 0;
+    
+    rc = IOT_Gateway_Subdev_GetBindList(client, gw_param, &bindlist);
+    if (QCLOUD_RET_SUCCESS != rc) {
+        Log_e("get sub device bind list failed: %d", rc);
+    } else {
+        cur_bindinfo = bindlist.bindlist_head;
+        HAL_Printf("bind list sub device nums: %d\r\n", bindlist.bind_num);
+        if (NULL == cur_bindinfo) {
+            Log_e("gateway no bind sub device on cloud platform");
+        } else {
+             HAL_Printf("bind list sub device info:\r\n");
+             int count = 1;
+             while(cur_bindinfo) {
+                HAL_Printf("sub device: %05d  product_id: % -11s  device_name: % -49s\r\n", 
+                            count, cur_bindinfo->product_id, cur_bindinfo->device_name);
+                cur_bindinfo = cur_bindinfo->next;
+                count += 1;
+            }
+            // destory bind list
+            IOT_Gateway_Subdev_DestoryBindList(&bindlist);
+        }
+    }
+
+    return ;
+}
+
 // for reply code, pls check https://cloud.tencent.com/document/product/634/45960
 #define GATEWAY_RC_REPEAT_BIND 809
 static char *new_subdev_file = NULL;
@@ -215,8 +249,7 @@ static int   sg_loop_count   = 5;
 static int parse_arguments(int argc, char **argv)
 {
     int c;
-    while ((c = utils_getopt(argc, argv, "c:b:l:")) != EOF)
-        switch (c) {
+    while ((c = utils_getopt(argc, argv, "c:b:l:")) != EOF) switch (c) {
             case 'c':
                 if (HAL_SetDevInfoFile(utils_optarg))
                     return -1;
@@ -282,7 +315,7 @@ int main(int argc, char **argv)
     gw_param.device_name  = gw_dev_info.gw_info.device_name;
 
     DeviceInfo *sub_dev_info = gw_dev_info.sub_dev_info;
-
+    
     // to bind a new sub device
     DeviceInfo new_sub_dev = {0};
     if (new_subdev_file) {
@@ -318,6 +351,9 @@ int main(int argc, char **argv)
     gw_param1.subdev_device_name = "SUB-DEVICE";
 #endif
 
+    // get bind list from cloud platform
+    _get_gw_subdev_bindlist(client, &gw_param);
+
     rc = IOT_Gateway_Subdev_Online(client, &gw_param);
     if (rc != QCLOUD_RET_SUCCESS) {
         Log_e("IOT_Gateway_Subdev_Online fail.");
@@ -333,12 +369,18 @@ int main(int argc, char **argv)
     }
 
     do {
+        
+        // get bind list from cloud platform
+        if (sg_loop_count % 60 == 0) {
+            _get_gw_subdev_bindlist(client, &gw_param);            
+        }
+        
         // publish msg to sub-device topic
         rc = _publish_subdev_msg(client, "data", QOS1, &gw_param);
         if (rc < 0) {
             Log_e("IOT_Gateway_Publish fail.");
         }
-
+        
         rc = IOT_Gateway_Yield(client, 200);
 
         if (rc == QCLOUD_ERR_MQTT_ATTEMPTING_RECONNECT) {

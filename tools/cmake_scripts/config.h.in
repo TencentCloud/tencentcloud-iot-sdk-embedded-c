@@ -17,3 +17,4 @@
 #cmakedefine MULTITHREAD_ENABLED
 #cmakedefine BROADCAST_ENABLED
 #cmakedefine RRPC_ENABLED
+#cmakedefine REMOTE_CONFIG_MQTT

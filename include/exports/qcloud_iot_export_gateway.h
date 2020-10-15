@@ -183,6 +183,41 @@ int IOT_Gateway_Yield(void *client, uint32_t timeout_ms);
  */
 void *IOT_Gateway_Get_Mqtt_Client(void *handle);
 
+/* The structure of subdevice bindinfo */
+typedef struct _SubdevBindInfo {
+    char                   product_id[MAX_SIZE_OF_PRODUCT_ID + 1];
+    char                   device_name[MAX_SIZE_OF_DEVICE_NAME + 1];
+    struct _SubdevBindInfo *next;
+} SubdevBindInfo;
+
+/* The structure of subdevice bindlist */
+typedef struct _SubdevBindList {
+    SubdevBindInfo *bindlist_head;
+    int bind_num;
+} SubdevBindList;
+
+/**
+ * @brief get sub-device bind list from cloud platform
+ *
+ * @param client            handle to gateway client
+ * @param param             gateway parameters
+ * @param subdev_bindlist   output subdev bind list 
+ *
+ * @return QCLOUD_RET_SUCCESS for success, or err code for failure
+ */
+int IOT_Gateway_Subdev_GetBindList(void *client, GatewayParam *param, SubdevBindList *subdev_bindlist);
+
+/**
+ * @brief destory sub dev bind list
+ *
+ * @param subdev_bindlist  input subdev bind list pointer, ref IOT_Gateway_Subdev_GetBindList 
+ *        output param subdev_bindlist
+ *
+ * @return QCLOUD_RET_SUCCESS for success, or err code for failure
+ */
+void IOT_Gateway_Subdev_DestoryBindList(SubdevBindList *subdev_bindlist);
+
+
 #ifdef __cplusplus
 }
 #endif

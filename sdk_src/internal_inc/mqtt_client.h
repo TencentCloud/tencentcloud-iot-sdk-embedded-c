@@ -180,6 +180,14 @@ typedef struct _sys_mqtt_state {
 } SysMQTTState;
 
 /**
+ * @brief data structure for config service
+ */
+typedef struct _config_mqtt_state {
+    bool topic_sub_ok;
+    bool get_reply_ok;
+} ConfigMQTTState;
+
+/**
  * @brief MQTT QCloud IoT Client structure
  */
 typedef struct Client {
@@ -237,6 +245,10 @@ typedef struct Client {
 
 #ifdef SYSTEM_COMM
     SysMQTTState sys_state;
+#endif
+
+#ifdef REMOTE_CONFIG_MQTT
+    ConfigMQTTState config_state;
 #endif
 
 #ifdef BROADCAST_ENABLED
