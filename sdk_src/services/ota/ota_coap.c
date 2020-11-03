@@ -92,7 +92,8 @@ static int _otacoap_gen_topic_name(char *buf, size_t bufLen, const char *OTATopi
 
     int ret;
 
-    ret = HAL_Snprintf(buf, bufLen, "$ota/%s/%s/%s", OTATopicType, productId, deviceName);
+    ret = HAL_Snprintf(buf, bufLen, "$ota/%s/%s/%s", STRING_PTR_PRINT_SANITY_CHECK(OTATopicType),
+                       STRING_PTR_PRINT_SANITY_CHECK(productId), STRING_PTR_PRINT_SANITY_CHECK(deviceName));
 
     if (ret >= bufLen)
         IOT_FUNC_EXIT_RC(IOT_OTA_ERR_FAIL);

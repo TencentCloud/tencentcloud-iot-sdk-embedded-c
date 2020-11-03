@@ -174,9 +174,11 @@ typedef struct SubTopicHandle {
  * @brief data structure for system time service
  */
 typedef struct _sys_mqtt_state {
-    bool topic_sub_ok;
-    bool result_recv_ok;
-    long time;
+    bool   topic_sub_ok;
+    bool   result_recv_ok;
+    long   time;
+    size_t ntptime1;
+    size_t ntptime2;
 } SysMQTTState;
 
 /**

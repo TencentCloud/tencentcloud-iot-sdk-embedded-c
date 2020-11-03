@@ -23,25 +23,26 @@ extern "C" {
 #define REMOTE_CONFIG_ERRCODE_SUCCESS 0     // get config success
 #define REMOTE_CONFIG_ERRCODE_DISABLE 1001  // Cloud platform has been disabled remote config
 
-#define REMOTE_CONFIG_JSON_BUFFER_MIN_LEN 60 // config json buffer sys need len 
+#define REMOTE_CONFIG_JSON_BUFFER_MIN_LEN 60  // config json buffer sys need len
 
 /**
  * @brief proc config data, subscribe set struct ConfigSubscirbeUserData
  *
  * @param client               MQTTClient pointer
- * @param config_reply_errcode Config ErrCode; ERRCODE_REMOTE_CONFIG_SUCCESS can proc config_json other config_json is invalid
- * @param config_json          config json data string, format is {xxxx}; user config data at cloud platform, pointer is 
+ * @param config_reply_errcode Config ErrCode; ERRCODE_REMOTE_CONFIG_SUCCESS can proc config_json other config_json is
+ invalid
+ * @param config_json          config json data string, format is {xxxx}; user config data at cloud platform, pointer is
                                struct ConfigSubscirbeUserData json_buffer member
- * @param config_json_len      config json data length, 
+ * @param config_json_len      config json data length,
  * @return                     void
  */
 typedef void (*OnConfigProcHandler)(void *client, int config_reply_errcode, char *config_json, int config_json_len);
 
 typedef struct {
-    OnConfigProcHandler on_config_proc;  // config proc callback when message arrived
-    int                 json_buffer_len; // sys json data need 60 B + config json data max len 
-    char *				json_buffer;     // save json buffer [sys json data + config json data] ,sdk proc recv buff
-                                         // save config json data as OnConfigProcHandler functions config_json parameter
+    OnConfigProcHandler on_config_proc;   // config proc callback when message arrived
+    int                 json_buffer_len;  // sys json data need 60 B + config json data max len
+    char *              json_buffer;      // save json buffer [sys json data + config json data] ,sdk proc recv buff
+                        // save config json data as OnConfigProcHandler functions config_json parameter
 } ConfigSubscirbeUserData;
 
 /**

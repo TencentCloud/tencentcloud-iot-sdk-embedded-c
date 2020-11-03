@@ -92,6 +92,13 @@ if(${FEATURE_GATEWAY_ENABLED} STREQUAL "ON")
 	target_link_libraries(gateway_sample 			 ${lib})
 endif()
 
+# GATEWAY SubDev ota
+if(${FEATURE_OTA_COMM_ENABLED} STREQUAL "ON" AND ${FEATURE_OTA_SIGNAL_CHANNEL} STREQUAL "MQTT" AND ${FEATURE_GATEWAY_ENABLED} STREQUAL "ON")
+	file(GLOB src_ota_mqtt_subdev_sample  				${PROJECT_SOURCE_DIR}/samples/ota/ota_mqtt_subdev_sample.c)
+	add_executable(ota_mqtt_subdev_sample 				${src_ota_mqtt_subdev_sample})
+	target_link_libraries(ota_mqtt_subdev_sample 			 ${lib})
+endif()
+
 # COAP
 if(${FEATURE_COAP_COMM_ENABLED} STREQUAL "ON")
 	file(GLOB src_coap_sample 					${PROJECT_SOURCE_DIR}/samples/coap/coap_sample.c)

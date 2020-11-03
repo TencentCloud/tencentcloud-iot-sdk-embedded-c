@@ -22,6 +22,57 @@ extern "C" {
 
 #include "qcloud_iot_import.h"
 
+int HAL_Timer_set_systime_sec(size_t timestamp_sec)
+{
+    int        val = 0;
+    time_t     now = (time_t)timestamp_sec;
+    struct tm  tm_val;
+    SYSTEMTIME system_time = {0};
+    localtime_s(&tm_val, &now);
+    system_time.wYear         = tm_val.tm_year + 1900;
+    system_time.wMonth        = tm_val.tm_mon + 1;
+    system_time.wDay          = tm_val.tm_mday;
+    system_time.wHour         = tm_val.tm_hour;
+    system_time.wMinute       = tm_val.tm_min;
+    system_time.wSecond       = tm_val.tm_sec;
+    system_time.wMilliseconds = 0;
+
+    if (0 != SetLocalTime(&system_time)) {
+        val = 0;
+    } else {
+        val = -1;
+    }
+
+    return val;
+}
+
+int HAL_Timer_set_systime_ms(size_t timestamp_ms)
+{
+    int       val = 0;
+    struct tm tm_val;
+    size_t    milliseconds  = timestamp_ms % 1000;
+    size_t    timestamp_sec = timestamp_ms / 1000;
+    time_t    now           = (time_t)timestamp_sec;
+    localtime_s(&tm_val, &now);
+    SYSTEMTIME system_time = {0};
+
+    system_time.wYear         = tm_val.tm_year + 1900;
+    system_time.wMonth        = tm_val.tm_mon + 1;
+    system_time.wDay          = tm_val.tm_mday;
+    system_time.wHour         = tm_val.tm_hour;
+    system_time.wMinute       = tm_val.tm_min;
+    system_time.wSecond       = tm_val.tm_sec;
+    system_time.wMilliseconds = milliseconds;
+
+    if (0 != SetLocalTime(&system_time)) {
+        val = 0;
+    } else {
+        val = -1;
+    }
+
+    return val;
+}
+
 bool HAL_Timer_expired(Timer *timer)
 {
     if (GetTickCount64() >= timer->end_time) {

@@ -22,7 +22,7 @@
 
 void OnDeltaCallback(void *pClient, const char *pJsonValueBuffer, uint32_t valueLength, DeviceProperty *pProperty)
 {
-    Log_i(">>>>> Delta str: %s", pJsonValueBuffer);
+    Log_i(">>>>> Delta str: %s", STRING_PTR_PRINT_SANITY_CHECK(pJsonValueBuffer));
     pProperty->delta_arrived = true;
 }
 
@@ -69,14 +69,14 @@ static int _setup_connect_init_params(ShadowInitParams *initParams, DeviceInfo *
 
 #ifdef WIN32
     HAL_Snprintf(initParams->cert_file, FILE_PATH_MAX_LEN, "%s\\%s\\%s", current_path, certs_dir,
-                 dev_info->dev_cert_file_name);
+                 STRING_PTR_PRINT_SANITY_CHECK(dev_info->dev_cert_file_name));
     HAL_Snprintf(initParams->key_file, FILE_PATH_MAX_LEN, "%s\\%s\\%s", current_path, certs_dir,
-                 dev_info->dev_key_file_name);
+                 STRING_PTR_PRINT_SANITY_CHECK(dev_info->dev_key_file_name));
 #else
     HAL_Snprintf(initParams->cert_file, FILE_PATH_MAX_LEN, "%s/%s/%s", current_path, certs_dir,
-                 dev_info->dev_cert_file_name);
+                 STRING_PTR_PRINT_SANITY_CHECK(dev_info->dev_cert_file_name));
     HAL_Snprintf(initParams->key_file, FILE_PATH_MAX_LEN, "%s/%s/%s", current_path, certs_dir,
-                 dev_info->dev_key_file_name);
+                 STRING_PTR_PRINT_SANITY_CHECK(dev_info->dev_key_file_name));
 #endif
 
 #else

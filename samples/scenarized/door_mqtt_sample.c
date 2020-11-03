@@ -111,14 +111,14 @@ static int _setup_connect_init_params(MQTTInitParams *initParams)
 
 #ifdef WIN32
     HAL_Snprintf(initParams->cert_file, FILE_PATH_MAX_LEN, "%s\\%s\\%s", current_path, certs_dir,
-                 sg_devInfo.dev_cert_file_name);
+                 STRING_PTR_PRINT_SANITY_CHECK(sg_devInfo.dev_cert_file_name));
     HAL_Snprintf(initParams->key_file, FILE_PATH_MAX_LEN, "%s\\%s\\%s", current_path, certs_dir,
-                 sg_devInfo.dev_key_file_name);
+                 STRING_PTR_PRINT_SANITY_CHECK(sg_devInfo.dev_key_file_name));
 #else
     HAL_Snprintf(initParams->cert_file, FILE_PATH_MAX_LEN, "%s/%s/%s", current_path, certs_dir,
-                 sg_devInfo.dev_cert_file_name);
+                 STRING_PTR_PRINT_SANITY_CHECK(sg_devInfo.dev_cert_file_name));
     HAL_Snprintf(initParams->key_file, FILE_PATH_MAX_LEN, "%s/%s/%s", current_path, certs_dir,
-                 sg_devInfo.dev_key_file_name);
+                 STRING_PTR_PRINT_SANITY_CHECK(sg_devInfo.dev_key_file_name));
 #endif
 
 #else
@@ -148,7 +148,7 @@ static int _publish_msg(void *client, char *action, char *targetDeviceName)
     char topic_content[MAX_SIZE_OF_TOPIC_CONTENT + 1] = {0};
     if (strcmp(action, "come_home") == 0 || strcmp(action, "leave_home") == 0) {
         int size = HAL_Snprintf(topic_content, sizeof(topic_content), "{\"action\": \"%s\", \"targetDevice\": \"%s\"}",
-                                action, targetDeviceName);
+                                action, STRING_PTR_PRINT_SANITY_CHECK(targetDeviceName));
         if (size < 0 || size > sizeof(topic_content) - 1) {
             Log_e("payload content length not enough! content size:%d  buf size:%d", size, (int)sizeof(topic_content));
             return -3;
@@ -163,7 +163,8 @@ static int _publish_msg(void *client, char *action, char *targetDeviceName)
 
     int rc = IOT_MQTT_Publish(client, topic_name, &pub_params);
     if (rc < 0) {
-        Log_e("Client publish Topic:%s Failed :%d with content: %s", topic_name, rc, (char *)pub_params.payload);
+        Log_e("Client publish Topic:%s Failed :%d with content: %s", topic_name, rc,
+              STRING_PTR_PRINT_SANITY_CHECK((char *)pub_params.payload));
         return rc;
     }
     return 0;

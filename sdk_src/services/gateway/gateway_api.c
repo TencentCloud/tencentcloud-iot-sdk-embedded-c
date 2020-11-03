@@ -51,7 +51,8 @@ void _gateway_event_handler(void *client, void *context, MQTTEventMsg *msg)
 
         case MQTT_EVENT_PUBLISH_RECVEIVED:
             Log_d("gateway topic message arrived but without any related handle: topic=%.*s, topic_msg=%.*s",
-                  topic_info->topic_len, topic_info->ptopic, topic_info->payload_len, topic_info->payload);
+                  topic_info->topic_len, STRING_PTR_PRINT_SANITY_CHECK(topic_info->ptopic), topic_info->payload_len,
+                  STRING_PTR_PRINT_SANITY_CHECK(topic_info->payload));
             break;
 
         default:
@@ -262,7 +263,7 @@ int IOT_Gateway_Subdev_GetBindList(void *client, GatewayParam *param, SubdevBind
     Gateway *gateway = (Gateway *)client;
 
     gateway->bind_list.bindlist_head = NULL;
-    gateway->bind_list.bind_num = 0;
+    gateway->bind_list.bind_num      = 0;
 
     memset(topic, 0, MAX_SIZE_OF_CLOUD_TOPIC);
     size = HAL_Snprintf(topic, MAX_SIZE_OF_CLOUD_TOPIC + 1, GATEWAY_TOPIC_OPERATION_FMT, param->product_id,
@@ -292,10 +293,10 @@ int IOT_Gateway_Subdev_GetBindList(void *client, GatewayParam *param, SubdevBind
     }
 
     subdev_bindlist->bindlist_head = gateway->bind_list.bindlist_head;
-    subdev_bindlist->bind_num = gateway->bind_list.bind_num;
+    subdev_bindlist->bind_num      = gateway->bind_list.bind_num;
 
     gateway->bind_list.bindlist_head = NULL;
-    gateway->bind_list.bind_num = 0;
+    gateway->bind_list.bind_num      = 0;
 
     IOT_FUNC_EXIT_RC(QCLOUD_RET_SUCCESS);
 }
@@ -303,7 +304,7 @@ int IOT_Gateway_Subdev_GetBindList(void *client, GatewayParam *param, SubdevBind
 void IOT_Gateway_Subdev_DestoryBindList(SubdevBindList *subdev_bindlist)
 {
     POINTER_SANITY_CHECK_RTN(subdev_bindlist);
-    
+
     SubdevBindInfo *cur_bindinfo = subdev_bindlist->bindlist_head;
     while (cur_bindinfo) {
         SubdevBindInfo *bindinfo = cur_bindinfo;
@@ -312,7 +313,7 @@ void IOT_Gateway_Subdev_DestoryBindList(SubdevBindList *subdev_bindlist)
     }
 
     subdev_bindlist->bindlist_head = NULL;
-    subdev_bindlist->bind_num = 0;
+    subdev_bindlist->bind_num      = 0;
 }
 
 int IOT_Gateway_Subdev_Bind(void *client, GatewayParam *param, DeviceInfo *pBindSubDevInfo)

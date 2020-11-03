@@ -66,7 +66,7 @@ void *IOT_COAP_Construct(CoAPInitParams *pParams)
     }
 
     if (coap_client->network_stack.connect(&coap_client->network_stack) != QCLOUD_RET_SUCCESS) {
-        Log_e("coap connect to host: %s:%d failed: %d", coap_client->network_stack.host,
+        Log_e("coap connect to host: %s:%d failed: %d", STRING_PTR_PRINT_SANITY_CHECK(coap_client->network_stack.host),
               coap_client->network_stack.port, rc);
         HAL_Free(coap_client);
         return NULL;
@@ -83,7 +83,7 @@ void *IOT_COAP_Construct(CoAPInitParams *pParams)
         Log_i("device auth successfully, connid: %s", coap_client->conn_id);
         return coap_client;
     } else {
-        Log_e("device auth failed, connid: %s", coap_client->conn_id);
+        Log_e("device auth failed, connid: %s", STRING_PTR_PRINT_SANITY_CHECK(coap_client->conn_id));
         void *client = coap_client;
         IOT_COAP_Destroy(&client);
         return NULL;
@@ -276,8 +276,8 @@ int qcloud_iot_coap_init(CoAPClient *pClient, CoAPInitParams *pParams)
 
 #ifndef AUTH_WITH_NOTLS
 #ifdef AUTH_MODE_CERT
-    Log_d("cert file: %s", pParams->cert_file);
-    Log_d("key file: %s", pParams->key_file);
+    Log_d("cert file: %s", STRING_PTR_PRINT_SANITY_CHECK(pParams->cert_file));
+    Log_d("key file: %s", STRING_PTR_PRINT_SANITY_CHECK(pParams->key_file));
 
     strncpy(pClient->cert_file_path, pParams->cert_file, FILE_PATH_MAX_LEN - 1);
     strncpy(pClient->key_file_path, pParams->key_file, FILE_PATH_MAX_LEN - 1);

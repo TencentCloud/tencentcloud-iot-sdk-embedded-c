@@ -100,7 +100,8 @@ static void _ota_callback(void *pcontext, const char *msg, uint32_t msg_len)
         goto End;
     } else {
         if (strcmp(json_type, UPDATE_FIRMWARE) != 0) {
-            Log_e("Netheir Report version result nor update firmware! type: %s", json_type);
+            Log_e("Netheir Report version result nor update firmware! type: %s",
+                  STRING_PTR_PRINT_SANITY_CHECK(json_type));
             goto End;
         }
 
@@ -134,10 +135,12 @@ static void IOT_OTA_ResetStatus(void *handle)
 
     if (NULL != h_ota->purl) {
         HAL_Free(h_ota->purl);
+        h_ota->purl = NULL;
     }
 
     if (NULL != h_ota->version) {
         HAL_Free(h_ota->version);
+        h_ota->version = NULL;
     }
 }
 
@@ -651,7 +654,7 @@ int IOT_OTA_Ioctl(void *handle, IOT_OTA_CmdType type, void *buf, size_t buf_len)
             } else {
                 char md5_str[33];
                 qcloud_otalib_md5_finalize(h_ota->md5, md5_str);
-                Log_i("FW MD5 check: origin=%s, now=%s", h_ota->md5sum, md5_str);
+                Log_i("FW MD5 check: origin=%s, now=%s", STRING_PTR_PRINT_SANITY_CHECK(h_ota->md5sum), md5_str);
                 if (0 == strcmp(h_ota->md5sum, md5_str)) {
                     *((uint32_t *)buf) = 1;
                 } else {

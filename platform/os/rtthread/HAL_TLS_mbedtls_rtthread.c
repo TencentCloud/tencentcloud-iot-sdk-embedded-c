@@ -128,8 +128,9 @@ static int _mbedtls_client_init(TLSDataParams *pDataParams, TLSConnectParams *pC
             return QCLOUD_ERR_SSL_CERT;
         }
     } else {
-        Log_d("cert_file/key_file is empty!|cert_file=%s|key_file=%s", pConnectParams->cert_file,
-              pConnectParams->key_file);
+        Log_d("cert_file/key_file is empty!|cert_file=%s|key_file=%s",
+              STRING_PTR_PRINT_SANITY_CHECK(pConnectParams->cert_file),
+              STRING_PTR_PRINT_SANITY_CHECK(pConnectParams->key_file));
     }
 #else
     if (pConnectParams->psk != NULL && pConnectParams->psk_id != NULL) {
@@ -137,7 +138,8 @@ static int _mbedtls_client_init(TLSDataParams *pDataParams, TLSConnectParams *pC
         ret                = mbedtls_ssl_conf_psk(&(pDataParams->ssl_conf), (unsigned char *)pConnectParams->psk,
                                    pConnectParams->psk_length, (const unsigned char *)psk_id, strlen(psk_id));
     } else {
-        Log_d("psk/pskid is empty!|psk=%s|psd_id=%s", pConnectParams->psk, pConnectParams->psk_id);
+        Log_d("psk/pskid is empty!|psk=%s|psd_id=%s", STRING_PTR_PRINT_SANITY_CHECK(pConnectParams->psk),
+              STRING_PTR_PRINT_SANITY_CHECK(pConnectParams->psk_id));
     }
 
     if (0 != ret) {
@@ -260,7 +262,7 @@ uintptr_t HAL_TLS_Connect(TLSConnectParams *pConnectParams, const char *host, in
                         mbedtls_net_recv_timeout);
 
     Log_d("Performing the SSL/TLS handshake...");
-    Log_d("Connecting to /%s/%d...", host, port);
+    Log_d("Connecting to /%s/%d...", STRING_PTR_PRINT_SANITY_CHECK(host), port);
     if ((ret = _mbedtls_tcp_connect(&(pDataParams->socket_fd), host, port)) != QCLOUD_RET_SUCCESS) {
         goto error;
     }
@@ -285,7 +287,7 @@ uintptr_t HAL_TLS_Connect(TLSConnectParams *pConnectParams, const char *host, in
 
     mbedtls_ssl_conf_read_timeout(&(pDataParams->ssl_conf), 100);
 
-    Log_i("connected with /%s/%d...", host, port);
+    Log_i("connected with /%s/%d...", STRING_PTR_PRINT_SANITY_CHECK(host), port);
 
     return (uintptr_t)pDataParams;
 

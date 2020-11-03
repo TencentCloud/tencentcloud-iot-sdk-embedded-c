@@ -99,7 +99,7 @@ void *IOT_MQTT_Construct(MQTTInitParams *pParams)
     connect_params.device_secret     = (char *)mqtt_client->psk_decode;
     connect_params.device_secret_len = len;
     if (rc != QCLOUD_RET_SUCCESS) {
-        Log_e("Device secret decode err, secret:%s", pParams->device_secret);
+        Log_e("Device secret decode err, secret:%s", STRING_PTR_PRINT_SANITY_CHECK(pParams->device_secret));
         qcloud_iot_mqtt_fini(mqtt_client);
         HAL_Free(mqtt_client);
         pParams->err_code = QCLOUD_ERR_INVAL;
@@ -109,7 +109,7 @@ void *IOT_MQTT_Construct(MQTTInitParams *pParams)
 
     rc = qcloud_iot_mqtt_connect(mqtt_client, &connect_params);
     if (rc != QCLOUD_RET_SUCCESS) {
-        Log_e("mqtt connect with id: %s failed: %d", mqtt_client->options.conn_id, rc);
+        Log_e("mqtt connect with id: %s failed: %d", STRING_PTR_PRINT_SANITY_CHECK(mqtt_client->options.conn_id), rc);
         qcloud_iot_mqtt_fini(mqtt_client);
         HAL_Free(mqtt_client);
         pParams->err_code = rc;
@@ -255,7 +255,7 @@ static void _mqtt_yield_thread(void *ptr)
     int                rc          = QCLOUD_RET_SUCCESS;
     Qcloud_IoT_Client *mqtt_client = (Qcloud_IoT_Client *)ptr;
 
-    Log_i("MQTT client %s start loop", mqtt_client->device_info.client_id);
+    Log_i("MQTT client %s start loop", STRING_PTR_PRINT_SANITY_CHECK(mqtt_client->device_info.client_id));
     while (mqtt_client->thread_running) {
         int rc = qcloud_iot_mqtt_yield(mqtt_client, 500);
 
@@ -287,7 +287,7 @@ static void _mqtt_yield_thread(void *ptr)
     IOT_Log_Upload(true);
 #endif
 
-    Log_i("MQTT client %s stop loop", mqtt_client->device_info.client_id);
+    Log_i("MQTT client %s stop loop", STRING_PTR_PRINT_SANITY_CHECK(mqtt_client->device_info.client_id));
 }
 
 int IOT_MQTT_StartLoop(void *pClient)
@@ -434,8 +434,8 @@ int qcloud_iot_mqtt_init(Qcloud_IoT_Client *pClient, MQTTInitParams *pParams)
 #ifndef AUTH_WITH_NOTLS
     // device param for TLS connection
 #ifdef AUTH_MODE_CERT
-    Log_d("cert file: %s", pParams->cert_file);
-    Log_d("key file: %s", pParams->key_file);
+    Log_d("cert file: %s", STRING_PTR_PRINT_SANITY_CHECK(pParams->cert_file));
+    Log_d("key file: %s", STRING_PTR_PRINT_SANITY_CHECK(pParams->key_file));
 
     strncpy(pClient->cert_file_path, pParams->cert_file, FILE_PATH_MAX_LEN - 1);
     strncpy(pClient->key_file_path, pParams->key_file, FILE_PATH_MAX_LEN - 1);

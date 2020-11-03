@@ -304,6 +304,20 @@ char *HAL_Timer_current(char *time_str);
  */
 long HAL_Timer_current_sec(void);
 
+/**
+ * @brief Set timestamp in second to systime/rtc
+ *
+ * @return   0 is success other failed
+ */
+int HAL_Timer_set_systime_sec(size_t timestamp_sec);
+
+/**
+ * @brief Set timestamp in millsecond to systime/rtc
+ *
+ * @return   0 is success other failed
+ */
+int HAL_Timer_set_systime_ms(size_t timestamp_ms);
+
 #ifdef AT_TCP_ENABLED
 int       HAL_AT_TCP_Init(void);
 uintptr_t HAL_AT_TCP_Connect(const char *host, uint16_t port);

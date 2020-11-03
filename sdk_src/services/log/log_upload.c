@@ -102,7 +102,7 @@ static int _gen_key_from_file(const char *file_path)
     char  line_buf[128] = {0};
 
     if ((fp = fopen(file_path, "r")) == NULL) {
-        UPLOAD_ERR("fail to open cert file %s", file_path);
+        UPLOAD_ERR("fail to open cert file %s", STRING_PTR_PRINT_SANITY_CHECK(file_path));
         return -1;
     }
 
@@ -182,7 +182,7 @@ static bool _get_json_ret_code(char *json, int32_t *res)
 {
     char *v = LITE_json_value_of("Retcode", json);
     if (v == NULL) {
-        UPLOAD_ERR("Invalid json content: %s", json);
+        UPLOAD_ERR("Invalid json content: %s", STRING_PTR_PRINT_SANITY_CHECK(json));
         return false;
     }
     if (LITE_get_int32(res, v) != QCLOUD_RET_SUCCESS) {

@@ -39,7 +39,7 @@ static bool _get_json_log_level(char *json, int32_t *res)
 {
     char *v = LITE_json_value_of("log_level", json);
     if (v == NULL) {
-        Log_e("Invalid log level from JSON: %s", json);
+        Log_e("Invalid log level from JSON: %s", STRING_PTR_PRINT_SANITY_CHECK(json));
         return false;
     }
     if (LITE_get_int32(res, v) != QCLOUD_RET_SUCCESS) {
@@ -65,7 +65,7 @@ static void _log_level_sub_cb(void *pClient, MQTTMessage *message, void *pUserDa
     memcpy(json_buf, message->payload, json_buf_len);
     json_buf[json_buf_len] = '\0';  // json_parse relies on a string
 
-    Log_d("Recv Msg Topic:%s, payload:%s", message->ptopic, json_buf);
+    Log_d("Recv Msg Topic:%s, payload:%s", STRING_PTR_PRINT_SANITY_CHECK(message->ptopic), json_buf);
     int log_level;
     if (!_get_json_log_level(json_buf, &log_level)) {
         return;
@@ -142,11 +142,13 @@ static int _iot_log_level_get_publish(void *pClient)
     char topic_name[128]      = {0};
     char payload_content[128] = {0};
 
-    HAL_Snprintf(topic_name, sizeof(topic_name), "$log/operation/%s/%s", dev_info->product_id, dev_info->device_name);
+    HAL_Snprintf(topic_name, sizeof(topic_name), "$log/operation/%s/%s",
+                 STRING_PTR_PRINT_SANITY_CHECK(dev_info->product_id),
+                 STRING_PTR_PRINT_SANITY_CHECK(dev_info->device_name));
     HAL_Snprintf(payload_content, sizeof(payload_content),
                  "{\"type\": \"get_log_level\", "
                  "\"clientToken\": \"%s-%u\"}",
-                 dev_info->product_id, sg_client_token++);
+                 STRING_PTR_PRINT_SANITY_CHECK(dev_info->product_id), sg_client_token++);
 
     PublishParams pub_params = DEFAULT_PUB_PARAMS;
     pub_params.qos           = QOS0;
@@ -162,8 +164,9 @@ int qcloud_log_topic_subscribe(void *client)
     char               topic_name[128] = {0};
     Qcloud_IoT_Client *mqtt_client     = (Qcloud_IoT_Client *)client;
     DeviceInfo *       dev_info        = &mqtt_client->device_info;
-    int size = HAL_Snprintf(topic_name, sizeof(topic_name), "$log/operation/result/%s/%s", dev_info->product_id,
-                            dev_info->device_name);
+    int                size            = HAL_Snprintf(topic_name, sizeof(topic_name), "$log/operation/result/%s/%s",
+                            STRING_PTR_PRINT_SANITY_CHECK(dev_info->product_id),
+                            STRING_PTR_PRINT_SANITY_CHECK(dev_info->device_name));
     if (size < 0 || size > sizeof(topic_name) - 1) {
         Log_e("topic content buf not enough! content size:%d buf size:%d", size, (int)sizeof(topic_name));
         return QCLOUD_ERR_FAILURE;

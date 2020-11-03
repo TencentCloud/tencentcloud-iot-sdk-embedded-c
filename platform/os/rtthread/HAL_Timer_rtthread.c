@@ -21,8 +21,31 @@ extern "C" {
 #include <string.h>
 
 #include "qcloud_iot_import.h"
+#include "utils_timer.h"
 
 static char now_time_str[20] = {0};
+
+int HAL_Timer_set_systime_sec(size_t timestamp_sec)
+{
+#ifndef PLATFORM_HAS_TIME_FUNCS
+    RTC_DATE_TIME date_time;
+    date_time.ms = 0;
+    timestamp_to_date(timestamp_sec, &date_time, 8);
+    // set RTC Time note hw rtc year base
+    return -1;
+#endif
+}
+
+int HAL_Timer_set_systime_ms(size_t timestamp_ms)
+{
+#ifndef PLATFORM_HAS_TIME_FUNCS
+    RTC_DATE_TIME date_time;
+    date_time.ms = timestamp_ms % 1000;
+    timestamp_to_date(timestamp_ms / 1000, &date_time, 8);
+    // set RTC Time note hw rtc year base
+    return -1;
+#endif
+}
 
 uint32_t HAL_GetTimeMs(void)
 {

@@ -127,4 +127,19 @@ INF|2019-09-12 21:28:21|mqtt_sample.c|on_message_callback(195): Receive Message 
 可以登录物联网通信控制台, 点击左边导航栏中的**云日志**, 查看刚才上报的消息
 ![](https://main.qcloudimg.com/raw/f589691c7e007b59a5426ede6dc17ddb.png)
 
+#### 7. 观察 NTP 时间日志
+如下日志信息显示 NTP 对时，设备 publish 获取 NTP 时间的报文，云平台记录接收到设备获取 NTP 时间报文的时间戳 ntptime1，记录给设备回复时的时间戳 ntptime2，将 ntptime1 和 ntptime2 回复给设备，设备接收到云平台的回复报文，通过算法计算出设备上真实的时间，并调用系统时间设置函数设置时间，通过例子程序日志可以看出时间被正确设置。
+windows / linux 平台已经适配时间设置，其他平台需要适配系统时间设置，执行例程时 windows 需要以管理员身份运行程序，linux 需要以超级用户身份运行程序。
+```
+sudo ./output/release/bin/mqtt_sample
+DBG|2020-10-22 10:48:26|mqtt_client_publish.c|qcloud_iot_mqtt_publish(340): publish packetID=0|topicName=$sys/
+operation/S3EUVBRJLB/test_device|payload={"type": "get", "resource": ["time"]}
+DBG|2020-10-22 10:48:27|system_mqtt.c|_system_mqtt_message_callback(47): Recv Msg Topic:$sys/operation/result/
+S3EUVBRJLB/test_device, payload:{"type":"get","time":1603334906,"ntptime1":1603334906594,"ntptime2":1603334906594}
+INF|2020-10-22 10:48:26|system_mqtt.c|IOT_Sync_NTPTime(294): set systime ms success, timestamp 1603334906644 ms
+INF|2020-10-22 10:48:26|mqtt_sample.c|main(325): sync ntp time success!
+
+```
+在 `HAL_Timer_freertos.c HAL_Timer_rtthread.c HAL_Timer_nonos.c` 文件中提供了 `timestamp_to_date` 函数将时间戳转换为年、月、日、时、分、秒、毫秒方便嵌入式设备设置 RTC 时钟。
+`HAL_Timer_set_systime_sec` 设置系统时间函数在 32bit 平台使用; `HAL_Timer_set_systime_ms` 设置系统时间函数在 64bit 平台使用。
 

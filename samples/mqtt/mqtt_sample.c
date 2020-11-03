@@ -43,7 +43,8 @@ static void _mqtt_event_handler(void *pclient, void *handle_context, MQTTEventMs
 
         case MQTT_EVENT_PUBLISH_RECVEIVED:
             Log_i("topic message arrived but without any related handle: topic=%.*s, topic_msg=%.*s",
-                  mqtt_messge->topic_len, mqtt_messge->ptopic, mqtt_messge->payload_len, mqtt_messge->payload);
+                  mqtt_messge->topic_len, STRING_PTR_PRINT_SANITY_CHECK(mqtt_messge->ptopic), mqtt_messge->payload_len,
+                  STRING_PTR_PRINT_SANITY_CHECK(mqtt_messge->payload));
             break;
         case MQTT_EVENT_SUBCRIBE_SUCCESS:
             Log_i("subscribe success, packet-id=%u", (unsigned int)packet_id);
@@ -104,14 +105,14 @@ static int _setup_connect_init_params(MQTTInitParams *initParams, DeviceInfo *de
 
 #ifdef WIN32
     HAL_Snprintf(initParams->cert_file, FILE_PATH_MAX_LEN, "%s\\%s\\%s", current_path, certs_dir,
-                 device_info->dev_cert_file_name);
+                 STRING_PTR_PRINT_SANITY_CHECK(device_info->dev_cert_file_name));
     HAL_Snprintf(initParams->key_file, FILE_PATH_MAX_LEN, "%s\\%s\\%s", current_path, certs_dir,
-                 device_info->dev_key_file_name);
+                 STRING_PTR_PRINT_SANITY_CHECK(device_info->dev_key_file_name));
 #else
     HAL_Snprintf(initParams->cert_file, FILE_PATH_MAX_LEN, "%s/%s/%s", current_path, certs_dir,
-                 device_info->dev_cert_file_name);
+                 STRING_PTR_PRINT_SANITY_CHECK(device_info->dev_cert_file_name));
     HAL_Snprintf(initParams->key_file, FILE_PATH_MAX_LEN, "%s/%s/%s", current_path, certs_dir,
-                 device_info->dev_key_file_name);
+                 STRING_PTR_PRINT_SANITY_CHECK(device_info->dev_key_file_name));
 #endif
 
 #else
@@ -134,8 +135,9 @@ static int _publish_test_msg(void *client, char *topic_keyword, QoS qos)
     char        topic_name[128] = {0};
     DeviceInfo *dev_info        = IOT_MQTT_GetDeviceInfo(client);
 
-    int size = HAL_Snprintf(topic_name, sizeof(topic_name), "%s/%s/%s", dev_info->product_id, dev_info->device_name,
-                            topic_keyword);
+    int size = HAL_Snprintf(
+        topic_name, sizeof(topic_name), "%s/%s/%s", STRING_PTR_PRINT_SANITY_CHECK(dev_info->product_id),
+        STRING_PTR_PRINT_SANITY_CHECK(dev_info->device_name), STRING_PTR_PRINT_SANITY_CHECK(topic_keyword));
     if (size < 0 || size > sizeof(topic_name) - 1) {
         Log_e("topic content length not enough! content size:%d  buf size:%d", size, (int)sizeof(topic_name));
         return QCLOUD_ERR_FAILURE;
@@ -166,8 +168,9 @@ static void _on_message_callback(void *pClient, MQTTMessage *message, void *user
         return;
     }
 
-    Log_i("Receive Message With topicName:%.*s, payload:%.*s", (int)message->topic_len, message->ptopic,
-          (int)message->payload_len, (char *)message->payload);
+    Log_i("Receive Message With topicName:%.*s, payload:%.*s", (int)message->topic_len,
+          STRING_PTR_PRINT_SANITY_CHECK(message->ptopic), (int)message->payload_len,
+          STRING_PTR_PRINT_SANITY_CHECK((char *)message->payload));
 }
 
 // subscribe MQTT topic and wait for sub result
@@ -176,8 +179,9 @@ static int _subscribe_topic_wait_result(void *client, char *topic_keyword, QoS q
     char        topic_name[128] = {0};
     DeviceInfo *dev_info        = IOT_MQTT_GetDeviceInfo(client);
 
-    int size = HAL_Snprintf(topic_name, sizeof(topic_name), "%s/%s/%s", dev_info->product_id, dev_info->device_name,
-                            topic_keyword);
+    int size = HAL_Snprintf(
+        topic_name, sizeof(topic_name), "%s/%s/%s", STRING_PTR_PRINT_SANITY_CHECK(dev_info->product_id),
+        STRING_PTR_PRINT_SANITY_CHECK(dev_info->device_name), STRING_PTR_PRINT_SANITY_CHECK(topic_keyword));
     if (size < 0 || size > sizeof(topic_name) - 1) {
         Log_e("topic content length not enough! content size:%d  buf size:%d", size, (int)sizeof(topic_name));
         return QCLOUD_ERR_FAILURE;
@@ -317,6 +321,14 @@ int main(int argc, char **argv)
         Log_i("system time is %ld", time);
     } else {
         Log_e("get system time failed!");
+    }
+
+    // Sync time by NTP timestamp from server
+    rc = IOT_Sync_NTPTime(client);
+    if (QCLOUD_RET_SUCCESS == rc) {
+        Log_i("sync ntp time success!");
+    } else {
+        Log_e("sync ntp time failed!");
     }
 #endif
 

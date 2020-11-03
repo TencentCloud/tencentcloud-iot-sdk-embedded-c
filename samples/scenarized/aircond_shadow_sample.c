@@ -130,7 +130,7 @@ static void on_message_callback(void *pClient, MQTTMessage *message, void *userD
     }
 
     Log_i("Receive Message With topicName:%.*s, payload:%.*s", (int)topicNameLen, topicName, (int)message->payload_len,
-          (char *)message->payload);
+          STRING_PTR_PRINT_SANITY_CHECK((char *)message->payload));
 
     static char cloud_rcv_buf[MAX_RECV_LEN + 1];
     size_t      len = (message->payload_len > MAX_RECV_LEN) ? MAX_RECV_LEN : (message->payload_len);
@@ -179,14 +179,14 @@ static int _setup_connect_init_params(ShadowInitParams *initParams)
 
 #ifdef WIN32
     HAL_Snprintf(initParams->cert_file, FILE_PATH_MAX_LEN, "%s\\%s\\%s", current_path, certs_dir,
-                 sg_devInfo.dev_cert_file_name);
+                 STRING_PTR_PRINT_SANITY_CHECK(sg_devInfo.dev_cert_file_name));
     HAL_Snprintf(initParams->key_file, FILE_PATH_MAX_LEN, "%s\\%s\\%s", current_path, certs_dir,
-                 sg_devInfo.dev_key_file_name);
+                 STRING_PTR_PRINT_SANITY_CHECK(sg_devInfo.dev_key_file_name));
 #else
     HAL_Snprintf(initParams->cert_file, FILE_PATH_MAX_LEN, "%s/%s/%s", current_path, certs_dir,
-                 sg_devInfo.dev_cert_file_name);
+                 STRING_PTR_PRINT_SANITY_CHECK(sg_devInfo.dev_cert_file_name));
     HAL_Snprintf(initParams->key_file, FILE_PATH_MAX_LEN, "%s/%s/%s", current_path, certs_dir,
-                 sg_devInfo.dev_key_file_name);
+                 STRING_PTR_PRINT_SANITY_CHECK(sg_devInfo.dev_key_file_name));
 #endif
 
 #else
@@ -203,8 +203,9 @@ static int _setup_connect_init_params(ShadowInitParams *initParams)
 static int _register_subscribe_topics(void *client)
 {
     static char topic_name[128] = {0};
-    int size = HAL_Snprintf(topic_name, sizeof(topic_name), "%s/%s/%s", sg_devInfo.product_id, sg_devInfo.device_name,
-                            "control");
+    int         size =
+        HAL_Snprintf(topic_name, sizeof(topic_name), "%s/%s/%s", STRING_PTR_PRINT_SANITY_CHECK(sg_devInfo.product_id),
+                     STRING_PTR_PRINT_SANITY_CHECK(sg_devInfo.device_name), "control");
     if (size < 0 || size > sizeof(topic_name) - 1) {
         Log_e("topic content length not enough! content size:%d  buf size:%d", size, (int)sizeof(topic_name));
         return QCLOUD_ERR_FAILURE;

@@ -62,7 +62,7 @@ uintptr_t HAL_TCP_Connect(const char *host, uint16_t port)
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_protocol = IPPROTO_TCP;
 
-    Log_d("establish tcp connection with server(host=%s port=%s)", host, port_str);
+    Log_d("establish tcp connection with server(host=%s port=%s)", STRING_PTR_PRINT_SANITY_CHECK(host), port_str);
 
     if (getaddrinfo(host, port_str, &hints, &addr_list) != 0) {
         perror("getaddrinfo error");

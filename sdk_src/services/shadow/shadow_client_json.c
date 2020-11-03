@@ -90,8 +90,9 @@ int put_json_node(char *jsonBuffer, size_t sizeOfBuffer, const char *pKey, void 
         return QCLOUD_ERR_JSON_BUFFER_TOO_SMALL;
     }
 
-    rc_of_snprintf = HAL_Snprintf(jsonBuffer + strlen(jsonBuffer), remain_size, "\"%s\":", pKey);
-    rc             = _check_snprintf_return(rc_of_snprintf, remain_size);
+    rc_of_snprintf =
+        HAL_Snprintf(jsonBuffer + strlen(jsonBuffer), remain_size, "\"%s\":", STRING_PTR_PRINT_SANITY_CHECK(pKey));
+    rc = _check_snprintf_return(rc_of_snprintf, remain_size);
     if (rc != QCLOUD_RET_SUCCESS) {
         return rc;
     }
@@ -150,8 +151,9 @@ int event_put_json_node(char *jsonBuffer, size_t sizeOfBuffer, const char *pKey,
         return QCLOUD_ERR_JSON_BUFFER_TOO_SMALL;
     }
 
-    rc_of_snprintf = HAL_Snprintf(jsonBuffer + strlen(jsonBuffer), remain_size, "\"%s\":", pKey);
-    rc             = _check_snprintf_return(rc_of_snprintf, remain_size);
+    rc_of_snprintf =
+        HAL_Snprintf(jsonBuffer + strlen(jsonBuffer), remain_size, "\"%s\":", STRING_PTR_PRINT_SANITY_CHECK(pKey));
+    rc = _check_snprintf_return(rc_of_snprintf, remain_size);
     if (rc != QCLOUD_RET_SUCCESS) {
         return rc;
     }
@@ -202,13 +204,13 @@ int event_put_json_node(char *jsonBuffer, size_t sizeOfBuffer, const char *pKey,
 
 int generate_client_token(char *pStrBuffer, size_t sizeOfBuffer, uint32_t *tokenNumber, char *product_id)
 {
-    return HAL_Snprintf(pStrBuffer, sizeOfBuffer, "%s-%u", product_id, (*tokenNumber)++);
+    return HAL_Snprintf(pStrBuffer, sizeOfBuffer, "%s-%u", STRING_PTR_PRINT_SANITY_CHECK(product_id), (*tokenNumber)++);
 }
 
 void build_empty_json(uint32_t *tokenNumber, char *pJsonBuffer, char *product_id)
 {
-    HAL_Snprintf(pJsonBuffer, MAX_SIZE_OF_JSON_WITH_CLIENT_TOKEN, "{\"clientToken\":\"%s-%u\"}", product_id,
-                 (*tokenNumber)++);
+    HAL_Snprintf(pJsonBuffer, MAX_SIZE_OF_JSON_WITH_CLIENT_TOKEN, "{\"clientToken\":\"%s-%u\"}",
+                 STRING_PTR_PRINT_SANITY_CHECK(product_id), (*tokenNumber)++);
 }
 
 bool parse_client_token(char *pJsonDoc, char **pClientToken)

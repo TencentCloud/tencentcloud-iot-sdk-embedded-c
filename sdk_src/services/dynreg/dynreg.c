@@ -97,7 +97,7 @@ static int _get_json_resault_code(char *json)
     char *v       = LITE_json_value_of(CODE_RESAULT, json);
 
     if (v == NULL) {
-        Log_e("Invalid json content: %s", json);
+        Log_e("Invalid json content: %s", STRING_PTR_PRINT_SANITY_CHECK(json));
         return -1;
     }
 
@@ -118,7 +118,7 @@ static int _get_json_encry_type(char *json)
     char *v    = LITE_json_value_of(ENCRYPT_TYPE, json);
 
     if (v == NULL) {
-        Log_e("Get encry type fail, %s", json);
+        Log_e("Get encry type fail, %s", STRING_PTR_PRINT_SANITY_CHECK(json));
         return -1;
     }
 
@@ -140,7 +140,7 @@ static char *_get_json_psk(char *json)
     char *psk = LITE_json_value_of(PSK_DATA, json);
 
     if (psk == NULL) {
-        Log_e("Get psk fail: %s", json);
+        Log_e("Get psk fail: %s", STRING_PTR_PRINT_SANITY_CHECK(json));
     }
 
     return psk;
@@ -152,7 +152,7 @@ static char *_get_json_cert_data(char *json)
     char *cert = LITE_json_value_of(CERT_DATA, json);
 
     if (cert == NULL) {
-        Log_e("Get clientCert fail: %s", json);
+        Log_e("Get clientCert fail: %s", STRING_PTR_PRINT_SANITY_CHECK(json));
     }
 
     return cert;
@@ -163,7 +163,7 @@ static char *_get_json_key_data(char *json)
     char *key = LITE_json_value_of(KEY_DATA, json);
 
     if (key == NULL) {
-        Log_e("Get clientCert fail: %s", json);
+        Log_e("Get clientCert fail: %s", STRING_PTR_PRINT_SANITY_CHECK(json));
     }
 
     return key;
@@ -190,10 +190,10 @@ static int _cert_file_save(const char *fileName, char *data, uint32_t dataLen)
     int      Ret = QCLOUD_ERR_FAILURE;
 
     memset(filePath, 0, FILE_PATH_MAX_LEN);
-    HAL_Snprintf(filePath, FILE_PATH_MAX_LEN, "./certs/%s", fileName);
+    HAL_Snprintf(filePath, FILE_PATH_MAX_LEN, "./certs/%s", STRING_PTR_PRINT_SANITY_CHECK(fileName));
 
     if ((fp = fopen(filePath, "w+")) == NULL) {
-        Log_e("fail to open file %s", fileName);
+        Log_e("fail to open file %s", STRING_PTR_PRINT_SANITY_CHECK(fileName));
         goto exit;
     }
 
@@ -231,7 +231,7 @@ static int _parse_devinfo(char *jdoc, DeviceInfo *pDevInfo)
     char *psk;
 #endif
 
-    Log_d("recv: %s", jdoc);
+    Log_d("recv: %s", STRING_PTR_PRINT_SANITY_CHECK(jdoc));
 
     ret = _get_json_resault_code(jdoc);
     if (QCLOUD_RET_SUCCESS != ret) {
@@ -289,7 +289,7 @@ static int _parse_devinfo(char *jdoc, DeviceInfo *pDevInfo)
     if (NULL != clientCert) {
         memset(pDevInfo->dev_cert_file_name, 0, MAX_SIZE_OF_DEVICE_CERT_FILE_NAME);
         HAL_Snprintf(pDevInfo->dev_cert_file_name, MAX_SIZE_OF_DEVICE_CERT_FILE_NAME, "%s_cert.crt",
-                     pDevInfo->device_name);
+                     STRING_PTR_PRINT_SANITY_CHECK(pDevInfo->device_name));
         if (QCLOUD_RET_SUCCESS != _cert_file_save(pDevInfo->dev_cert_file_name, clientCert, strlen(clientCert))) {
             Log_e("save %s file fail", pDevInfo->dev_cert_file_name);
             ret = QCLOUD_ERR_FAILURE;

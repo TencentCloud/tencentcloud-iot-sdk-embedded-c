@@ -272,10 +272,10 @@ void coap_msg_dump(CoAPMessage *msg)
     Log_i("msg->code_detail  = %u", msg->code_detail);
     Log_i("msg->msg_id       = %d", msg->msg_id);
     Log_i("msg->pay_load_len = %d", msg->pay_load_len);
-    Log_i("msg->pay_load: %s", msg->pay_load);
+    Log_i("msg->pay_load: %s", STRING_PTR_PRINT_SANITY_CHECK(msg->pay_load));
 
     Log_i("msg->token_len = %u", msg->token_len);
-    Log_i("msg->token: %s", msg->token);
+    Log_i("msg->token: %s", STRING_PTR_PRINT_SANITY_CHECK(msg->token));
     return;
 }
 
