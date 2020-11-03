@@ -117,14 +117,14 @@ static int _setup_connect_init_params(MQTTInitParams *initParams, void *ota_ctx,
 
 #ifdef WIN32
     HAL_Snprintf(initParams->cert_file, FILE_PATH_MAX_LEN, "%s\\%s\\%s", current_path, certs_dir,
-                 device_info->dev_cert_file_name);
+                 STRING_PTR_PRINT_SANITY_CHECK(device_info->dev_cert_file_name));
     HAL_Snprintf(initParams->key_file, FILE_PATH_MAX_LEN, "%s\\%s\\%s", current_path, certs_dir,
-                 device_info->dev_key_file_name);
+                 STRING_PTR_PRINT_SANITY_CHECK(device_info->dev_key_file_name));
 #else
     HAL_Snprintf(initParams->cert_file, FILE_PATH_MAX_LEN, "%s/%s/%s", current_path, certs_dir,
-                 device_info->dev_cert_file_name);
+                 STRING_PTR_PRINT_SANITY_CHECK(device_info->dev_cert_file_name));
     HAL_Snprintf(initParams->key_file, FILE_PATH_MAX_LEN, "%s/%s/%s", current_path, certs_dir,
-                 device_info->dev_key_file_name);
+                 STRING_PTR_PRINT_SANITY_CHECK(device_info->dev_key_file_name));
 #endif
 
 #else
@@ -179,7 +179,7 @@ static int _cal_exist_fw_md5(OTAContextData *ota_ctx)
 
     FILE *fp = fopen(ota_ctx->fw_file_path, "ab+");
     if (NULL == fp) {
-        Log_e("open file %s failed", ota_ctx->fw_file_path);
+        Log_e("open file %s failed", STRING_PTR_PRINT_SANITY_CHECK(ota_ctx->fw_file_path));
         return QCLOUD_ERR_FAILURE;
     }
 
@@ -212,12 +212,12 @@ static int _update_local_fw_info(OTAContextData *ota_ctx)
     char  data_buf[FW_INFO_FILE_DATA_LEN];
 
     memset(data_buf, 0, sizeof(data_buf));
-    HAL_Snprintf(data_buf, sizeof(data_buf), "{\"%s\":\"%s\", \"%s\":%d}", KEY_VER, ota_ctx->remote_version, KEY_SIZE,
-                 ota_ctx->downloaded_size);
+    HAL_Snprintf(data_buf, sizeof(data_buf), "{\"%s\":\"%s\", \"%s\":%d}", KEY_VER,
+                 STRING_PTR_PRINT_SANITY_CHECK(ota_ctx->remote_version), KEY_SIZE, ota_ctx->downloaded_size);
 
     fp = fopen(ota_ctx->fw_info_file_path, "w");
     if (NULL == fp) {
-        Log_e("open file %s failed", ota_ctx->fw_info_file_path);
+        Log_e("open file %s failed", STRING_PTR_PRINT_SANITY_CHECK(ota_ctx->fw_info_file_path));
         ret = QCLOUD_ERR_FAILURE;
         goto exit;
     }
@@ -245,7 +245,7 @@ static int _get_local_fw_info(char *file_name, char *local_version)
 
     FILE *fp = fopen(file_name, "r");
     if (NULL == fp) {
-        Log_e("open file %s failed", file_name);
+        Log_e("open file %s failed", STRING_PTR_PRINT_SANITY_CHECK(file_name));
         return 0;
     }
 
@@ -390,9 +390,11 @@ bool process_ota(OTAContextData *ota_ctx)
             IOT_OTA_Ioctl(h_ota, IOT_OTAG_VERSION, ota_ctx->remote_version, FW_VERSION_MAX_LEN);
 
             DeviceInfo *device_info = IOT_MQTT_GetDeviceInfo(ota_ctx->mqtt_client);
-            HAL_Snprintf(ota_ctx->fw_file_path, FW_FILE_PATH_MAX_LEN, "./FW_%s_%s.bin", device_info->client_id,
-                         ota_ctx->remote_version);
-            HAL_Snprintf(ota_ctx->fw_info_file_path, FW_FILE_PATH_MAX_LEN, "./FW_%s.json", device_info->client_id);
+            HAL_Snprintf(ota_ctx->fw_file_path, FW_FILE_PATH_MAX_LEN, "./FW_%s_%s.bin",
+                         STRING_PTR_PRINT_SANITY_CHECK(device_info->client_id),
+                         STRING_PTR_PRINT_SANITY_CHECK(ota_ctx->remote_version));
+            HAL_Snprintf(ota_ctx->fw_info_file_path, FW_FILE_PATH_MAX_LEN, "./FW_%s.json",
+                         STRING_PTR_PRINT_SANITY_CHECK(device_info->client_id));
 
             /* check if pre-downloading finished or not */
             /* if local FW downloaded size (ota_ctx->downloaded_size) is not zero, it will do resuming download */

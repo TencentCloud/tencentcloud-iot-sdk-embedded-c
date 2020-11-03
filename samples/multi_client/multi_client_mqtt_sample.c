@@ -145,14 +145,14 @@ static int _setup_connect_init_params(MQTTInitParams *initParams, DeviceInfo *de
 
 #ifdef WIN32
     HAL_Snprintf(initParams->cert_file, FILE_PATH_MAX_LEN, "%s\\%s\\%s", current_path, certs_dir,
-                 device_info->dev_cert_file_name);
+                 STRING_PTR_PRINT_SANITY_CHECK(device_info->dev_cert_file_name));
     HAL_Snprintf(initParams->key_file, FILE_PATH_MAX_LEN, "%s\\%s\\%s", current_path, certs_dir,
-                 device_info->dev_key_file_name);
+                 STRING_PTR_PRINT_SANITY_CHECK(device_info->dev_key_file_name));
 #else
     HAL_Snprintf(initParams->cert_file, FILE_PATH_MAX_LEN, "%s/%s/%s", current_path, certs_dir,
-                 device_info->dev_cert_file_name);
+                 STRING_PTR_PRINT_SANITY_CHECK(device_info->dev_cert_file_name));
     HAL_Snprintf(initParams->key_file, FILE_PATH_MAX_LEN, "%s/%s/%s", current_path, certs_dir,
-                 device_info->dev_key_file_name);
+                 STRING_PTR_PRINT_SANITY_CHECK(device_info->dev_key_file_name));
 #endif
 
 #else
@@ -176,8 +176,9 @@ static int _publish_test_msg(void *client, char *topic_keyword, QoS qos, int cou
     char        topic_name[128] = {0};
     DeviceInfo *dev_info        = IOT_MQTT_GetDeviceInfo(client);
 
-    int size = HAL_Snprintf(topic_name, sizeof(topic_name), "%s/%s/%s", dev_info->product_id, dev_info->device_name,
-                            topic_keyword);
+    int size = HAL_Snprintf(
+        topic_name, sizeof(topic_name), "%s/%s/%s", STRING_PTR_PRINT_SANITY_CHECK(dev_info->product_id),
+        STRING_PTR_PRINT_SANITY_CHECK(dev_info->device_name), STRING_PTR_PRINT_SANITY_CHECK(topic_keyword));
     if (size < 0 || size > sizeof(topic_name) - 1) {
         Log_e("topic content length not enough! content size:%d  buf size:%d", size, (int)sizeof(topic_name));
         return QCLOUD_ERR_FAILURE;
@@ -210,8 +211,9 @@ static void _on_message_callback(void *pClient, MQTTMessage *message, void *user
 
     AppThreadData *app_data = (AppThreadData *)user_data;
     app_data->msg_recv_cnt += 1;
-    Log_i("Thread-%d recv msg topic:%.*s, payload:%.*s", app_data->thread_id, (int)message->topic_len, message->ptopic,
-          (int)message->payload_len, (char *)message->payload);
+    Log_i("Thread-%d recv msg topic:%.*s, payload:%.*s", app_data->thread_id, (int)message->topic_len,
+          STRING_PTR_PRINT_SANITY_CHECK(message->ptopic), (int)message->payload_len,
+          STRING_PTR_PRINT_SANITY_CHECK((char *)message->payload));
 }
 
 // subscrib MQTT topic
@@ -219,8 +221,9 @@ static int _subscribe_topic_wait_result(void *client, char *topic_keyword, QoS q
 {
     static char topic_name[128] = {0};
     DeviceInfo *dev_info        = IOT_MQTT_GetDeviceInfo(client);
-    int size = HAL_Snprintf(topic_name, sizeof(topic_name), "%s/%s/%s", dev_info->product_id, dev_info->device_name,
-                            topic_keyword);
+    int         size            = HAL_Snprintf(
+        topic_name, sizeof(topic_name), "%s/%s/%s", STRING_PTR_PRINT_SANITY_CHECK(dev_info->product_id),
+        STRING_PTR_PRINT_SANITY_CHECK(dev_info->device_name), STRING_PTR_PRINT_SANITY_CHECK(topic_keyword));
 
     if (size < 0 || size > sizeof(topic_name) - 1) {
         Log_e("topic content length not enough! content size:%d  buf size:%d", size, (int)sizeof(topic_name));
@@ -271,7 +274,7 @@ static void _mqtt_client_thread_runner(void *ptr)
 
     DeviceInfo dev_info = {0};
     if (HAL_GetDevInfoFromFile(app_data->device_info_file, (void *)&dev_info)) {
-        Log_e("invalid dev info file: %s", app_data->device_info_file);
+        Log_e("invalid dev info file: %s", STRING_PTR_PRINT_SANITY_CHECK(app_data->device_info_file));
         goto thread_exit;
     }
 

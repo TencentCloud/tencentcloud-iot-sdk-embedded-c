@@ -23,6 +23,7 @@ extern "C" {
 #include <string.h>
 
 #include "qcloud_iot_import.h"
+#include "utils_timer.h"
 
 #define PLATFORM_HAS_TIME_FUNCS
 //#define PLATFORM_HAS_CMSIS
@@ -36,6 +37,45 @@ extern "C" {
 #include "cmsis_os.h"
 #include "stm32l4xx_hal.h"
 #endif
+
+int HAL_Timer_set_systime_sec(size_t timestamp_sec)
+{
+#if defined PLATFORM_HAS_TIME_FUNCS
+    struct timeval stime;
+    stime.tv_sec  = timestamp_sec;
+    stime.tv_usec = 0;
+    if (0 != settimeofday(&stime, NULL)) {
+        return -1;
+    }
+    return 0;
+#else
+    RTC_DATE_TIME date_time;
+    date_time.ms = 0;
+    timestamp_to_date(timestamp_sec, &date_time, 8);
+    // set RTC Time note hw rtc year base
+    return -1;
+#endif
+}
+
+int HAL_Timer_set_systime_ms(size_t timestamp_ms)
+{
+#if defined PLATFORM_HAS_TIME_FUNCS
+    struct timeval stime;
+    stime.tv_sec  = (timestamp_ms / 1000);
+    stime.tv_usec = ((timestamp_ms % 1000) * 1000);
+
+    if (0 != settimeofday(&stime, NULL)) {
+        return -1;
+    }
+    return 0;
+#else
+    RTC_DATE_TIME date_time;
+    date_time.ms = timestamp_ms % 1000;
+    timestamp_to_date(timestamp_ms / 1000, &date_time, 8);
+    // set RTC Time note hw rtc year base
+    return -1;
+#endif
+}
 
 uint32_t HAL_GetTimeMs(void)
 {

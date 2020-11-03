@@ -73,9 +73,9 @@ uintptr_t HAL_TCP_Connect(const char *host, uint16_t port)
     ret = getaddrinfo(host, port_str, &hints, &addr_list);
     if (ret) {
         if (ret == EAI_SYSTEM)
-            Log_e("getaddrinfo(%s:%s) error: %s", host, port_str, strerror(errno));
+            Log_e("getaddrinfo(%s:%s) error: %s", STRING_PTR_PRINT_SANITY_CHECK(host), port_str, strerror(errno));
         else
-            Log_e("getaddrinfo(%s:%s) error: %s", host, port_str, gai_strerror(ret));
+            Log_e("getaddrinfo(%s:%s) error: %s", STRING_PTR_PRINT_SANITY_CHECK(host), port_str, gai_strerror(ret));
         return 0;
     }
 
@@ -96,13 +96,13 @@ uintptr_t HAL_TCP_Connect(const char *host, uint16_t port)
     }
 
     if (0 == ret) {
-        Log_e("fail to connect with TCP server: %s:%s", host, port_str);
+        Log_e("fail to connect with TCP server: %s:%s", STRING_PTR_PRINT_SANITY_CHECK(host), port_str);
     } else {
         /* reduce log print due to frequent log server connect/disconnect */
         if (0 == strncmp(host, LOG_UPLOAD_SERVER_DOMAIN, HOST_STR_LENGTH))
             UPLOAD_DBG("connected with TCP server: %s:%s", host, port_str);
         else
-            Log_i("connected with TCP server: %s:%s", host, port_str);
+            Log_i("connected with TCP server: %s:%s", STRING_PTR_PRINT_SANITY_CHECK(host), port_str);
     }
 
     freeaddrinfo(addr_list);

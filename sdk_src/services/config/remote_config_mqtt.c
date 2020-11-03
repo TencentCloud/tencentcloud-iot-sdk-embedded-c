@@ -68,24 +68,24 @@ static void _config_mqtt_message_callback(void *client, MQTTMessage *message, vo
     POINTER_SANITY_CHECK_RTN(config_sub_userdata->on_config_proc);
     POINTER_SANITY_CHECK_RTN(config_sub_userdata->json_buffer);
 
-    Qcloud_IoT_Client *      mqtt_client      = (Qcloud_IoT_Client *)client;
-    ConfigMQTTState *        config_state   = &mqtt_client->config_state;
-    char *payload = config_sub_userdata->json_buffer;
-    char *type    = NULL;
-    char *result  = NULL;
-    char *config_payload = NULL;
+    Qcloud_IoT_Client *mqtt_client    = (Qcloud_IoT_Client *)client;
+    ConfigMQTTState *  config_state   = &mqtt_client->config_state;
+    char *             payload        = config_sub_userdata->json_buffer;
+    char *             type           = NULL;
+    char *             result         = NULL;
+    char *             config_payload = NULL;
 
     // proc recv buff, copy recv data to config_sub_userdata json buffer, need 1B to save '\0'
     if (message->payload_len > (config_sub_userdata->json_buffer_len - 1)) {
-    	Log_e("topic message arrived, config user data json buffer len :%d < recv buff len :%d", 
-    		  config_sub_userdata->json_buffer_len - 1, message->payload_len);
-    	return ;
+        Log_e("topic message arrived, config user data json buffer len :%d < recv buff len :%d",
+              config_sub_userdata->json_buffer_len - 1, message->payload_len);
+        return;
     } else {
-    	memcpy(payload, message->payload, message->payload_len);
-    	payload[message->payload_len] = '\0';
+        memcpy(payload, message->payload, message->payload_len);
+        payload[message->payload_len] = '\0';
     }
 
-    Log_d("Recv Msg Topic:%s, buff data:%s", message->ptopic, payload);
+    Log_d("Recv Msg Topic:%s, buff data:%s", STRING_PTR_PRINT_SANITY_CHECK(message->ptopic), payload);
 
     type = LITE_json_value_of("type", payload);
     if (NULL == type) {
@@ -113,20 +113,18 @@ static void _config_mqtt_message_callback(void *client, MQTTMessage *message, vo
     config_payload = LITE_json_value_of("payload", payload);
     // copy config data to user_data json buffer
     if (NULL == config_payload) {
-    	config_sub_userdata->json_buffer[0] = '\0';
+        config_sub_userdata->json_buffer[0] = '\0';
     } else {
-    	memcpy(config_sub_userdata->json_buffer, config_payload, strlen(config_payload));
-    	config_sub_userdata->json_buffer[strlen(config_payload)] = '\0';
+        memcpy(config_sub_userdata->json_buffer, config_payload, strlen(config_payload));
+        config_sub_userdata->json_buffer[strlen(config_payload)] = '\0';
     }
 
     if (NULL == result) {
-        config_sub_userdata->on_config_proc(client, REMOTE_CONFIG_ERRCODE_SUCCESS, 
-    		                                config_sub_userdata->json_buffer, 
-    		                                strlen(config_sub_userdata->json_buffer));
+        config_sub_userdata->on_config_proc(client, REMOTE_CONFIG_ERRCODE_SUCCESS, config_sub_userdata->json_buffer,
+                                            strlen(config_sub_userdata->json_buffer));
     } else {
-        config_sub_userdata->on_config_proc(client, atoi(result), 
-    		                                config_sub_userdata->json_buffer, 
-    		                                strlen(config_sub_userdata->json_buffer));
+        config_sub_userdata->on_config_proc(client, atoi(result), config_sub_userdata->json_buffer,
+                                            strlen(config_sub_userdata->json_buffer));
     }
 
 exit:
@@ -141,7 +139,7 @@ static void _config_mqtt_sub_event_handler(void *client, MQTTEventType event_typ
 {
     POINTER_SANITY_CHECK_RTN(client);
 
-    Qcloud_IoT_Client *mqtt_client      = (Qcloud_IoT_Client *)client;
+    Qcloud_IoT_Client *mqtt_client  = (Qcloud_IoT_Client *)client;
     ConfigMQTTState *  config_state = &(mqtt_client->config_state);
 
     switch (event_type) {
@@ -191,8 +189,9 @@ static int _iot_config_mqtt_subscribe(void *client, ConfigSubscirbeUserData *con
 
     char topic_name[128] = {0};
 
-    int size = HAL_Snprintf(topic_name, sizeof(topic_name), CONFIG_SUBSCRIBE_TOPIC_FORMAT, dev_info->product_id,
-                            dev_info->device_name);
+    int size = HAL_Snprintf(topic_name, sizeof(topic_name), CONFIG_SUBSCRIBE_TOPIC_FORMAT,
+                            STRING_PTR_PRINT_SANITY_CHECK(dev_info->product_id),
+                            STRING_PTR_PRINT_SANITY_CHECK(dev_info->device_name));
     if (size < 0 || size > sizeof(topic_name) - 1) {
         Log_e("topic content length not enough! content size:%d  buf size:%d", size, (int)sizeof(topic_name));
         return QCLOUD_ERR_FAILURE;
@@ -211,10 +210,10 @@ int IOT_Subscribe_Config(void *client, ConfigSubscirbeUserData *config_sub_userd
     int ret = QCLOUD_RET_SUCCESS;
 
     POINTER_SANITY_CHECK(client, QCLOUD_ERR_INVAL);
-    Qcloud_IoT_Client *mqtt_client    = (Qcloud_IoT_Client *)client;
+    Qcloud_IoT_Client *mqtt_client  = (Qcloud_IoT_Client *)client;
     ConfigMQTTState *  config_state = &mqtt_client->config_state;
     Timer              timer;
-    int packet_id = 0;
+    int                packet_id = 0;
 
     config_state->topic_sub_ok = false;
     config_state->get_reply_ok = false;
@@ -242,8 +241,8 @@ int IOT_Subscribe_Config(void *client, ConfigSubscirbeUserData *config_sub_userd
     }
     if (true == config_state->topic_sub_ok) {
         ret = packet_id;
-    } else if(QCLOUD_RET_SUCCESS == ret) { // multi thread nack
-    	ret = QCLOUD_ERR_MQTT_SUB;
+    } else if (QCLOUD_RET_SUCCESS == ret) {  // multi thread nack
+        ret = QCLOUD_ERR_MQTT_SUB;
     }
 
     return ret;
@@ -259,8 +258,9 @@ static int _iot_config_report_mqtt_publish(void *client, void *json_buffer)
 
     char topic_name[128] = {0};
 
-    HAL_Snprintf(topic_name, sizeof(topic_name), CONFIG_PUBLISH_TOPIC_FORMAT, dev_info->product_id,
-                 dev_info->device_name);
+    HAL_Snprintf(topic_name, sizeof(topic_name), CONFIG_PUBLISH_TOPIC_FORMAT,
+                 STRING_PTR_PRINT_SANITY_CHECK(dev_info->product_id),
+                 STRING_PTR_PRINT_SANITY_CHECK(dev_info->device_name));
 
     PublishParams pub_params = DEFAULT_PUB_PARAMS;
     pub_params.qos           = QOS0;
@@ -273,11 +273,11 @@ static int _iot_config_report_mqtt_publish(void *client, void *json_buffer)
 int IOT_Get_Config(void *client, char *json_buffer, int buffer_size, int reply_timeout)
 {
     POINTER_SANITY_CHECK(client, QCLOUD_ERR_INVAL);
-    int   ret           = 0;
+    int                ret         = 0;
     Qcloud_IoT_Client *mqtt_client = (Qcloud_IoT_Client *)client;
     Timer              timer;
-    ConfigMQTTState *config_state = &mqtt_client->config_state;
-    int32_t rc_of_snprintf = 0;
+    ConfigMQTTState *  config_state   = &mqtt_client->config_state;
+    int32_t            rc_of_snprintf = 0;
 
     // return failure if subscribe failed
     if (false == config_state->topic_sub_ok) {

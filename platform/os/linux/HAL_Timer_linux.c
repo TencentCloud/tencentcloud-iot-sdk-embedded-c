@@ -82,6 +82,30 @@ long HAL_Timer_current_sec(void)
     return tv.tv_sec;
 }
 
+int HAL_Timer_set_systime_sec(size_t timestamp_sec)
+{
+    struct timeval stime;
+    stime.tv_sec  = timestamp_sec;
+    stime.tv_usec = 0;
+
+    if (0 != settimeofday(&stime, NULL)) {
+        return -1;
+    }
+    return 0;
+}
+
+int HAL_Timer_set_systime_ms(size_t timestamp_ms)
+{
+    struct timeval stime;
+    stime.tv_sec  = (timestamp_ms / 1000);
+    stime.tv_usec = ((timestamp_ms % 1000) * 1000);
+
+    if (0 != settimeofday(&stime, NULL)) {
+        return -1;
+    }
+    return 0;
+}
+
 #ifdef __cplusplus
 }
 #endif

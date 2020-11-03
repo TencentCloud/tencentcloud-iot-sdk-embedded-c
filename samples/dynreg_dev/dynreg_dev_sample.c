@@ -89,15 +89,19 @@ int main(int argc, char **argv)
             } else {
 #ifdef AUTH_MODE_CERT
                 Log_d("dynamic register success, productID: %s, devName: %s, CertFile: %s, KeyFile: %s",
-                      sDevInfo.product_id, sDevInfo.device_name, sDevInfo.dev_cert_file_name,
-                      sDevInfo.dev_key_file_name);
+                      STRING_PTR_PRINT_SANITY_CHECK(sDevInfo.product_id),
+                      STRING_PTR_PRINT_SANITY_CHECK(sDevInfo.device_name),
+                      STRING_PTR_PRINT_SANITY_CHECK(sDevInfo.dev_cert_file_name),
+                      STRING_PTR_PRINT_SANITY_CHECK(sDevInfo.dev_key_file_name));
 #else
-                Log_d("dynamic register success,productID: %s, devName: %s, device_secret: %s", sDevInfo.product_id,
-                      sDevInfo.device_name, sDevInfo.device_secret);
+                Log_d("dynamic register success,productID: %s, devName: %s, device_secret: %s",
+                      STRING_PTR_PRINT_SANITY_CHECK(sDevInfo.product_id),
+                      STRING_PTR_PRINT_SANITY_CHECK(sDevInfo.device_name),
+                      STRING_PTR_PRINT_SANITY_CHECK(sDevInfo.device_secret));
 #endif
             }
         } else {
-            Log_e("%s dynamic register fail", sDevInfo.device_name);
+            Log_e("devName: %s dynamic register fail", STRING_PTR_PRINT_SANITY_CHECK(sDevInfo.device_name));
         }
     }
 

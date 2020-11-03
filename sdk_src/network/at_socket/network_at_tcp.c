@@ -54,7 +54,7 @@ int network_at_tcp_connect(Network *pNetwork)
     int fd = at_socket_connect(pNetwork->host, pNetwork->port, eNET_TCP);
 
     if (fd < 0) {
-        Log_e("fail to connect with TCP server: %s:%u", pNetwork->host, pNetwork->port);
+        Log_e("fail to connect with TCP server: %s:%u", STRING_PTR_PRINT_SANITY_CHECK(pNetwork->host), pNetwork->port);
         pNetwork->handle = AT_NO_CONNECTED_FD;
         return -1;
     } else {

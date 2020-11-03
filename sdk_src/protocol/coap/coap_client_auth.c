@@ -48,7 +48,7 @@ static void _coap_client_auth_callback(void *message, void *userContext)
             strncpy(client->auth_token, msg->pay_load, client->auth_token_len);
             client->is_authed = COAP_TRUE;
             Log_d("auth_token_len = %d, auth_token = %.*s", client->auth_token_len, client->auth_token_len,
-                  client->auth_token);
+                  STRING_PTR_PRINT_SANITY_CHECK(client->auth_token));
         }
     } else {
         client->is_authed = COAP_FALSE;
@@ -107,8 +107,8 @@ int coap_client_auth(CoAPClient *pclient)
 
     len             = MAX_SIZE_OF_PRODUCT_ID + strlen(pclient->device_info.device_name) + strlen(COAP_AUTH_URI) + 4;
     char *auth_path = (char *)HAL_Malloc(len);
-    HAL_Snprintf(auth_path, len, "%s/%s/%s", pclient->device_info.product_id, pclient->device_info.device_name,
-                 COAP_AUTH_URI);
+    HAL_Snprintf(auth_path, len, "%s/%s/%s", STRING_PTR_PRINT_SANITY_CHECK(pclient->device_info.product_id),
+                 STRING_PTR_PRINT_SANITY_CHECK(pclient->device_info.device_name), COAP_AUTH_URI);
     coap_message_option_add(&send_message, COAP_MSG_URI_PATH, strlen(auth_path), auth_path);
     HAL_Free(auth_path);
 
@@ -130,7 +130,8 @@ int coap_client_auth(CoAPClient *pclient)
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_INVAL);
     }
 
-    HAL_Snprintf(temp_pay_load, send_message.pay_load_len, "%s;%s", QCLOUD_IOT_DEVICE_SDK_APPID, coap_client->conn_id);
+    HAL_Snprintf(temp_pay_load, send_message.pay_load_len, "%s;%s", QCLOUD_IOT_DEVICE_SDK_APPID,
+                 STRING_PTR_PRINT_SANITY_CHECK(coap_client->conn_id));
 
     coap_message_payload_set(&send_message, temp_pay_load, send_message.pay_load_len);
 

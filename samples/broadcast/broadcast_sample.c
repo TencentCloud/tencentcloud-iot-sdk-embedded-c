@@ -43,7 +43,8 @@ static void _mqtt_event_handler(void *pclient, void *handle_context, MQTTEventMs
 
         case MQTT_EVENT_PUBLISH_RECVEIVED:
             Log_i("topic message arrived but without any related handle: topic=%.*s, topic_msg=%.*s",
-                  mqtt_messge->topic_len, mqtt_messge->ptopic, mqtt_messge->payload_len, mqtt_messge->payload);
+                  mqtt_messge->topic_len, STRING_PTR_PRINT_SANITY_CHECK(mqtt_messge->ptopic), mqtt_messge->payload_len,
+                  STRING_PTR_PRINT_SANITY_CHECK(mqtt_messge->payload));
             break;
         case MQTT_EVENT_SUBCRIBE_SUCCESS:
             Log_i("subscribe success, packet-id=%u", (unsigned int)packet_id);
@@ -104,14 +105,14 @@ static int _setup_connect_init_params(MQTTInitParams *initParams, DeviceInfo *de
 
 #ifdef WIN32
     HAL_Snprintf(initParams->cert_file, FILE_PATH_MAX_LEN, "%s\\%s\\%s", current_path, certs_dir,
-                 device_info->dev_cert_file_name);
+                 STRING_PTR_PRINT_SANITY_CHECK(device_info->dev_cert_file_name));
     HAL_Snprintf(initParams->key_file, FILE_PATH_MAX_LEN, "%s\\%s\\%s", current_path, certs_dir,
-                 device_info->dev_key_file_name);
+                 STRING_PTR_PRINT_SANITY_CHECK(device_info->dev_key_file_name));
 #else
     HAL_Snprintf(initParams->cert_file, FILE_PATH_MAX_LEN, "%s/%s/%s", current_path, certs_dir,
-                 device_info->dev_cert_file_name);
+                 STRING_PTR_PRINT_SANITY_CHECK(device_info->dev_cert_file_name));
     HAL_Snprintf(initParams->key_file, FILE_PATH_MAX_LEN, "%s/%s/%s", current_path, certs_dir,
-                 device_info->dev_key_file_name);
+                 STRING_PTR_PRINT_SANITY_CHECK(device_info->dev_key_file_name));
 #endif
 
 #else
@@ -131,15 +132,14 @@ static int _setup_connect_init_params(MQTTInitParams *initParams, DeviceInfo *de
 // User callback
 static void _broadcast_message_handler(void *pClient, const char *msg, uint32_t msgLen)
 {
-    Log_i("broadcast message=%.*s", msgLen, msg);
+    Log_i("broadcast message=%.*s", msgLen, STRING_PTR_PRINT_SANITY_CHECK(msg));
 }
 
 static int sg_loop_count = 5;
 static int parse_arguments(int argc, char **argv)
 {
     int c;
-    while ((c = utils_getopt(argc, argv, "c:l:")) != EOF)
-        switch (c) {
+    while ((c = utils_getopt(argc, argv, "c:l:")) != EOF) switch (c) {
             case 'c':
                 if (HAL_SetDevInfoFile(utils_optarg))
                     return -1;

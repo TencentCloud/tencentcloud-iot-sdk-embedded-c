@@ -35,8 +35,10 @@ static int _publish_rrpc_to_cloud(void *client, const char *processId, char *pJs
     char               topic[MAX_SIZE_OF_CLOUD_TOPIC] = {0};
     Qcloud_IoT_Client *mqtt_client                    = (Qcloud_IoT_Client *)client;
 
-    int size = HAL_Snprintf(topic, MAX_SIZE_OF_CLOUD_TOPIC, "$rrpc/txd/%s/%s/%s", mqtt_client->device_info.product_id,
-                            mqtt_client->device_info.device_name, processId);
+    int size = HAL_Snprintf(topic, MAX_SIZE_OF_CLOUD_TOPIC, "$rrpc/txd/%s/%s/%s",
+                            STRING_PTR_PRINT_SANITY_CHECK(mqtt_client->device_info.product_id),
+                            STRING_PTR_PRINT_SANITY_CHECK(mqtt_client->device_info.device_name),
+                            STRING_PTR_PRINT_SANITY_CHECK(processId));
     if (size < 0 || size > sizeof(topic) - 1) {
         Log_e("topic content length not enough! content size:%d  buf size:%d", size, (int)sizeof(topic));
         return QCLOUD_ERR_FAILURE;
@@ -78,7 +80,8 @@ static void _rrpc_message_cb(void *pClient, MQTTMessage *message, void *pContext
     OnRRPCMessageCallback callback = (OnRRPCMessageCallback)pContext;
 
     Log_d("topic=%.*s", message->topic_len, message->ptopic);
-    Log_i("len=%u, topic_msg=%.*s", message->payload_len, message->payload_len, (char *)message->payload);
+    Log_i("len=%u, topic_msg=%.*s", message->payload_len, message->payload_len,
+          STRING_PTR_PRINT_SANITY_CHECK((char *)message->payload));
 
     int rc = _rrpc_get_process_id(sg_process_id_buffer, MAX_RRPC_PROCESS_ID_LEN, message->ptopic, message->topic_len);
     if (rc != QCLOUD_RET_SUCCESS) {
@@ -134,8 +137,9 @@ int IOT_RRPC_Init(void *pClient, OnRRPCMessageCallback callback)
     sub_params.qos                  = QOS0;
     sub_params.user_data            = callback;
 
-    HAL_Snprintf(rrpc_topic, MAX_SIZE_OF_CLOUD_TOPIC, "$rrpc/rxd/%s/%s/+", mqtt_client->device_info.product_id,
-                 mqtt_client->device_info.device_name);
+    HAL_Snprintf(rrpc_topic, MAX_SIZE_OF_CLOUD_TOPIC, "$rrpc/rxd/%s/%s/+",
+                 STRING_PTR_PRINT_SANITY_CHECK(mqtt_client->device_info.product_id),
+                 STRING_PTR_PRINT_SANITY_CHECK(mqtt_client->device_info.device_name));
 
     if (!mqtt_client->rrpc_state) {
         for (int cntSub = 0; cntSub < 3; cntSub++) {
@@ -163,8 +167,7 @@ int IOT_RRPC_Init(void *pClient, OnRRPCMessageCallback callback)
 int IOT_RRPC_Reply(void *pClient, char *pJsonDoc, size_t sizeOfBuffer, sRRPCReplyPara *replyPara)
 {
     int rc = QCLOUD_RET_SUCCESS;
-
-    rc = _publish_rrpc_to_cloud(pClient, sg_process_id_buffer, pJsonDoc);
+    rc     = _publish_rrpc_to_cloud(pClient, sg_process_id_buffer, pJsonDoc);
     if (rc < 0) {
         Log_e("publish rrpc to cloud fail, %d", rc);
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_RRPC_REPLY_ERR);

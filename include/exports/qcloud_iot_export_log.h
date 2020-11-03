@@ -157,6 +157,9 @@ void IOT_Log_Gen(const char *file, const char *func, const int line, const int l
 #define Log_w(fmt, ...) IOT_Log_Gen(__FILE__, __FUNCTION__, __LINE__, eLOG_WARN, fmt, ##__VA_ARGS__)
 #define Log_e(fmt, ...) IOT_Log_Gen(__FILE__, __FUNCTION__, __LINE__, eLOG_ERROR, fmt, ##__VA_ARGS__)
 
+/* check pointer before printf/snprintf */
+#define STRING_PTR_PRINT_SANITY_CHECK(s) ((s) ? (s) : "null")
+
 /* Macro for debug mode */
 #ifdef IOT_DEBUG
 #define IOT_FUNC_ENTRY                                              \

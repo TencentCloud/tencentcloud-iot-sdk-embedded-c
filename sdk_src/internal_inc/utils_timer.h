@@ -24,6 +24,19 @@ extern "C" {
 #include "qcloud_iot_import.h"
 
 /**
+ * Define RTC DATE TIME structure
+ */
+typedef struct {
+    int year;
+    int month;
+    int day;
+    int hour;
+    int minute;
+    int sec;
+    int ms;
+} RTC_DATE_TIME;
+
+/**
  * @brief Check if a timer is expired
  *
  * Call this function passing in a timer to check if that timer has expired.
@@ -71,6 +84,17 @@ int left_ms(Timer *timer);
  * @param timer - pointer to the timer to be initialized
  */
 void InitTimer(Timer *timer);
+
+/**
+ * @brief Time stamp converted to date
+ *
+ * Time stamp converted to date
+ *
+ * @param timestamp_sec   timestamp second
+ * @param date_time       output date_time
+ * @param time_zone       +-time_zone, 8 is china time zone
+ */
+void timestamp_to_date(size_t timestamp_sec, RTC_DATE_TIME *date_time, int8_t time_zone);
 
 #ifdef __cplusplus
 }

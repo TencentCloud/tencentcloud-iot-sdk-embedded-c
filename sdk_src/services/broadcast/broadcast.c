@@ -22,8 +22,9 @@
 static void _broadcast_message_cb(void *pClient, MQTTMessage *message, void *pContext)
 {
     OnBroadcastMessageCallback callback = (OnBroadcastMessageCallback)pContext;
-    Log_d("topic=%.*s", message->topic_len, message->ptopic);
-    Log_i("len=%u, topic_msg=%.*s", message->payload_len, message->payload_len, (char *)message->payload);
+    Log_d("topic=%.*s", message->topic_len, STRING_PTR_PRINT_SANITY_CHECK(message->ptopic));
+    Log_i("len=%u, topic_msg=%.*s", message->payload_len, message->payload_len,
+          STRING_PTR_PRINT_SANITY_CHECK((char *)message->payload));
     if (callback) {
         callback(pClient, message->payload, message->payload_len);
     }
@@ -72,8 +73,9 @@ int IOT_Broadcast_Subscribe(void *pClient, OnBroadcastMessageCallback callback)
     sub_params.qos                  = QOS1;
     sub_params.user_data            = callback;
 
-    HAL_Snprintf(broadcast_topic, MAX_SIZE_OF_CLOUD_TOPIC, "$broadcast/rxd/%s/%s", mqtt_client->device_info.product_id,
-                 mqtt_client->device_info.device_name);
+    HAL_Snprintf(broadcast_topic, MAX_SIZE_OF_CLOUD_TOPIC, "$broadcast/rxd/%s/%s",
+                 STRING_PTR_PRINT_SANITY_CHECK(mqtt_client->device_info.product_id),
+                 STRING_PTR_PRINT_SANITY_CHECK(mqtt_client->device_info.device_name));
 
     if (!mqtt_client->broadcast_state) {
         for (int cntSub = 0; cntSub < 3; cntSub++) {

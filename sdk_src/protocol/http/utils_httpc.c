@@ -208,7 +208,8 @@ static int _http_client_send_auth(HTTPClient *client, unsigned char *send_buf, i
     char base64buff[HTTP_CLIENT_AUTHB_SIZE + 3];
 
     _http_client_get_info(client, send_buf, send_idx, "Authorization: Basic ", 0);
-    HAL_Snprintf(base64buff, sizeof(base64buff), "%s:%s", client->auth_user, client->auth_password);
+    HAL_Snprintf(base64buff, sizeof(base64buff), "%s:%s", STRING_PTR_PRINT_SANITY_CHECK(client->auth_user),
+                 STRING_PTR_PRINT_SANITY_CHECK(client->auth_password));
 
     _http_client_base64enc(b_auth, base64buff);
     b_auth[strlen(b_auth) + 1] = '\0';
@@ -270,7 +271,8 @@ static int _http_client_send_header(HTTPClient *client, const char *url, HttpMet
         _http_client_get_info(client, send_buf, &len, buf, strlen(buf));
 
         if (client_data->post_content_type != NULL) {
-            HAL_Snprintf(buf, sizeof(buf), "Content-Type: %s\r\n", client_data->post_content_type);
+            HAL_Snprintf(buf, sizeof(buf), "Content-Type: %s\r\n",
+                         STRING_PTR_PRINT_SANITY_CHECK(client_data->post_content_type));
             _http_client_get_info(client, send_buf, &len, buf, strlen(buf));
         }
     }

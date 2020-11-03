@@ -30,6 +30,15 @@ extern "C" {
  */
 int IOT_Get_SysTime(void* pClient, long* time);
 
+/**
+ * @brief sync ntp timestamp from MQTT server
+ *
+ * @param pClient           MQTTClient pointer
+ * @return                  QCLOUD_RET_SUCCESS for success
+ *                          otherwise, failure
+ */
+int IOT_Sync_NTPTime(void* pClient);
+
 #ifdef __cplusplus
 }
 #endif

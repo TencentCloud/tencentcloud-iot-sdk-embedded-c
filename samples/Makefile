@@ -40,10 +40,10 @@ CFLAGS += -DAUTH_MODE_CERT
 endif
 
 .PHONY: mqtt_sample ota_mqtt_sample ota_coap_sample shadow_sample coap_sample gateway_sample multi_thread_mqtt_sample \
-			dynreg_dev_sample multi_client broadcast_sample rrpc_sample remote_config_mqtt_sample
+			dynreg_dev_sample multi_client broadcast_sample rrpc_sample remote_config_mqtt_sample ota_mqtt_subdev_sample
 
 all: mqtt_sample ota_mqtt_sample ota_coap_sample shadow_sample coap_sample gateway_sample multi_thread_mqtt_sample \
-			dynreg_dev_sample multi_client broadcast_sample rrpc_sample remote_config_mqtt_sample
+			dynreg_dev_sample multi_client broadcast_sample rrpc_sample remote_config_mqtt_sample ota_mqtt_subdev_sample
 
 ifneq (,$(filter -DMQTT_COMM_ENABLED,$(CFLAGS)))
 mqtt_sample:
@@ -97,6 +97,19 @@ ota_mqtt_sample:
 
 	$(TOP_Q) \
 	mv $@ $(FINAL_DIR)/bin
+endif
+endif
+
+ifneq (,$(filter -DOTA_COMM_ENABLED,$(CFLAGS)))
+ifneq (,$(filter -DOTA_MQTT_CHANNEL,$(CFLAGS)))
+ifneq (,$(filter -DGATEWAY_ENABLED,$(CFLAGS)))
+ota_mqtt_subdev_sample:
+	$(TOP_Q) \
+	$(PLATFORM_CC) $(CFLAGS) $(SAMPLE_DIR)/ota/$@.c $(LDFLAGS) -o $@
+
+	$(TOP_Q) \
+	mv $@ $(FINAL_DIR)/bin
+endif
 endif
 endif
 

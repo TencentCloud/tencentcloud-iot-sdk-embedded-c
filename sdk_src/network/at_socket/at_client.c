@@ -837,7 +837,7 @@ int at_client_init(at_client_t *pClient)
         if (NULL != client->parser) {
 #define AT_PARSER_THREAD_STACK    6144
 #define AT_PARSER_THREAD_PRIORITY 0
-            ThreadParams thread_params = {0};
+            static ThreadParams thread_params = {0};
             thread_params.thread_func  = client->parser;
             thread_params.thread_name  = "at_client_parser";
             thread_params.user_arg     = client;

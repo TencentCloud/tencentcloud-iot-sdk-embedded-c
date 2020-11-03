@@ -78,7 +78,8 @@ void event_handler(void *pclient, void *handle_context, MQTTEventMsg *msg)
 
         case MQTT_EVENT_PUBLISH_RECVEIVED:
             Log_i("topic message arrived but without any related handle: topic=%.*s, topic_msg=%.*s",
-                  mqtt_messge->topic_len, mqtt_messge->ptopic, mqtt_messge->payload_len, mqtt_messge->payload);
+                  mqtt_messge->topic_len, STRING_PTR_PRINT_SANITY_CHECK(mqtt_messge->ptopic), mqtt_messge->payload_len,
+                  STRING_PTR_PRINT_SANITY_CHECK(mqtt_messge->payload));
             break;
         case MQTT_EVENT_SUBCRIBE_SUCCESS:
             Log_i("subscribe success, packet-id=%u", (unsigned int)packet_id);
@@ -144,16 +145,17 @@ static int _setup_connect_init_params(MQTTInitParams *initParams)
     }
 
     HAL_Snprintf(initParams->cert_file, FILE_PATH_MAX_LEN, "%s/%s/%s", current_path, certs_dir,
-                 sg_device_info.dev_cert_file_name);
+                 STRING_PTR_PRINT_SANITY_CHECK(sg_device_info.dev_cert_file_name));
     HAL_Snprintf(initParams->key_file, FILE_PATH_MAX_LEN, "%s/%s/%s", current_path, certs_dir,
-                 sg_device_info.dev_key_file_name);
+                 STRING_PTR_PRINT_SANITY_CHECK(sg_device_info.dev_key_file_name));
 #else
     initParams->device_secret = sg_device_info.device_secret;
 #endif
 
     memset(sg_pub_sub_test_topic, 0, MAX_SIZE_OF_TOPIC_CONTENT);
-    HAL_Snprintf(sg_pub_sub_test_topic, MAX_SIZE_OF_TOPIC_CONTENT, "%s/%s/data", sg_device_info.product_id,
-                 sg_device_info.device_name);
+    HAL_Snprintf(sg_pub_sub_test_topic, MAX_SIZE_OF_TOPIC_CONTENT, "%s/%s/data",
+                 STRING_PTR_PRINT_SANITY_CHECK(sg_device_info.product_id),
+                 STRING_PTR_PRINT_SANITY_CHECK(sg_device_info.device_name));
 
     initParams->command_timeout        = QCLOUD_IOT_MQTT_COMMAND_TIMEOUT;
     initParams->keep_alive_interval_ms = QCLOUD_IOT_MQTT_KEEP_ALIVE_INTERNAL;
@@ -176,7 +178,7 @@ static void _mqtt_message_handler(void *pClient, MQTTMessage *message, void *use
         unsigned int tempRow = 0, tempCol = 0;
         char *       temp = NULL;
 
-        HAL_Snprintf(tempBuf, message->payload_len + 1, "%s", (char *)message->payload);
+        HAL_Snprintf(tempBuf, message->payload_len + 1, "%s", STRING_PTR_PRINT_SANITY_CHECK((char *)message->payload));
         Log_d("Message received : %s", tempBuf);
 
         char *count_value = LITE_json_value_of("count", tempBuf);
@@ -227,7 +229,8 @@ static void _mqtt_sub_unsub_thread_runner(void *ptr)
     int   rc      = QCLOUD_RET_SUCCESS;
     void *pClient = ptr;
     char  testTopic[128];
-    HAL_Snprintf(testTopic, 128, "%s/%s/control", sg_device_info.product_id, sg_device_info.device_name);
+    HAL_Snprintf(testTopic, 128, "%s/%s/control", STRING_PTR_PRINT_SANITY_CHECK(sg_device_info.product_id),
+                 STRING_PTR_PRINT_SANITY_CHECK(sg_device_info.device_name));
 
     while (QCLOUD_RET_SUCCESS == rc && false == sg_sub_unsub_thread_quit) {
         do {

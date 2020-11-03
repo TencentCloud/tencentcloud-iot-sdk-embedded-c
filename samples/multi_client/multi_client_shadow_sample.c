@@ -61,7 +61,7 @@ static int sg_loop_cnt = 10;
 
 void OnDeltaCallback(void *pClient, const char *pJsonValueBuffer, uint32_t valueLength, DeviceProperty *pProperty)
 {
-    Log_i("Thread recv delta str: %s", pJsonValueBuffer);
+    Log_i("Thread recv delta str: %s", STRING_PTR_PRINT_SANITY_CHECK(pJsonValueBuffer));
     pProperty->delta_arrived = true;
 }
 
@@ -108,14 +108,14 @@ static int _setup_connect_init_params(ShadowInitParams *initParams, DeviceInfo *
 
 #ifdef WIN32
     HAL_Snprintf(initParams->cert_file, FILE_PATH_MAX_LEN, "%s\\%s\\%s", current_path, certs_dir,
-                 device_info->dev_cert_file_name);
+                 STRING_PTR_PRINT_SANITY_CHECK(device_info->dev_cert_file_name));
     HAL_Snprintf(initParams->key_file, FILE_PATH_MAX_LEN, "%s\\%s\\%s", current_path, certs_dir,
-                 device_info->dev_key_file_name);
+                 STRING_PTR_PRINT_SANITY_CHECK(device_info->dev_key_file_name));
 #else
     HAL_Snprintf(initParams->cert_file, FILE_PATH_MAX_LEN, "%s/%s/%s", current_path, certs_dir,
-                 device_info->dev_cert_file_name);
+                 STRING_PTR_PRINT_SANITY_CHECK(device_info->dev_cert_file_name));
     HAL_Snprintf(initParams->key_file, FILE_PATH_MAX_LEN, "%s/%s/%s", current_path, certs_dir,
-                 device_info->dev_key_file_name);
+                 STRING_PTR_PRINT_SANITY_CHECK(device_info->dev_key_file_name));
 #endif
 
 #else
@@ -146,7 +146,7 @@ static void _shadow_client_thread_runner(void *ptr)
 
     DeviceInfo dev_info = {0};
     if (HAL_GetDevInfoFromFile(thread_data->device_info_file, (void *)&dev_info)) {
-        Log_e("invalid dev info file: %s", thread_data->device_info_file);
+        Log_e("invalid dev info file: %s", STRING_PTR_PRINT_SANITY_CHECK(thread_data->device_info_file));
         goto thread_exit;
     }
 

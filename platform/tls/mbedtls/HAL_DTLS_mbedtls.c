@@ -83,7 +83,7 @@ static void _free_mebeddtls(DTLSDataParams *pParams)
 
 static void _dtls_debug(void *ctx, int level, const char *file, int line, const char *str)
 {
-    Log_i("[mbedTLS]:[%s]:[%d]: %s\r\n", file, line, str);
+    Log_i("[mbedTLS]:[%s]:[%d]: %s\r\n", STRING_PTR_PRINT_SANITY_CHECK(file), line, STRING_PTR_PRINT_SANITY_CHECK(str));
 }
 
 static int _mbedtls_client_init(DTLSDataParams *pDataParams, DTLSConnectParams *pConnectParams)
@@ -140,8 +140,9 @@ static int _mbedtls_client_init(DTLSDataParams *pDataParams, DTLSConnectParams *
             }
         }
     } else {
-        Log_d("cert_file/key_file is empty!|cert_file=%s|key_file=%s", pConnectParams->cert_file,
-              pConnectParams->key_file);
+        Log_d("cert_file/key_file is empty!|cert_file=%s|key_file=%s",
+              STRING_PTR_PRINT_SANITY_CHECK(pConnectParams->cert_file),
+              STRING_PTR_PRINT_SANITY_CHECK(pConnectParams->key_file));
     }
 
 #else
@@ -150,7 +151,8 @@ static int _mbedtls_client_init(DTLSDataParams *pDataParams, DTLSConnectParams *
         ret                = mbedtls_ssl_conf_psk(&(pDataParams->ssl_conf), (unsigned char *)pConnectParams->psk,
                                    pConnectParams->psk_length, (const unsigned char *)psk_id, strlen(psk_id));
     } else {
-        Log_d("psk/pskid is empty!|psk=%s|psd_id=%s", pConnectParams->psk, pConnectParams->psk_id);
+        Log_d("psk/pskid is empty!|psk=%s|psd_id=%s", STRING_PTR_PRINT_SANITY_CHECK(pConnectParams->psk),
+              STRING_PTR_PRINT_SANITY_CHECK(pConnectParams->psk_id));
     }
 
     if (0 != ret) {
@@ -176,7 +178,8 @@ int _mbedtls_udp_connect(mbedtls_net_context *socket_fd, const char *host, int p
     char port_str[6];
     HAL_Snprintf(port_str, 6, "%d", port);
     if ((ret = mbedtls_net_connect(socket_fd, host, port_str, MBEDTLS_NET_PROTO_UDP)) != 0) {
-        Log_e("mbedtls_net_connect host:%s port:%s returned -0x%04x errno: %d", host, port_str, -ret, errno);
+        Log_e("mbedtls_net_connect host:%s port:%s returned -0x%04x errno: %d", STRING_PTR_PRINT_SANITY_CHECK(host),
+              port_str, -ret, errno);
         switch (ret) {
             case MBEDTLS_ERR_NET_SOCKET_FAILED:
                 return QCLOUD_ERR_TCP_SOCKET_FAILED;

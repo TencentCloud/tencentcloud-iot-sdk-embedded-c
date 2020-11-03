@@ -171,10 +171,12 @@ int subscribe_operation_result_to_cloud(Qcloud_IoT_Shadow *pShadow)
         Qcloud_IoT_Client *mqtt_client = (Qcloud_IoT_Client *)pShadow->mqtt;
         if (eTEMPLATE == pShadow->shadow_type) {
             size = HAL_Snprintf(operation_result_topic, MAX_SIZE_OF_CLOUD_TOPIC, "$template/operation/result/%s/%s",
-                                mqtt_client->device_info.product_id, mqtt_client->device_info.device_name);
+                                STRING_PTR_PRINT_SANITY_CHECK(mqtt_client->device_info.product_id),
+                                STRING_PTR_PRINT_SANITY_CHECK(mqtt_client->device_info.device_name));
         } else {
             size = HAL_Snprintf(operation_result_topic, MAX_SIZE_OF_CLOUD_TOPIC, "$shadow/operation/result/%s/%s",
-                                mqtt_client->device_info.product_id, mqtt_client->device_info.device_name);
+                                STRING_PTR_PRINT_SANITY_CHECK(mqtt_client->device_info.product_id),
+                                STRING_PTR_PRINT_SANITY_CHECK(mqtt_client->device_info.device_name));
         }
         if (size < 0 || size > MAX_SIZE_OF_CLOUD_TOPIC - 1) {
             Log_e("buf size < topic length!");
@@ -190,7 +192,7 @@ int subscribe_operation_result_to_cloud(Qcloud_IoT_Shadow *pShadow)
 
     rc = IOT_MQTT_Subscribe(pShadow->mqtt, pShadow->inner_data.result_topic, &subscribe_params);
     if (rc < 0) {
-        Log_e("subscribe topic: %s failed: %d.", pShadow->inner_data.result_topic, rc);
+        Log_e("subscribe topic: %s failed: %d.", STRING_PTR_PRINT_SANITY_CHECK(pShadow->inner_data.result_topic), rc);
     }
 
     IOT_FUNC_EXIT_RC(rc);
@@ -215,10 +217,12 @@ static int _publish_operation_to_cloud(Qcloud_IoT_Shadow *pShadow, Method method
     Qcloud_IoT_Client *mqtt_client = (Qcloud_IoT_Client *)pShadow->mqtt;
     if (eTEMPLATE == pShadow->shadow_type) {
         size = HAL_Snprintf(topic, MAX_SIZE_OF_CLOUD_TOPIC, "$template/operation/%s/%s",
-                            mqtt_client->device_info.product_id, mqtt_client->device_info.device_name);
+                            STRING_PTR_PRINT_SANITY_CHECK(mqtt_client->device_info.product_id),
+                            STRING_PTR_PRINT_SANITY_CHECK(mqtt_client->device_info.device_name));
     } else {
         size = HAL_Snprintf(topic, MAX_SIZE_OF_CLOUD_TOPIC, "$shadow/operation/%s/%s",
-                            mqtt_client->device_info.product_id, mqtt_client->device_info.device_name);
+                            STRING_PTR_PRINT_SANITY_CHECK(mqtt_client->device_info.product_id),
+                            STRING_PTR_PRINT_SANITY_CHECK(mqtt_client->device_info.device_name));
     }
 
     if (size < 0 || size > MAX_SIZE_OF_CLOUD_TOPIC - 1) {
@@ -270,11 +274,11 @@ static void _on_operation_result_handler(void *pClient, MQTTMessage *message, vo
         Log_e("Fail to parse type!");
         goto End;
     }
-    Log_d("type: %s", type_str);
+    Log_d("type: %s", STRING_PTR_PRINT_SANITY_CHECK(type_str));
 
     // non-delta msg push is triggered by device side, parse client token first
     if (strcmp(type_str, OPERATION_DELTA) && !parse_client_token(shadow_client->shadow_recv_buf, &client_token)) {
-        Log_e("Fail to parse client token! Json=%s", shadow_client->shadow_recv_buf);
+        Log_e("Fail to parse client token! Json=%s", STRING_PTR_PRINT_SANITY_CHECK(shadow_client->shadow_recv_buf));
         goto End;
     }
 
@@ -282,7 +286,7 @@ static void _on_operation_result_handler(void *pClient, MQTTMessage *message, vo
         HAL_MutexLock(shadow_client->mutex);
         char *delta_str = NULL;
         if (parse_shadow_operation_delta(shadow_client->shadow_recv_buf, &delta_str)) {
-            Log_d("delta string: %s", delta_str);
+            Log_d("delta string: %s", STRING_PTR_PRINT_SANITY_CHECK(delta_str));
             _handle_delta(shadow_client, delta_str);
             HAL_Free(delta_str);
         }

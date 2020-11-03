@@ -42,7 +42,8 @@ void _event_handler(void *client, void *context, MQTTEventMsg *msg)
 
         case MQTT_EVENT_PUBLISH_RECVEIVED:
             Log_i("topic message arrived but without any related handle: topic=%.*s, topic_msg=%.*s",
-                  mqtt_messge->topic_len, mqtt_messge->ptopic, mqtt_messge->payload_len, mqtt_messge->payload);
+                  mqtt_messge->topic_len, STRING_PTR_PRINT_SANITY_CHECK(mqtt_messge->ptopic), mqtt_messge->payload_len,
+                  STRING_PTR_PRINT_SANITY_CHECK(mqtt_messge->payload));
             break;
         case MQTT_EVENT_SUBCRIBE_SUCCESS:
             Log_i("subscribe success, packet-id=%u", (unsigned int)packet_id);
@@ -91,8 +92,9 @@ static void _message_handler(void *client, MQTTMessage *message, void *user_data
         return;
     }
 
-    Log_i("Receive Message With topicName:%.*s, payload:%.*s", (int)message->topic_len, message->ptopic,
-          (int)message->payload_len, (char *)message->payload);
+    Log_i("Receive Message With topicName:%.*s, payload:%.*s", (int)message->topic_len,
+          STRING_PTR_PRINT_SANITY_CHECK(message->ptopic), (int)message->payload_len,
+          STRING_PTR_PRINT_SANITY_CHECK((char *)message->payload));
 }
 
 static int _setup_gw_init_params(GatewayInitParam *gw_init_params, GatewayDeviceInfo *gw_dev_info)
@@ -114,14 +116,14 @@ static int _setup_gw_init_params(GatewayInitParam *gw_init_params, GatewayDevice
 
 #ifdef WIN32
     HAL_Snprintf(init_params->cert_file, FILE_PATH_MAX_LEN, "%s\\%s\\%s", current_path, certs_dir,
-                 dev_info->dev_cert_file_name);
+                 STRING_PTR_PRINT_SANITY_CHECK(dev_info->dev_cert_file_name));
     HAL_Snprintf(init_params->key_file, FILE_PATH_MAX_LEN, "%s\\%s\\%s", current_path, certs_dir,
-                 dev_info->dev_key_file_name);
+                 STRING_PTR_PRINT_SANITY_CHECK(dev_info->dev_key_file_name));
 #else
     HAL_Snprintf(init_params->cert_file, FILE_PATH_MAX_LEN, "%s/%s/%s", current_path, certs_dir,
-                 dev_info->dev_cert_file_name);
+                 STRING_PTR_PRINT_SANITY_CHECK(dev_info->dev_cert_file_name));
     HAL_Snprintf(init_params->key_file, FILE_PATH_MAX_LEN, "%s/%s/%s", current_path, certs_dir,
-                 dev_info->dev_key_file_name);
+                 STRING_PTR_PRINT_SANITY_CHECK(dev_info->dev_key_file_name));
 #endif
 
 #else
@@ -142,8 +144,9 @@ static int _setup_gw_init_params(GatewayInitParam *gw_init_params, GatewayDevice
 static int _subscribe_subdev_topic_wait_result(void *client, char *topic_keyword, QoS qos, GatewayParam *gw_info)
 {
     char topic_name[128] = {0};
-    int  size            = HAL_Snprintf(topic_name, sizeof(topic_name), "%s/%s/%s", gw_info->subdev_product_id,
-                            gw_info->subdev_device_name, topic_keyword);
+    int  size            = HAL_Snprintf(
+        topic_name, sizeof(topic_name), "%s/%s/%s", STRING_PTR_PRINT_SANITY_CHECK(gw_info->subdev_product_id),
+        STRING_PTR_PRINT_SANITY_CHECK(gw_info->subdev_device_name), STRING_PTR_PRINT_SANITY_CHECK(topic_keyword));
     if (size < 0 || size > sizeof(topic_name) - 1) {
         Log_e("topic content length not enough! content size:%d  buf size:%d", size, (int)sizeof(topic_name));
         return QCLOUD_ERR_FAILURE;
@@ -182,8 +185,9 @@ static int _subscribe_subdev_topic_wait_result(void *client, char *topic_keyword
 static int _publish_subdev_msg(void *client, char *topic_keyword, QoS qos, GatewayParam *gw_info)
 {
     char topic_name[128] = {0};
-    int  size            = HAL_Snprintf(topic_name, sizeof(topic_name), "%s/%s/%s", gw_info->subdev_product_id,
-                            gw_info->subdev_device_name, topic_keyword);
+    int  size            = HAL_Snprintf(
+        topic_name, sizeof(topic_name), "%s/%s/%s", STRING_PTR_PRINT_SANITY_CHECK(gw_info->subdev_product_id),
+        STRING_PTR_PRINT_SANITY_CHECK(gw_info->subdev_device_name), STRING_PTR_PRINT_SANITY_CHECK(topic_keyword));
     if (size < 0 || size > sizeof(topic_name) - 1) {
         Log_e("topic content length not enough! content size:%d  buf size:%d", size, (int)sizeof(topic_name));
         return QCLOUD_ERR_FAILURE;
@@ -209,13 +213,13 @@ static int _publish_subdev_msg(void *client, char *topic_keyword, QoS qos, Gatew
 
 static void _get_gw_subdev_bindlist(void *client, GatewayParam *gw_param)
 {
-    SubdevBindList bindlist;
+    SubdevBindList  bindlist;
     SubdevBindInfo *cur_bindinfo = NULL;
-    int rc;
+    int             rc;
 
     bindlist.bindlist_head = NULL;
-    bindlist.bind_num = 0;
-    
+    bindlist.bind_num      = 0;
+
     rc = IOT_Gateway_Subdev_GetBindList(client, gw_param, &bindlist);
     if (QCLOUD_RET_SUCCESS != rc) {
         Log_e("get sub device bind list failed: %d", rc);
@@ -225,11 +229,12 @@ static void _get_gw_subdev_bindlist(void *client, GatewayParam *gw_param)
         if (NULL == cur_bindinfo) {
             Log_e("gateway no bind sub device on cloud platform");
         } else {
-             HAL_Printf("bind list sub device info:\r\n");
-             int count = 1;
-             while(cur_bindinfo) {
-                HAL_Printf("sub device: %05d  product_id: % -11s  device_name: % -49s\r\n", 
-                            count, cur_bindinfo->product_id, cur_bindinfo->device_name);
+            HAL_Printf("bind list sub device info:\r\n");
+            int count = 1;
+            while (cur_bindinfo) {
+                HAL_Printf("sub device: %05d  product_id: % -11s  device_name: % -49s\r\n", count,
+                           STRING_PTR_PRINT_SANITY_CHECK(cur_bindinfo->product_id),
+                           STRING_PTR_PRINT_SANITY_CHECK(cur_bindinfo->device_name));
                 cur_bindinfo = cur_bindinfo->next;
                 count += 1;
             }
@@ -238,7 +243,7 @@ static void _get_gw_subdev_bindlist(void *client, GatewayParam *gw_param)
         }
     }
 
-    return ;
+    return;
 }
 
 // for reply code, pls check https://cloud.tencent.com/document/product/634/45960
@@ -315,7 +320,7 @@ int main(int argc, char **argv)
     gw_param.device_name  = gw_dev_info.gw_info.device_name;
 
     DeviceInfo *sub_dev_info = gw_dev_info.sub_dev_info;
-    
+
     // to bind a new sub device
     DeviceInfo new_sub_dev = {0};
     if (new_subdev_file) {
@@ -369,18 +374,17 @@ int main(int argc, char **argv)
     }
 
     do {
-        
         // get bind list from cloud platform
         if (sg_loop_count % 60 == 0) {
-            _get_gw_subdev_bindlist(client, &gw_param);            
+            _get_gw_subdev_bindlist(client, &gw_param);
         }
-        
+
         // publish msg to sub-device topic
         rc = _publish_subdev_msg(client, "data", QOS1, &gw_param);
         if (rc < 0) {
             Log_e("IOT_Gateway_Publish fail.");
         }
-        
+
         rc = IOT_Gateway_Yield(client, 200);
 
         if (rc == QCLOUD_ERR_MQTT_ATTEMPTING_RECONNECT) {

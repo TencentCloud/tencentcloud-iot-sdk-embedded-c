@@ -141,7 +141,7 @@ int HAL_GetDevInfoFromFile(const char *file_name, void *dev_info)
 
     fp = fopen(file_name, "rb");
     if (NULL == fp) {
-        Log_e("open device info file \"%s\" failed", file_name);
+        Log_e("open device info file \"%s\" failed", STRING_PTR_PRINT_SANITY_CHECK(file_name));
         ret = QCLOUD_ERR_FAILURE;
         goto exit;
     }
@@ -329,13 +329,14 @@ static int iot_save_devinfo_to_json_file(DeviceInfo *pDevInfo)
 
     // product id, device name
     rc_of_snprintf = HAL_Snprintf(JsonDoc + strlen(JsonDoc), remain_size, "\"%s\":\"%s\",\n\"%s\":\"%s\",\n",
-                                  KEY_PRODUCT_ID, pDevInfo->product_id, KEY_DEV_NAME, pDevInfo->device_name);
+                                  KEY_PRODUCT_ID, STRING_PTR_PRINT_SANITY_CHECK(pDevInfo->product_id), KEY_DEV_NAME,
+                                  STRING_PTR_PRINT_SANITY_CHECK(pDevInfo->device_name));
     remain_size -= rc_of_snprintf;
 
     // product secret
 #ifdef DEV_DYN_REG_ENABLED
     rc_of_snprintf = HAL_Snprintf(JsonDoc + strlen(JsonDoc), remain_size, "\"%s\":\"%s\",\n", KEY_PRODUCT_SECRET,
-                                  pDevInfo->product_secret);
+                                  STRING_PTR_PRINT_SANITY_CHECK(pDevInfo->product_secret));
     remain_size -= rc_of_snprintf;
 #endif
 
@@ -343,15 +344,15 @@ static int iot_save_devinfo_to_json_file(DeviceInfo *pDevInfo)
 #ifdef AUTH_MODE_CERT
     rc_of_snprintf = HAL_Snprintf(JsonDoc + strlen(JsonDoc), remain_size, "\"%s\":{\n", STR_DEV_CERT);
     remain_size -= rc_of_snprintf;
-    rc_of_snprintf =
-        HAL_Snprintf(JsonDoc + strlen(JsonDoc), remain_size, "\"%s\":\"%s\",\n\"%s\":\"%s\"\n}", STR_DEV_CERT_FILE,
-                     pDevInfo->dev_cert_file_name, STR_DEV_KEY_FILE, pDevInfo->dev_key_file_name);
+    rc_of_snprintf = HAL_Snprintf(JsonDoc + strlen(JsonDoc), remain_size, "\"%s\":\"%s\",\n\"%s\":\"%s\"\n}",
+                                  STR_DEV_CERT_FILE, STRING_PTR_PRINT_SANITY_CHECK(pDevInfo->dev_cert_file_name),
+                                  STR_DEV_KEY_FILE, STRING_PTR_PRINT_SANITY_CHECK(pDevInfo->dev_key_file_name));
     remain_size -= rc_of_snprintf;
 #else
     rc_of_snprintf = HAL_Snprintf(JsonDoc + strlen(JsonDoc), remain_size, "\"%s\":{\n", STR_DEV_INFO);
     remain_size -= rc_of_snprintf;
     rc_of_snprintf = HAL_Snprintf(JsonDoc + strlen(JsonDoc), remain_size, "\"%s\":\"%s\"\n}", STR_DEV_SECRET,
-                                  pDevInfo->device_secret);
+                                  STRING_PTR_PRINT_SANITY_CHECK(pDevInfo->device_secret));
     remain_size -= rc_of_snprintf;
 #endif
 

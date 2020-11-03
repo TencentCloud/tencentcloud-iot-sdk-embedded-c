@@ -30,13 +30,13 @@ typedef struct {
     int thread_sleep_time;
 } ConfigData;
 
-static ConfigData sg_config_data       = {9600, 8, 0, 1, 1000};
+static ConfigData sg_config_data    = {9600, 8, 0, 1, 1000};
 static bool       sg_config_arrived = false;
 
 static void _on_config_proc_handler(void *client, int config_reply_errcode, char *config_json, int config_json_len)
 {
     int rc;
-    Log_i("config message arrived , config data: %s", config_json);
+    Log_i("config message arrived , config data: %s", STRING_PTR_PRINT_SANITY_CHECK(config_json));
 
     if (REMOTE_CONFIG_ERRCODE_SUCCESS != config_reply_errcode) {
         Log_i("remote config data arrived!!! error code is %d not 0", config_reply_errcode);
@@ -75,7 +75,8 @@ static void _on_config_proc_handler(void *client, int config_reply_errcode, char
     if (NULL != thread_sleep_time) {
         rc = LITE_get_int32(&sg_config_data.thread_sleep_time, thread_sleep_time);
 
-        sg_config_data.thread_sleep_time = (sg_config_data.thread_sleep_time > 1000) ? sg_config_data.thread_sleep_time : 1000;
+        sg_config_data.thread_sleep_time =
+            (sg_config_data.thread_sleep_time > 1000) ? sg_config_data.thread_sleep_time : 1000;
 
         HAL_Free(thread_sleep_time);
     }
@@ -111,7 +112,8 @@ static void _mqtt_event_handler(void *pclient, void *handle_context, MQTTEventMs
 
         case MQTT_EVENT_PUBLISH_RECVEIVED:
             Log_i("topic message arrived but without any related handle: topic=%.*s, topic_msg=%.*s",
-                  mqtt_messge->topic_len, mqtt_messge->ptopic, mqtt_messge->payload_len, mqtt_messge->payload);
+                  mqtt_messge->topic_len, STRING_PTR_PRINT_SANITY_CHECK(mqtt_messge->ptopic), mqtt_messge->payload_len,
+                  STRING_PTR_PRINT_SANITY_CHECK(mqtt_messge->payload));
             break;
         case MQTT_EVENT_SUBCRIBE_SUCCESS:
             Log_i("subscribe success, packet-id=%u", (unsigned int)packet_id);
@@ -172,14 +174,14 @@ static int _setup_connect_init_params(MQTTInitParams *initParams, DeviceInfo *de
 
 #ifdef WIN32
     HAL_Snprintf(initParams->cert_file, FILE_PATH_MAX_LEN, "%s\\%s\\%s", current_path, certs_dir,
-                 device_info->dev_cert_file_name);
+                 STRING_PTR_PRINT_SANITY_CHECK(device_info->dev_cert_file_name));
     HAL_Snprintf(initParams->key_file, FILE_PATH_MAX_LEN, "%s\\%s\\%s", current_path, certs_dir,
-                 device_info->dev_key_file_name);
+                 STRING_PTR_PRINT_SANITY_CHECK(device_info->dev_key_file_name));
 #else
     HAL_Snprintf(initParams->cert_file, FILE_PATH_MAX_LEN, "%s/%s/%s", current_path, certs_dir,
-                 device_info->dev_cert_file_name);
+                 STRING_PTR_PRINT_SANITY_CHECK(device_info->dev_cert_file_name));
     HAL_Snprintf(initParams->key_file, FILE_PATH_MAX_LEN, "%s/%s/%s", current_path, certs_dir,
-                 device_info->dev_key_file_name);
+                 STRING_PTR_PRINT_SANITY_CHECK(device_info->dev_key_file_name));
 #endif
 
 #else
@@ -269,19 +271,19 @@ int main(int argc, char **argv)
         return QCLOUD_ERR_MALLOC;
     }
 
-    for(int count = 0; count < 3; count++) {
+    for (int count = 0; count < 3; count++) {
         rc = IOT_Subscribe_Config(client, &config_sub_userdata, 5000);
         if (QCLOUD_RET_SUCCESS <= rc) {
             Log_i("config topic subscribe success, packetid:%d", rc);
-    	    break;
+            break;
         } else {
             Log_i("config topic subscribe failed, ret:%d, retry :%d", rc, count + 1);
         }
     }
 
     char json_buffer[32];
-    int time_count = 0;
-    rc = IOT_Get_Config(client, json_buffer, sizeof(json_buffer), 5000);
+    int  time_count = 0;
+    rc              = IOT_Get_Config(client, json_buffer, sizeof(json_buffer), 5000);
     if (rc != QCLOUD_RET_SUCCESS) {
         Log_e("get config failed ret: %d", rc);
     }
@@ -295,7 +297,7 @@ int main(int argc, char **argv)
             Log_e("exit with error: %d", rc);
             break;
         }
-		
+
         time_count++;
         if ((time_count % 120) == 0) {
             rc = IOT_Get_Config(client, json_buffer, sizeof(json_buffer), 5000);

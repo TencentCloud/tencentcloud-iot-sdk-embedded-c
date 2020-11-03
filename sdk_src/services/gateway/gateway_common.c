@@ -81,7 +81,7 @@ static SubdevBindInfo *_subdev_add_bindinfo(Gateway *gateway, char *subdev_produ
 
     strncpy(bindinfo->product_id, subdev_product_id, MAX_SIZE_OF_PRODUCT_ID);
     bindinfo->product_id[MAX_SIZE_OF_PRODUCT_ID] = '\0';
-    int size = strlen(subdev_device_name);
+    int size                                     = strlen(subdev_device_name);
     strncpy(bindinfo->device_name, subdev_device_name, MIN(size, MAX_SIZE_OF_DEVICE_NAME));
     bindinfo->device_name[MIN(size, MAX_SIZE_OF_DEVICE_NAME)] = '\0';
 
@@ -93,32 +93,33 @@ static SubdevBindInfo *_subdev_add_bindinfo(Gateway *gateway, char *subdev_produ
 
 static void _subdev_proc_get_bindlist(Gateway *gateway, char *devices)
 {
-    char *subdev_product_id = NULL;
+    char *subdev_product_id  = NULL;
     char *subdev_device_name = NULL;
-    char * pos = NULL;
-    char * entry = NULL;
-    int entry_len = 0;
-    int entry_type = 0;
-    char old_ch = 0;
+    char *pos                = NULL;
+    char *entry              = NULL;
+    int   entry_len          = 0;
+    int   entry_type         = 0;
+    char  old_ch             = 0;
 
     // parser json array
-    json_array_for_each_entry(devices, pos, entry, entry_len, entry_type) {
+    json_array_for_each_entry(devices, pos, entry, entry_len, entry_type)
+    {
         if (entry != NULL) {
             backup_json_str_last_char(entry, entry_len, old_ch);
             if (false == get_json_product_id(entry, &subdev_product_id)) {
-                continue ;
+                continue;
             }
             if (false == get_json_device_name(entry, &subdev_device_name)) {
-                continue ;
+                continue;
             }
             if (NULL == _subdev_add_bindinfo(gateway, subdev_product_id, subdev_device_name)) {
-                break ;
+                break;
             }
             restore_json_str_last_char(entry, entry_len, old_ch);
         }
     }
 
-    return ;
+    return;
 }
 
 static void _gateway_message_handler(void *client, MQTTMessage *message, void *user_data)
@@ -173,7 +174,7 @@ static void _gateway_message_handler(void *client, MQTTMessage *message, void *u
         return;
     }
 
-    if(strncmp(type, GATEWAY_DESCRIBE_SUBDEVIES_OP_STR, sizeof(GATEWAY_DESCRIBE_SUBDEVIES_OP_STR) - 1) == 0) {
+    if (strncmp(type, GATEWAY_DESCRIBE_SUBDEVIES_OP_STR, sizeof(GATEWAY_DESCRIBE_SUBDEVIES_OP_STR) - 1) == 0) {
         _subdev_proc_get_bindlist(gateway, devices);
         gateway->gateway_data.get_bindlist.result = 0;
         HAL_Free(type);
@@ -466,7 +467,7 @@ static int gen_key_from_cert_file(const char *file_path, char *keybuff, int buff
     }
 
     utils_md5_str(data, length, (uint8_t *)keybuff);
-    Log_d("sign key: %s", keybuff);
+    Log_d("sign key: %s", STRING_PTR_PRINT_SANITY_CHECK(keybuff));
 
 exit:
 

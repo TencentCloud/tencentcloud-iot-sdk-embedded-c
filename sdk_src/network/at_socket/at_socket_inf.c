@@ -214,11 +214,10 @@ static void _at_socket_recv_cb(int fd, at_socket_evt_t event, char *buff, size_t
 
 static void _at_socket_closed_cb(int fd, at_socket_evt_t event, char *buff, size_t bfsz)
 {
-    // fancyxu
     at_socket_ctx_t *pAtSocket;
     pAtSocket = _at_socket_find(fd + MAX_AT_SOCKET_NUM);
 
-    if (event == AT_SOCKET_EVT_CLOSED) {
+    if (pAtSocket != NULL && event == AT_SOCKET_EVT_CLOSED) {
         HAL_MutexLock(sg_at_socket_mutex);
         pAtSocket->state = eSOCKET_CLOSED;
         _at_socket_ctx_free(pAtSocket);

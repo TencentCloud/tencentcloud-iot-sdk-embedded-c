@@ -331,13 +331,15 @@ int qcloud_iot_mqtt_publish(Qcloud_IoT_Client *pClient, char *topicName, Publish
     if (pParams->qos == QOS1) {
         pParams->id = get_next_packet_id(pClient);
         if (IOT_Log_Get_Level() <= eLOG_DEBUG) {
-            Log_d("publish topic seq=%d|topicName=%s|payload=%s", pParams->id, topicName, (char *)pParams->payload);
+            Log_d("publish topic seq=%d|topicName=%s|payload=%s", pParams->id, topicName,
+                  STRING_PTR_PRINT_SANITY_CHECK((char *)pParams->payload));
         } else {
             Log_i("publish topic seq=%d|topicName=%s", pParams->id, topicName);
         }
     } else {
         if (IOT_Log_Get_Level() <= eLOG_DEBUG) {
-            Log_d("publish packetID=%d|topicName=%s|payload=%s", pParams->id, topicName, (char *)pParams->payload);
+            Log_d("publish packetID=%d|topicName=%s|payload=%s", pParams->id, topicName,
+                  STRING_PTR_PRINT_SANITY_CHECK((char *)pParams->payload));
         } else {
             Log_i("publish packetID=%d|topicName=%s", pParams->id, topicName);
         }

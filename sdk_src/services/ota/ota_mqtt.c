@@ -50,7 +50,8 @@ static int _otamqtt_gen_topic_name(char *buf, size_t bufLen, const char *OTATopi
 
     int ret;
 
-    ret = HAL_Snprintf(buf, bufLen, "$ota/%s/%s/%s", OTATopicType, productId, deviceName);
+    ret = HAL_Snprintf(buf, bufLen, "$ota/%s/%s/%s", STRING_PTR_PRINT_SANITY_CHECK(OTATopicType),
+                       STRING_PTR_PRINT_SANITY_CHECK(productId), STRING_PTR_PRINT_SANITY_CHECK(deviceName));
 
     if (ret >= bufLen)
         IOT_FUNC_EXIT_RC(IOT_OTA_ERR_FAIL);
@@ -102,8 +103,9 @@ static void _otamqtt_upgrage_cb(void *pClient, MQTTMessage *message, void *pcont
 {
     OTA_MQTT_Struct_t *handle = (OTA_MQTT_Struct_t *)pcontext;
 
-    Log_d("topic=%.*s", message->topic_len, message->ptopic);
-    Log_i("len=%u, topic_msg=%.*s", message->payload_len, message->payload_len, (char *)message->payload);
+    Log_d("topic=%.*s", message->topic_len, STRING_PTR_PRINT_SANITY_CHECK(message->ptopic));
+    Log_i("len=%u, topic_msg=%.*s", message->payload_len, message->payload_len,
+          STRING_PTR_PRINT_SANITY_CHECK((char *)message->payload));
 
     if (NULL != handle->msg_callback) {
         handle->msg_callback(handle->context, message->payload, message->payload_len);

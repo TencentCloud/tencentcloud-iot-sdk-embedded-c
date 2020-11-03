@@ -78,7 +78,8 @@ static void _shadow_event_handler(void *pclient, void *context, MQTTEventMsg *ms
             break;
         case MQTT_EVENT_PUBLISH_RECVEIVED:
             Log_d("shadow topic message arrived but without any related handle: topic=%.*s, topic_msg=%.*s",
-                  topic_info->topic_len, topic_info->ptopic, topic_info->payload_len, topic_info->payload);
+                  topic_info->topic_len, STRING_PTR_PRINT_SANITY_CHECK(topic_info->ptopic), topic_info->payload_len,
+                  STRING_PTR_PRINT_SANITY_CHECK(topic_info->payload));
             break;
         default:
             /* Log_i("Should NOT arrive here."); */
