@@ -521,6 +521,12 @@ int send_mqtt_packet(Qcloud_IoT_Client *pClient, size_t length, Timer *timer)
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_BUF_TOO_SHORT);
     }
 
+    if (expired(timer)) {
+        /* send timeout */
+        Log_e("send before timer expired :%d!", left_ms(timer));
+        IOT_FUNC_EXIT_RC(QCLOUD_ERR_MQTT_REQUEST_TIMEOUT);
+    }
+
     while (sent < length && !expired(timer)) {
         rc = pClient->network_stack.write(&(pClient->network_stack), &pClient->write_buf[sent], length, left_ms(timer),
                                           &sentLen);
@@ -535,6 +541,14 @@ int send_mqtt_packet(Qcloud_IoT_Client *pClient, size_t length, Timer *timer)
         /* record the fact that we have successfully sent the packet */
         // countdown(&c->ping_timer, c->keep_alive_interval);
         IOT_FUNC_EXIT_RC(QCLOUD_RET_SUCCESS);
+    }
+
+    // network_stack.write return success but sent != length
+    // check because timeout
+    if (rc == QCLOUD_RET_SUCCESS && expired(timer)) {
+        /* send timeout */
+        Log_e("send timer expired :%d!", left_ms(timer));
+        IOT_FUNC_EXIT_RC(QCLOUD_ERR_MQTT_REQUEST_TIMEOUT);
     }
 
     IOT_FUNC_EXIT_RC(rc);
@@ -1176,6 +1190,12 @@ static int _handle_publish_packet(Qcloud_IoT_Client *pClient, Timer *timer)
         IOT_FUNC_EXIT_RC(rc);
     }
 
+    if (expired(timer)) {
+        /* send timeout */
+        Log_w("puback timer expired! left:%d, increase a bit", left_ms(timer));
+        countdown_ms(timer, 100);
+    }
+
     rc = send_mqtt_packet(pClient, len, timer);
     if (QCLOUD_RET_SUCCESS != rc) {
         HAL_MutexUnlock(pClient->lock_write_buf);
@@ -1204,6 +1224,12 @@ static int _handle_pubrec_packet(Qcloud_IoT_Client *pClient, Timer *timer)
     if (QCLOUD_RET_SUCCESS != rc) {
         HAL_MutexUnlock(pClient->lock_write_buf);
         IOT_FUNC_EXIT_RC(rc);
+    }
+
+    if (expired(timer)) {
+        /* send timeout */
+        Log_w("pubrec timer expired! left:%d, increase a bit", left_ms(timer));
+        countdown_ms(timer, 100);
     }
 
     /* send the PUBREL packet */
