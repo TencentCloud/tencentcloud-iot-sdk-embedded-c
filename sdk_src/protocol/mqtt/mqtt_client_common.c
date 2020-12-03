@@ -523,7 +523,7 @@ int send_mqtt_packet(Qcloud_IoT_Client *pClient, size_t length, Timer *timer)
 
     if (expired(timer)) {
         /* send timeout */
-        Log_e("send before timer expired :%d!", left_ms(timer));
+        Log_e("send timer expired :%d!", left_ms(timer));
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_MQTT_REQUEST_TIMEOUT);
     }
 
