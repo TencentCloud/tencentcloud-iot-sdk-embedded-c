@@ -16,6 +16,10 @@
 #ifndef _LINUX_LIST_H
 #define _LINUX_LIST_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define inline __inline
 
 typedef struct list_head list_head_t;
@@ -456,5 +460,9 @@ static inline int list_is_singular(const struct list_head *head)
  * completing the current iteration of the loop body.
  */
 #define list_safe_reset_next(pos, n, member, type) n = list_entry(pos->member.next, type, member)
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

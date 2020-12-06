@@ -16,6 +16,10 @@
 #ifndef __LITE_UTILS_H__
 #define __LITE_UTILS_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -81,5 +85,9 @@ typedef struct _json_key_t {
     for (keylist = (void *)LITE_json_keys_of((char *)src, ""),                                                         \
         pos = (void *)list_first_entry((list_head_t *)keylist, json_key_t, list), iter_key = ((json_key_t *)pos)->key; \
          (iter_key = ((json_key_t *)pos)->key); pos = list_next_entry((json_key_t *)pos, list, json_key_t))
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __LITE_UTILS_H__ */
