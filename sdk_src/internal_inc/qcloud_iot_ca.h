@@ -22,6 +22,8 @@ extern "C" {
 
 const char *iot_ca_get(void);
 
+const char *iot_dynreg_https_ca_get();
+
 const char *iot_https_ca_get(void);
 
 #ifdef __cplusplus
