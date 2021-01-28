@@ -87,6 +87,7 @@ set(FEATURE_REMOTE_CONFIG_MQTT_ENABLED ON)
 ######################CONFIG END######################################
 
 # 设置CMAKE使用编译工具及编译选项
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
 if (PLATFORM STREQUAL "linux" AND COMPILE_TOOLS  STREQUAL "gcc")
 	set(CMAKE_C_COMPILER ${COMPILE_TOOLS}) 
 	if(${BUILD_TYPE} STREQUAL  "release")

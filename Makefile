@@ -169,7 +169,7 @@ $(call CompInc_Map, AT_TCP_ENABLED, \
 	 $(PLATFORM_DIR)/at_device/$(PLATFORM_AT_DEV) \
 )
 
-CFLAGS += -Werror -Wall -Wno-error=sign-compare -Wno-error=format -Os ${IOTSDK_INCLUDE_FILES} -pthread -DFORCE_SSL_VERIFY
+CFLAGS += -Werror -fPIC -Wall -Wno-error=sign-compare -Wno-error=format -Os ${IOTSDK_INCLUDE_FILES} -pthread -DFORCE_SSL_VERIFY
 
 #CFLAGS += -DMQTT_RMDUP_MSG_ENABLED
 
