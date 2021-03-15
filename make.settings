@@ -78,3 +78,12 @@ FEATURE_RRPC_ENABLED                    = y
 
 # 是否打开MQTT远程配置功能
 FEATURE_REMOTE_CONFIG_MQTT_ENABLED      = y
+
+# 是否打开资源管理总开关
+FEATURE_RESOURCE_COMM_ENABLED           = y
+
+# 资源管理通道类型：MQTT
+FEATURE_RESOURCE_SIGNAL_CHANNEL         = MQTT
+
+# 资源管理使用 https 通信
+FEATURE_RESOURCE_USE_HTTPS              = y

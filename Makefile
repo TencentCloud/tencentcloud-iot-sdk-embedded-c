@@ -102,6 +102,14 @@ $(call CompLib_Map, REMOTE_CONFIG_MQTT_ENABLED, \
 	$(SRC_DIR)/services/config \
 )
 
+ifeq (y, $(strip $(FEATURE_RESOURCE_COMM_ENABLED)))
+ifeq (MQTT, $(strip $(FEATURE_RESOURCE_SIGNAL_CHANNEL)))
+	COMP_LIB_COMPONENTS += \
+    $(SRC_DIR)/services/resource
+endif
+endif
+
+
 IOTSDK_SRC_FILES := \
 
 $(foreach v, \
@@ -112,6 +120,14 @@ $(foreach v, \
     ) \
 )
 
+ifeq (y, $(strip $(FEATURE_RESOURCE_COMM_ENABLED)))
+ifeq (MQTT, $(strip $(FEATURE_RESOURCE_SIGNAL_CHANNEL)))
+ifneq (y, $(strip $(FEATURE_OTA_COMM_ENABLED)))
+	IOTSDK_SRC_FILES += $(SRC_DIR)/services/ota/ota_fetch.c
+endif
+endif
+endif
+
 EXCLUDE_SRC_FILES := \
 
 ifeq (,$(filter -DOTA_COAP_CHANNEL, $(CFLAGS)))
@@ -121,7 +137,6 @@ else
 EXCLUDE_SRC_FILES += $(TOP_DIR)/$(SRC_DIR)/services/ota/ota_mqtt.c
 IOTSDK_SRC_FILES := $(filter-out $(EXCLUDE_SRC_FILES),$(IOTSDK_SRC_FILES))
 endif
-
 
 # IoT Platform sources files defination
 PLATFORM_LIB		:= libiot_platform.a
