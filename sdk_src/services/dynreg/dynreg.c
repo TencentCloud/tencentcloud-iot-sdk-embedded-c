@@ -33,6 +33,9 @@ extern "C" {
 #include "utils_base64.h"
 #include "utils_hmac.h"
 #include "utils_httpc.h"
+#include "utils_sha1.h"
+#include "utils_md5.h"
+#include "qcloud_iot_http.h"
 
 #define REG_URL_MAX_LEN             (128)
 #define DYN_REG_SIGN_LEN            (64)
@@ -101,7 +104,7 @@ static int _get_json_resault_code(char *json)
         return -1;
     }
 
-    if (LITE_get_int32(&resault, v) != QCLOUD_RET_SUCCESS) {
+    if (LITE_get_int32((int32_t *)&resault, v) != QCLOUD_RET_SUCCESS) {
         Log_e("Invalid json content: %s", json);
         HAL_Free(v);
         return -1;
@@ -122,7 +125,7 @@ static int _get_json_encry_type(char *json)
         return -1;
     }
 
-    if (LITE_get_int32(&type, v) != QCLOUD_RET_SUCCESS) {
+    if (LITE_get_int32((int32_t *)&type, v) != QCLOUD_RET_SUCCESS) {
         Log_e("Invalid json content: %s", json);
         HAL_Free(v);
         return -1;
@@ -222,7 +225,8 @@ static int _parse_devinfo(char *jdoc, DeviceInfo *pDevInfo)
     char          key[UTILS_AES_BLOCK_LEN + 1];
     char          decodeBuff[DECODE_BUFF_LEN] = {0};
     unsigned char iv[16];
-    char *        payload = NULL;
+    char *        payload  = NULL;
+    char *        response = NULL;
 
 #ifdef AUTH_MODE_CERT
     char *clientCert;
@@ -232,16 +236,17 @@ static int _parse_devinfo(char *jdoc, DeviceInfo *pDevInfo)
 #endif
 
     Log_d("recv: %s", STRING_PTR_PRINT_SANITY_CHECK(jdoc));
-
-    ret = _get_json_resault_code(jdoc);
-    if (QCLOUD_RET_SUCCESS != ret) {
-        Log_e("response err, ret:%d", ret);
+    ret      = _get_json_resault_code(jdoc);
+    response = LITE_json_value_of("Response", jdoc);
+    if (NULL == response) {
+        Log_e("Invalid json content: %s", response);
+        ret = QCLOUD_ERR_FAILURE;
         goto exit;
     }
 
-    payload = LITE_json_value_of("payload", jdoc);
+    payload = LITE_json_value_of("Payload", response);
     if (payload == NULL) {
-        Log_e("Invalid json content: %s", jdoc);
+        Log_e("response error, json content: %s", response);
         ret = QCLOUD_ERR_FAILURE;
         goto exit;
     } else {
@@ -346,6 +351,8 @@ exit:
         HAL_Free(payload);
     }
 
+    HAL_Free(response);
+
     return ret;
 }
 
@@ -355,33 +362,35 @@ static int _post_reg_request_by_http(char *request_buf, DeviceInfo *pDevInfo)
     HTTPClient     http_client; /* http client */
     HTTPClientData http_data;   /* http client data */
 
-    const char *url_format           = "%s://%s/register/dev";
     char        url[REG_URL_MAX_LEN] = {0};
     int         port;
     const char *ca_crt = NULL;
     char        respbuff[DYN_RESPONSE_BUFF_LEN];
+    char *      dynreg_uri = "/device/register";
+    const char *url_format = "%s://%s%s";
 
-    /*format URL*/
+/*format URL*/
 #ifndef AUTH_WITH_NOTLS
-    HAL_Snprintf(url, REG_URL_MAX_LEN, url_format, "https", DYN_REG_SERVER_URL);
+    HAL_Snprintf(url, REG_URL_MAX_LEN, url_format, "https", DYN_REG_SERVER_URL, dynreg_uri);
     port   = DYN_REG_SERVER_PORT_TLS;
     ca_crt = iot_ca_get();
 #else
-    HAL_Snprintf(url, REG_URL_MAX_LEN, url_format, "http", DYN_REG_SERVER_URL);
+    HAL_Snprintf(url, REG_URL_MAX_LEN, url_format, "http", DYN_REG_SERVER_URL, dynreg_uri);
     port = DYN_REG_SERVER_PORT;
 #endif
 
     memset((char *)&http_client, 0, sizeof(HTTPClient));
     memset((char *)&http_data, 0, sizeof(HTTPClientData));
 
-    http_client.header = "Accept: text/xml,application/json;*/*\r\n";
-
-    http_data.post_content_type = "application/x-www-form-urlencoded";
+    http_client.header = qcloud_iot_http_header_create(request_buf, strlen(request_buf), DYN_REG_SERVER_URL, dynreg_uri,
+                                                       "application/json;", pDevInfo->product_secret, NULL);
+    http_data.post_content_type = "application/json; charset=utf-8";
     http_data.post_buf          = request_buf;
     http_data.post_buf_len      = strlen(request_buf);
 
     Ret = qcloud_http_client_common(&http_client, url, port, ca_crt, HTTP_POST, &http_data);
     if (QCLOUD_RET_SUCCESS != Ret) {
+        qcloud_iot_http_header_destory(http_client.header);
         Log_e("qcloud_http_client_common failed, Ret = %d", Ret);
         return Ret;
     }
@@ -390,6 +399,7 @@ static int _post_reg_request_by_http(char *request_buf, DeviceInfo *pDevInfo)
     http_data.response_buf_len = DYN_RESPONSE_BUFF_LEN;
     http_data.response_buf     = respbuff;
 
+    Log_e("dynamic register recvl, Ret = %d", Ret);
     Ret = qcloud_http_recv_data(&http_client, DYN_REG_RES_HTTP_TIMEOUT_MS, &http_data);
     if (QCLOUD_RET_SUCCESS != Ret) {
         Log_e("dynamic register response fail, Ret = %d", Ret);
@@ -402,91 +412,41 @@ static int _post_reg_request_by_http(char *request_buf, DeviceInfo *pDevInfo)
     }
 
     qcloud_http_client_close(&http_client);
+    qcloud_iot_http_header_destory(http_client.header);
 
     return Ret;
 }
 
-static int _cal_dynreg_sign(DeviceInfo *pDevInfo, char *signout, int max_signlen, int nonce, uint32_t timestamp)
-{
-    int         sign_len;
-    size_t      olen                   = 0;
-    char *      pSignSource            = NULL;
-    const char *sign_fmt               = "deviceName=%s&nonce=%d&productId=%s&timestamp=%d";
-    char        sign[DYN_REG_SIGN_LEN] = {0};
-
-    /*format sign data*/
-    sign_len = strlen(sign_fmt) + strlen(pDevInfo->device_name) + strlen(pDevInfo->product_id) + sizeof(int) +
-               sizeof(uint32_t) + DYN_BUFF_DATA_MORE;
-    pSignSource = HAL_Malloc(sign_len);
-    if (pSignSource == NULL) {
-        Log_e("malloc sign source buff fail");
-        return QCLOUD_ERR_FAILURE;
-    }
-    memset(pSignSource, 0, sign_len);
-    HAL_Snprintf((char *)pSignSource, sign_len, sign_fmt, pDevInfo->device_name, nonce, pDevInfo->product_id,
-                 timestamp);
-
-    /*cal hmac sha1*/
-    utils_hmac_sha1(pSignSource, strlen(pSignSource), sign, pDevInfo->product_secret, strlen(pDevInfo->product_secret));
-
-    /*base64 encode*/
-    qcloud_iot_utils_base64encode((uint8_t *)signout, max_signlen, &olen, (const uint8_t *)sign, strlen(sign));
-
-    HAL_Free(pSignSource);
-
-    return (olen > max_signlen) ? QCLOUD_ERR_FAILURE : QCLOUD_RET_SUCCESS;
-}
-
 int IOT_DynReg_Device(DeviceInfo *pDevInfo)
 {
-    const char *para_format =
-        "{\"deviceName\":\"%s\",\"nonce\":%d,\"productId\":\"%s\",\"timestamp\":%d,\"signature\":\"%s\"}";
-    int      nonce;
-    int      Ret;
-    uint32_t timestamp;
-    int      len;
-    char     sign[DYN_REG_SIGN_LEN] = {0};
-    char *   pRequest               = NULL;
-
+    int Ret;
     if (strlen(pDevInfo->product_secret) < UTILS_AES_BLOCK_LEN) {
         Log_e("product key inllegal");
         return QCLOUD_ERR_FAILURE;
     }
 
-    srand_d(HAL_GetTimeMs());
-    nonce     = rand_d();
-    timestamp = time(0);
+    const char *http_request_body_format = "{\"ProductId\":\"%s\",\"DeviceName\":\"%s\"}";
 
-    /*cal sign*/
-    if (QCLOUD_RET_SUCCESS == _cal_dynreg_sign(pDevInfo, sign, DYN_REG_SIGN_LEN, nonce, timestamp)) {
-        Log_d("sign:%s", sign);
-    } else {
-        Log_e("cal sign fail");
+    int request_body_len =
+        strlen(http_request_body_format) + strlen(pDevInfo->product_id) + strlen(pDevInfo->device_name);
+    char *request_body = HAL_Malloc(request_body_len);
+    if (NULL == request_body) {
+        Log_e("request body malloc failed");
         return QCLOUD_ERR_FAILURE;
     }
 
-    /*format http request*/
-    len = strlen(para_format) + strlen(pDevInfo->product_id) + strlen(pDevInfo->device_name) + sizeof(int) +
-          sizeof(uint32_t) + strlen(sign) + DYN_BUFF_DATA_MORE;
-    pRequest = HAL_Malloc(len);
-    if (!pRequest) {
-        Log_e("malloc request memory fail");
-        return QCLOUD_ERR_FAILURE;
-    }
-    memset(pRequest, 0, len);
-    HAL_Snprintf(pRequest, len, para_format, pDevInfo->device_name, nonce, pDevInfo->product_id, timestamp, sign);
-    Log_d("request:%s", pRequest);
+    HAL_Snprintf(request_body, request_body_len, http_request_body_format, pDevInfo->product_id, pDevInfo->device_name);
+    Log_d("request:%s", request_body);
 
-    Log_d("resbuff len:%d", DYN_RESPONSE_BUFF_LEN);
     /*post request*/
-    Ret = _post_reg_request_by_http(pRequest, pDevInfo);
+    Ret = _post_reg_request_by_http(request_body, pDevInfo);
     if (QCLOUD_RET_SUCCESS == Ret) {
         Log_d("request dev info success");
     } else {
         Log_e("request dev info fail");
     }
 
-    HAL_Free(pRequest);
+    HAL_Free(request_body);
 
     return Ret;
 }

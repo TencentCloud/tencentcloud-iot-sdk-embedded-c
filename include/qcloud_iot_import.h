@@ -405,6 +405,51 @@ int HAL_TLS_Write(uintptr_t handle, unsigned char *data, size_t totalLen, uint32
  */
 int HAL_TLS_Read(uintptr_t handle, unsigned char *data, size_t totalLen, uint32_t timeout_ms, size_t *read_len);
 
+/**
+ * @brief get privatekey from device private key file
+ *
+ * @param privatekey_path : private key file path
+ * @return NULL get fail, not NULL is success
+ */
+void *HAL_TLS_Get_PrivateKey_FromFile(const char *privatekey_path);
+
+/**
+ * @brief calc sign by rsa-sha256 rfc 5702
+ *
+ * @param private_key :  from device private key file get
+ * @param inbuf:         will calc sign buf
+ * @param inbuf_len:     will calc sign buf size
+ * @param outsign:       out sign result rsa2048 key---> out sign size 256
+ * @return NULL get fail, not NULL is success
+ */
+int HAL_TLS_Calc_Sign_RSASHA256(void *private_key, char *inbuf, int inbuf_len, char *outsign);
+
+/**
+ * @brief get sign result len by rsa-sha256 rfc 5702
+ *
+ * @param private_key :  from device private key file get
+ * @return sign result len
+ */
+int HAL_TLS_Get_RSASHA256_Result_Len(void *private_key);
+
+/**
+ * @brief calc hash value by sha256
+ *
+ * @param inbuf:         will calc hash buf
+ * @param inbuf_len:     will calc hash buf size
+ * @param outsign:       out hash value, sha256 out 32B
+ * @return NULL get fail, not NULL is success
+ */
+void HAL_TLS_Calc_SHA256(unsigned char *inbuf, size_t inbuf_len, unsigned char *outsign);
+
+/**
+ * @brief destory privatekey (HAL_TLS_Get_PrivateKey_FromFile return value)
+ *
+ * @param private_key: from device private key file get
+ * @return void
+ */
+void HAL_TLS_Destory_PrivateKey(void *private_key);
+
 /********** DTLS network **********/
 #ifdef COAP_COMM_ENABLED
 typedef SSLConnectParams DTLSConnectParams;
