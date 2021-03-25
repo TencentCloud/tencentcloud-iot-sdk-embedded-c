@@ -33,11 +33,11 @@ typedef struct {
     const char *product_id;
     const char *device_name;
 
-    char                 topic[QCLOUD_RESOURCE_MAX_TOPIC_LEN];  // resource download MQTT Topic
+    char                      topic[QCLOUD_RESOURCE_MAX_TOPIC_LEN];  // resource download MQTT Topic
     OnResourceMessageCallback msg_callback;
-    void *               context;
-    int                  upload_result_code;
-    bool                 topic_sub_ready;
+    void *                    context;
+    int                       upload_result_code;
+    bool                      topic_sub_ready;
 } QCLOUD_RESOURCE_MQTT_T;
 
 static char *sg_report_str[] = {"uploading", "downloading", "done", "fail"};
@@ -120,7 +120,7 @@ void *qcloud_resource_mqtt_init(const char *productId, const char *deviceName, v
 
     ret = IOT_MQTT_Subscribe(mqtt_client, handle->topic, &sub_params);
     if (ret < 0) {
-        Log_e("ota mqtt subscribe failed!");
+        Log_e("resource mqtt subscribe failed!");
         goto do_exit;
     }
 
@@ -132,7 +132,7 @@ void *qcloud_resource_mqtt_init(const char *productId, const char *deviceName, v
     }
 
     if (wait_cnt == 0) {
-        Log_e("ota mqtt subscribe timeout!");
+        Log_e("resource mqtt subscribe timeout!");
         goto do_exit;
     }
 
@@ -207,7 +207,7 @@ int qcloud_resource_mqtt_report_progress(void *resource_mqtt, QCLOUD_RESOURCE_RE
     ret = HAL_Snprintf(topic, payload_len, "$resource/up/service/%s/%s", handle->product_id, handle->device_name);
     if (ret < 0 || ret >= payload_len) {
         Log_e("generate topic name of info failed");
-        IOT_FUNC_EXIT_RC(IOT_OTA_ERR_FAIL);
+        IOT_FUNC_EXIT_RC(QCLOUD_RESOURCE_ERRCODE_FAIL_E);
     }
 
     ret = IOT_MQTT_Publish(handle->mqtt_client, topic, &pub_params);
@@ -231,7 +231,7 @@ int qcloud_resource_mqtt_deinit(void *resource_mqtt)
 int qcloud_resource_mqtt_yield(void *resource_mqtt)
 {
     QCLOUD_RESOURCE_MQTT_T *handle = (QCLOUD_RESOURCE_MQTT_T *)resource_mqtt;
-    int rc = IOT_MQTT_Yield(handle->mqtt_client, 200);
+    int                     rc     = IOT_MQTT_Yield(handle->mqtt_client, 200);
     if (rc != QCLOUD_RET_SUCCESS && rc != QCLOUD_RET_MQTT_RECONNECTED) {
         Log_e("MQTT error: %d", rc);
         return QCLOUD_ERR_FAILURE;
@@ -243,10 +243,10 @@ int qcloud_resource_mqtt_upload_request(void *resource_mqtt, void *request_data)
 {
     IOT_FUNC_ENTRY;
 
-    char                    topic[QCLOUD_RESOURCE_MAX_TOPIC_LEN];
-    char                    payload[256];
+    char topic[QCLOUD_RESOURCE_MAX_TOPIC_LEN];
+    char payload[256];
 
-    QCLOUD_RESOURCE_MQTT_T *handle        = (QCLOUD_RESOURCE_MQTT_T *)resource_mqtt;
+    QCLOUD_RESOURCE_MQTT_T *handle = (QCLOUD_RESOURCE_MQTT_T *)resource_mqtt;
 
     QCLOUD_RESOURCE_UPLOAD_REQUEST_S *resource_data = (QCLOUD_RESOURCE_UPLOAD_REQUEST_S *)request_data;
 
@@ -264,16 +264,48 @@ int qcloud_resource_mqtt_upload_request(void *resource_mqtt, void *request_data)
                        handle->device_name);
     if (ret < 0 || ret >= QCLOUD_RESOURCE_MAX_TOPIC_LEN) {
         Log_e("generate topic name of info failed");
-        IOT_FUNC_EXIT_RC(IOT_OTA_ERR_FAIL);
+        IOT_FUNC_EXIT_RC(QCLOUD_RESOURCE_ERRCODE_FAIL_E);
     }
 
     ret = IOT_MQTT_Publish(handle->mqtt_client, topic, &pub_params);
     if (ret < 0) {
         Log_e("publish to topic: %s failed", topic);
-        IOT_FUNC_EXIT_RC(IOT_OTA_ERR_OSC_FAILED);
+        IOT_FUNC_EXIT_RC(QCLOUD_RESOURCE_ERRCODE_OSC_FAILED_E);
     }
 
     IOT_FUNC_EXIT_RC(ret);
+}
+
+int qcloud_resource_mqtt_download_get(void *resource_mqtt)
+{
+    char topic[QCLOUD_RESOURCE_MAX_TOPIC_LEN];
+    char payload[64];
+
+    QCLOUD_RESOURCE_MQTT_T *handle = (QCLOUD_RESOURCE_MQTT_T *)resource_mqtt;
+
+    int           ret;
+    PublishParams pub_params = DEFAULT_PUB_PARAMS;
+
+    HAL_Snprintf(payload, 64, "{\"type\": \"get_download_task\"}");
+
+    pub_params.qos         = QOS1;
+    pub_params.payload     = (void *)payload;
+    pub_params.payload_len = strlen(payload);
+
+    ret = HAL_Snprintf(topic, QCLOUD_RESOURCE_MAX_TOPIC_LEN, "$resource/up/service/%s/%s", handle->product_id,
+                       handle->device_name);
+    if (ret < 0 || ret >= QCLOUD_RESOURCE_MAX_TOPIC_LEN) {
+        Log_e("generate topic name of info failed");
+        IOT_FUNC_EXIT_RC(QCLOUD_RESOURCE_ERRCODE_FAIL_E);
+    }
+
+    ret = IOT_MQTT_Publish(handle->mqtt_client, topic, &pub_params);
+    if (ret < 0) {
+        Log_e("publish to topic: %s failed", topic);
+        IOT_FUNC_EXIT_RC(QCLOUD_RESOURCE_ERRCODE_OSC_FAILED_E);
+    }
+
+    return ret;
 }
 
 #ifdef __cplusplus

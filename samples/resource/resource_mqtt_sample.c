@@ -412,6 +412,10 @@ bool process_resource_download(void *ctx)
     int                  rc;
     ResourceContextData *resource_ctx    = (ResourceContextData *)ctx;
     void *               resource_handle = resource_ctx->resource_handle;
+    int packetid;
+
+    packetid = QCLOUD_IOT_RESOURCE_GetDownloadTask(resource_handle);
+    _wait_for_download_pub_ack(resource_ctx, packetid);
 
     do {
         IOT_MQTT_Yield(resource_ctx->mqtt_client, 200);
@@ -507,7 +511,6 @@ bool process_resource_download(void *ctx)
     // do some post-download stuff for your need
 
     // report result
-    int packetid;
     if (download_fetch_success) {
         packetid = QCLOUD_IOT_RESOURCE_ReportDownloadSuccess(resource_handle, resource_ctx->resource_name);
     } else {
@@ -685,6 +688,7 @@ int main(int argc, char **argv)
     void *               mqtt_client     = NULL;
     void *               resource_handle = NULL;
 
+    Log_e("enter :%s-%s", __DATE__, __TIME__);
     IOT_Log_Set_Level(eLOG_DEBUG);
     resource_ctx = (ResourceContextData *)HAL_Malloc(sizeof(ResourceContextData));
     if (resource_ctx == NULL) {

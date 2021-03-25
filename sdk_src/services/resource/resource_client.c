@@ -93,7 +93,7 @@ static void _qcloud_iot_resource_callback(void *pcontext, char *msg, uint32_t ms
     }
 
     // download
-    if (0 == strcmp(json_type, "download")) {
+    if ((0 == strcmp(json_type, "download")) || (0 == strcmp(json_type, "get_download_task_rsp"))) {
         if (resource_handle->state >= QCLOUD_RESOURCE_STATE_START_E) {
             Log_i("In downloading or downloaded state");
             goto End;
@@ -757,6 +757,12 @@ int QCLOUD_IOT_RESOURCE_DeInit(void *handle)
     return _qcloud_iot_resource_destroy(handle);
 }
 
+int QCLOUD_IOT_RESOURCE_GetDownloadTask(void *handle)
+{
+    QCLOUD_RESOURCE_CONTEXT_T *      resource_handle = (QCLOUD_RESOURCE_CONTEXT_T *)handle;
+    return qcloud_resource_mqtt_download_get(resource_handle->resoure_mqtt);
+}
+
 /*support continuous transmission of breakpoints*/
 void QCLOUD_IOT_RESOURCE_UpdateDownloadClientMd5(void *handle, char *buff, uint32_t size)
 {
@@ -919,14 +925,17 @@ int QCLOUD_IOT_RESOURCE_DownloadYield(void *handle, char *buf, uint32_t buf_len,
         resource_handle->err   = QCLOUD_RESOURCE_ERRCODE_FETCH_FAILED_E;
 
         if (ret == IOT_OTA_ERR_FETCH_AUTH_FAIL) {  // OTA auth failed
+            Log_e("recv buf %s", buf);
             _qcloud_iot_resource_report_download_result(resource_handle, resource_handle->resource_name,
                                                         QCLOUD_RESOURCE_RESULTCODE_SIGN_INVALID_E);
             resource_handle->err = ret;
         } else if (ret == IOT_OTA_ERR_FETCH_NOT_EXIST) {  // fetch not existed
+            Log_e("recv buf %s", buf);
             _qcloud_iot_resource_report_download_result(resource_handle, resource_handle->resource_name,
                                                         QCLOUD_RESOURCE_RESULTCODE_FILE_NOTEXIST_E);
             resource_handle->err = ret;
         } else if (ret == IOT_OTA_ERR_FETCH_TIMEOUT) {  // fetch timeout
+            Log_e("recv buf %s", buf);
             _qcloud_iot_resource_report_download_result(resource_handle, resource_handle->resource_name,
                                                         QCLOUD_RESOURCE_RESULTCODE_TIMEOUT_E);
             resource_handle->err = ret;

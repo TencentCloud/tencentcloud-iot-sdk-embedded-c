@@ -43,6 +43,8 @@ int qcloud_resource_mqtt_yield(void *resource_mqtt);
 
 int qcloud_resource_mqtt_upload_request(void *resource_mqtt, void *request_data);
 
+int qcloud_resource_mqtt_download_get(void *resource_mqtt);
+
 int qcloud_resource_mqtt_report_progress(void *resource_mqtt, QCLOUD_RESOURCE_REPORT_E state,
                                          QCLOUD_RESOURCE_RESULTCODE_E resultcode, int percent, char *resource_name,
                                          bool download);

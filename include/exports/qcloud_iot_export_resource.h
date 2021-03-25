@@ -96,6 +96,16 @@ void *QCLOUD_IOT_RESOURCE_Init(const char *product_id, const char *device_name, 
 int QCLOUD_IOT_RESOURCE_Upload_Request(void *handle, char *resource_name, int resource_size, char *md5sum);
 
 /**
+ * @brief send get resource download task, check offline download, download failed etc
+ *
+ *
+ * @param handle:         resource handle
+ *
+ * @return  >= 0 send success, > 0 is publish packetid, other send fail
+ */
+int QCLOUD_IOT_RESOURCE_GetDownloadTask(void *handle);
+
+/**
  * @brief Deinit resource handle download & upload
  *
  * @param handle: resource handle
