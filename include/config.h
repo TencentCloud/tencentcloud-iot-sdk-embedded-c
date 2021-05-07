@@ -1,6 +1,6 @@
 /* #undef AUTH_MODE_CERT */
 #define AUTH_MODE_KEY
-/* #undef AUTH_WITH_NOTLS */
+#define AUTH_WITH_NOTLS
 #define GATEWAY_ENABLED
 /* #undef COAP_COMM_ENABLED */
 #define OTA_MQTT_CHANNEL

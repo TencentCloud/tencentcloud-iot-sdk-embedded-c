@@ -356,17 +356,18 @@ int qcloud_iot_mqtt_init(Qcloud_IoT_Client *pClient, MQTTInitParams *pParams)
 
     POINTER_SANITY_CHECK(pClient, QCLOUD_ERR_INVAL);
     POINTER_SANITY_CHECK(pParams, QCLOUD_ERR_INVAL);
+    const char *product_id  = pParams->product_id;
+    const char *device_name = pParams->device_name;
 
     memset(pClient, 0x0, sizeof(Qcloud_IoT_Client));
 
-    int rc = iot_device_info_set(&(pClient->device_info), pParams->product_id, pParams->device_name);
+    int rc = iot_device_info_set(&(pClient->device_info), product_id, device_name);
     if (rc != QCLOUD_RET_SUCCESS) {
         Log_e("failed to set device info: %d", rc);
         return rc;
     }
 
-    int size =
-        HAL_Snprintf(pClient->host_addr, HOST_STR_LENGTH, "%s.%s", pParams->product_id, QCLOUD_IOT_MQTT_DIRECT_DOMAIN);
+    int size = HAL_Snprintf(pClient->host_addr, HOST_STR_LENGTH, "%s.%s", product_id, QCLOUD_IOT_MQTT_DIRECT_DOMAIN);
     if (size < 0 || size > HOST_STR_LENGTH - 1) {
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
     }

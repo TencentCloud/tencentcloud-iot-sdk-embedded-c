@@ -27,6 +27,8 @@
 #define GATEWAY_OFFLIN_OP_STR             "offline"
 #define GATEWAY_BIND_OP_STR               "bind"
 #define GATEWAY_UNBIND_OP_STR             "unbind"
+#define GATEWAY_CHANGE_OP_STR             "change"
+#define GATEWAY_SEARCH_OP_STR             "search_devices"
 #define GATEWAY_DESCRIBE_SUBDEVIES_OP_STR "describe_sub_devices"
 
 /* The format of operation of gateway topic */

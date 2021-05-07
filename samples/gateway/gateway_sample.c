@@ -80,6 +80,10 @@ void _event_handler(void *client, void *context, MQTTEventMsg *msg)
         case MQTT_EVENT_PUBLISH_NACK:
             Log_i("publish nack, packet-id=%u", (unsigned int)packet_id);
             break;
+        case MQTT_EVENT_GATEWAY_SEARCH:
+            Log_d("gateway search subdev status:%d", *(int32_t *)(msg->msg));
+            break;
+
         default:
             Log_i("Should NOT arrive here.");
             break;
