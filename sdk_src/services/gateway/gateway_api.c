@@ -55,10 +55,12 @@ void _gateway_event_handler(void *client, void *context, MQTTEventMsg *msg)
                   STRING_PTR_PRINT_SANITY_CHECK(topic_info->payload));
             break;
 
-       case MQTT_EVENT_GATEWAY_SEARCH:
+        case MQTT_EVENT_GATEWAY_SEARCH:
             Log_d("gateway search subdev status:%d", *(int32_t *)(msg->msg));
             break;
-
+        case MQTT_EVENT_GATEWAY_UNBIND_ALL:
+            Log_d("gateway all subdev have been unbind");
+            break;
         default:
             break;
     }

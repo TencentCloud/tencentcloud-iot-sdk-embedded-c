@@ -279,6 +279,54 @@ static void _gateway_ack_search(Qcloud_IoT_Client *mqtt, int32_t status)
     IOT_MQTT_Publish(mqtt, topic_name, &params);
 }
 
+static int _gateway_subdev_unbind_all(Gateway *gateway)
+{
+    SubdevSession *cur_session = NULL;
+    SubdevSession *pre_session = NULL;
+
+    POINTER_SANITY_CHECK(gateway, QCLOUD_ERR_FAILURE);
+
+    pre_session = cur_session = gateway->session_list;
+
+    if (NULL == cur_session) {
+        Log_e("session list is empty");
+        IOT_FUNC_EXIT_RC(QCLOUD_RET_SUCCESS);
+    }
+
+    /* session is exist */
+    while (cur_session) {
+        pre_session = cur_session;
+        cur_session = cur_session->next;
+        Log_d("remove all session product id: %s device_name: %s", pre_session->product_id, pre_session->device_name);
+        HAL_Free(pre_session);
+        pre_session = NULL;
+    }
+
+    gateway->session_list = NULL;
+
+    return QCLOUD_RET_SUCCESS;
+}
+
+static void _gateway_subdev_unbind_all_reply(Qcloud_IoT_Client *mqtt)
+{
+    char        reply_buf[1024];
+    char        topic_name[128];
+    const char *search_ack_fmt = "{\"type\":\"%s\", \"payload\":{\"result\":%d}}";
+
+    HAL_Snprintf(reply_buf, sizeof(reply_buf), search_ack_fmt, GATEWAY_UNBIND_ALL_OP_STR, 0);
+    HAL_Snprintf(topic_name, 128, GATEWAY_TOPIC_OPERATION_FMT, mqtt->device_info.product_id,
+                 mqtt->device_info.device_name);
+
+    PublishParams params = DEFAULT_PUB_PARAMS;
+    params.qos           = QOS0;
+    params.payload_len   = strlen(reply_buf);
+    params.payload       = (char *)reply_buf;
+
+    Log_d("reply %s", reply_buf);
+
+    IOT_MQTT_Publish(mqtt, topic_name, &params);
+}
+
 static void _gateway_message_handler(void *client, MQTTMessage *message, void *user_data)
 {
     Qcloud_IoT_Client *mqtt          = NULL;
@@ -323,6 +371,20 @@ static void _gateway_message_handler(void *client, MQTTMessage *message, void *u
     if (!get_json_type(json_buf, &type)) {
         Log_e("Fail to parse type from msg: %s", json_buf);
         return;
+    }
+
+    if (!strncmp(type, GATEWAY_UNBIND_ALL_OP_STR, sizeof(GATEWAY_UNBIND_ALL_OP_STR) - 1)) {
+        Log_d("recv request for unbind_all");
+
+        _gateway_subdev_unbind_all(gateway);
+        _gateway_subdev_unbind_all_reply(mqtt);
+
+        MQTTEventMsg msg;
+        msg.event_type = MQTT_EVENT_GATEWAY_UNBIND_ALL;
+        msg.msg        = NULL;
+        mqtt->event_handle.h_fp(mqtt, mqtt->event_handle.context, &msg);
+
+        goto exit;
     }
 
     if (!strncmp(type, GATEWAY_SEARCH_OP_STR, sizeof(GATEWAY_SEARCH_OP_STR) - 1)) {

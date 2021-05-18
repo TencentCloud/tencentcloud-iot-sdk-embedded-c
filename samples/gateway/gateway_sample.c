@@ -22,6 +22,8 @@
 #include "qcloud_iot_export.h"
 #include "utils_getopt.h"
 
+static bool sg_unbind_all_subdev = false;
+
 void _event_handler(void *client, void *context, MQTTEventMsg *msg)
 {
     MQTTMessage *mqtt_messge = (MQTTMessage *)msg->msg;
@@ -83,7 +85,10 @@ void _event_handler(void *client, void *context, MQTTEventMsg *msg)
         case MQTT_EVENT_GATEWAY_SEARCH:
             Log_d("gateway search subdev status:%d", *(int32_t *)(msg->msg));
             break;
-
+        case MQTT_EVENT_GATEWAY_UNBIND_ALL:
+            sg_unbind_all_subdev = true;
+            Log_d("gateway all subdev have been unbind");
+            break;
         default:
             Log_i("Should NOT arrive here.");
             break;
@@ -396,6 +401,12 @@ int main(int argc, char **argv)
             continue;
         } else if (rc != QCLOUD_RET_SUCCESS && rc != QCLOUD_RET_MQTT_RECONNECTED) {
             Log_e("exit with error: %d", rc);
+            break;
+        }
+
+        if (true == sg_unbind_all_subdev) {
+            Log_d("gateway all subdev have been unbind by cloud platform stop publish subdev msg");
+            sg_unbind_all_subdev = false;
             break;
         }
 
