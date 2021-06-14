@@ -412,7 +412,7 @@ bool process_resource_download(void *ctx)
     int                  rc;
     ResourceContextData *resource_ctx    = (ResourceContextData *)ctx;
     void *               resource_handle = resource_ctx->resource_handle;
-    int packetid;
+    int                  packetid;
 
     packetid = QCLOUD_IOT_RESOURCE_GetDownloadTask(resource_handle);
     _wait_for_download_pub_ack(resource_ctx, packetid);

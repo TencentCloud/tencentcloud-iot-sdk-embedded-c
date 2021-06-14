@@ -207,15 +207,17 @@ int qcloud_resource_mqtt_report_progress(void *resource_mqtt, QCLOUD_RESOURCE_RE
     ret = HAL_Snprintf(topic, payload_len, "$resource/up/service/%s/%s", handle->product_id, handle->device_name);
     if (ret < 0 || ret >= payload_len) {
         Log_e("generate topic name of info failed");
-        IOT_FUNC_EXIT_RC(QCLOUD_RESOURCE_ERRCODE_FAIL_E);
+        ret = QCLOUD_RESOURCE_ERRCODE_FAIL_E;
+        goto exit;
     }
 
     ret = IOT_MQTT_Publish(handle->mqtt_client, topic, &pub_params);
     if (ret < 0) {
         Log_e("publish to topic: %s failed", topic);
-        IOT_FUNC_EXIT_RC(QCLOUD_RESOURCE_ERRCODE_OSC_FAILED_E);
+        ret = QCLOUD_RESOURCE_ERRCODE_OSC_FAILED_E;
     }
 
+exit:
     HAL_Free(payload);
     IOT_FUNC_EXIT_RC(ret);
 }

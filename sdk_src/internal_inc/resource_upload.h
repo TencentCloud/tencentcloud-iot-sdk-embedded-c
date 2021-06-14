@@ -22,11 +22,11 @@ extern "C" {
 
 #include <stdint.h>
 
-void *qcloud_resource_upload_http_init(const char *url, char *md5sum);
+void *qcloud_resource_upload_http_init(const char *url, char *md5sum, int upload_len);
 
-int32_t qcloud_resource_upload_http_connect(void *handle, char *upload_buf, int total_size);
+int32_t qcloud_resource_upload_http_connect(void *handle);
 
-int32_t qcloud_resource_upload_http_continue(void *handle, char *buf, uint32_t buf_len, uint32_t timeout_s);
+int32_t qcloud_resource_upload_http_send_body(void *handle, char *buf, uint32_t buf_len, uint32_t timeout_s);
 
 int32_t qcloud_resource_upload_http_recv(void *handle, char *buf, uint32_t bufLen, uint32_t timeout_s);
 

@@ -23,7 +23,7 @@ extern "C" {
 #include <stdint.h>
 #include <stddef.h>
 
-void *qcloud_lib_md5_init(void);
+void qcloud_lib_md5_init(void *ctx_md5);
 
 void qcloud_lib_md5_update(void *md5, const char *buf, size_t buf_len);
 

@@ -296,14 +296,14 @@ static int _http_client_send_header(HTTPClient *client, const char *url, HttpMet
     return QCLOUD_RET_SUCCESS;
 }
 
-static int _http_client_send_userdata(HTTPClient *client, HTTPClientData *client_data)
+static int _http_client_send_userdata(HTTPClient *client, HTTPClientData *client_data, uint32_t timeout_ms)
 {
     if (client_data->post_buf && client_data->post_buf_len) {
         // Log_d("client_data->post_buf: %s", client_data->post_buf);
         {
             size_t written_len = 0;
             int    rc = client->network_stack.write(&client->network_stack, (unsigned char *)client_data->post_buf,
-                                                 client_data->post_buf_len, 5000, &written_len);
+                                                 client_data->post_buf_len, timeout_ms, &written_len);
             if (written_len > 0) {
                 // Log_d("Written %d bytes", written_len);
             } else if (written_len == 0) {
@@ -318,106 +318,6 @@ static int _http_client_send_userdata(HTTPClient *client, HTTPClientData *client
 
     return QCLOUD_RET_SUCCESS;
 }
-
-int qcloud_http_client_send_header(HTTPClient *client, const char *url, HttpMethod method, HTTPClientData *client_data)
-{
-    char          scheme[8]                      = {0};
-    char          host[HTTP_CLIENT_MAX_HOST_LEN] = {0};
-    char          path[HTTP_CLIENT_MAX_URL_LEN]  = {0};
-    int           len;
-    unsigned char send_buf[HTTP_CLIENT_SEND_BUF_SIZE] = {0};
-    char          buf[HTTP_CLIENT_SEND_BUF_SIZE]      = {0};
-    char *        meth                                = (method == HTTP_GET)
-                     ? "GET"
-                     : (method == HTTP_POST)
-                           ? "POST"
-                           : (method == HTTP_PUT)
-                                 ? "PUT"
-                                 : (method == HTTP_DELETE) ? "DELETE" : (method == HTTP_HEAD) ? "HEAD" : "";
-    int rc;
-    int port;
-
-    int res = _http_client_parse_url(url, scheme, sizeof(scheme), host, sizeof(host), &port, path, sizeof(path));
-    if (res != QCLOUD_RET_SUCCESS) {
-        Log_e("httpclient_parse_url returned %d", res);
-        return res;
-    }
-
-    if (strcmp(scheme, "http") == 0) {
-    } else if (strcmp(scheme, "https") == 0) {
-    }
-
-    memset(send_buf, 0, HTTP_CLIENT_SEND_BUF_SIZE);
-    len = 0;
-
-    HAL_Snprintf(buf, sizeof(buf), "%s %s HTTP/1.1\r\nHost: %s\r\n", meth, path, host);
-    rc = _http_client_get_info(client, send_buf, &len, buf, strlen(buf));
-    if (rc) {
-        Log_e("Could not write request");
-        return QCLOUD_ERR_HTTP_CONN;
-    }
-
-    if (client->auth_user) {
-        _http_client_send_auth(client, send_buf, &len);
-    }
-
-    if (client->header) {
-        _http_client_get_info(client, send_buf, &len, (char *)client->header, strlen(client->header));
-    }
-
-    if (client_data->post_buf != NULL) {
-        HAL_Snprintf(buf, sizeof(buf), "Content-Length: %d\r\n", client_data->post_buf_len);
-        _http_client_get_info(client, send_buf, &len, buf, strlen(buf));
-
-        if (client_data->post_content_type != NULL) {
-            HAL_Snprintf(buf, sizeof(buf), "Content-Type: %s\r\n",
-                         STRING_PTR_PRINT_SANITY_CHECK(client_data->post_content_type));
-            _http_client_get_info(client, send_buf, &len, buf, strlen(buf));
-        }
-    }
-
-    _http_client_get_info(client, send_buf, &len, "\r\n", 0);
-
-    // Log_d("REQUEST:\n%s", send_buf);
-
-    size_t written_len = 0;
-    rc                 = client->network_stack.write(&client->network_stack, send_buf, len, 5000, &written_len);
-    if (written_len > 0) {
-        // Log_d("Written %lu bytes", written_len);
-    } else if (written_len == 0) {
-        Log_e("written_len == 0,Connection was closed by server");
-        return QCLOUD_ERR_HTTP_CLOSED; /* Connection was closed by server */
-    } else {
-        Log_e("Connection error (send returned %d)", rc);
-        return QCLOUD_ERR_HTTP_CONN;
-    }
-
-    return QCLOUD_RET_SUCCESS;
-}
-
-int qcloud_http_client_send_userdata(HTTPClient *client, HTTPClientData *client_data, uint32_t timeout_s)
-{
-    if (client_data->post_buf && client_data->post_buf_len) {
-        // Log_d("client_data->post_buf: %s", client_data->post_buf);
-        {
-            size_t written_len = 0;
-            int    rc = client->network_stack.write(&client->network_stack, (unsigned char *)client_data->post_buf,
-                                                 client_data->post_buf_len, timeout_s, &written_len);
-            if (written_len > 0) {
-                // Log_d("Written %d bytes", written_len);
-            } else if (written_len == 0) {
-                Log_e("written_len == 0,Connection was closed by server");
-                return QCLOUD_ERR_HTTP_CLOSED;
-            } else {
-                Log_e("Connection error (send returned %d)", rc);
-                return QCLOUD_ERR_HTTP_CONN;
-            }
-        }
-    }
-
-    return QCLOUD_RET_SUCCESS;
-}
-
 
 static int _http_client_recv(HTTPClient *client, char *buf, int min_len, int max_len, int *p_read_len,
                              uint32_t timeout_ms, HTTPClientData *client_data)
@@ -746,7 +646,7 @@ static int _http_client_send_request(HTTPClient *client, const char *url, HttpMe
     }
 
     if (method == HTTP_POST || method == HTTP_PUT) {
-        rc = _http_client_send_userdata(client, client_data);
+        rc = _http_client_send_userdata(client, client_data, 5000);
     }
 
     return rc;
@@ -894,6 +794,16 @@ int qcloud_http_recv_data(HTTPClient *client, uint32_t timeout_ms, HTTPClientDat
         }
     }
     IOT_FUNC_EXIT_RC(QCLOUD_RET_SUCCESS);
+}
+
+int qcloud_http_send_data(HTTPClient *client, HttpMethod method, uint32_t timeout_ms, HTTPClientData *client_data)
+{
+    int rc = QCLOUD_ERR_INVAL;
+    if (method == HTTP_POST || method == HTTP_PUT) {
+        rc = _http_client_send_userdata(client, client_data, timeout_ms);
+    }
+
+    return rc;
 }
 
 #ifdef __cplusplus

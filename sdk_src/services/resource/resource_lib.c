@@ -40,17 +40,17 @@ int qcloud_lib_get_json_key_value(char *json_obj, char *json_key, char **value)
     return QCLOUD_RET_SUCCESS;
 }
 
-void *qcloud_lib_md5_init(void)
+void qcloud_lib_md5_init(void *ctx_md5)
 {
-    iot_md5_context *ctx = HAL_Malloc(sizeof(iot_md5_context));
+    iot_md5_context *ctx = (iot_md5_context *)ctx_md5;
     if (NULL == ctx) {
-        return NULL;
+        return;
     }
 
     utils_md5_init(ctx);
     utils_md5_starts(ctx);
 
-    return ctx;
+    return;
 }
 
 void qcloud_lib_md5_update(void *md5, const char *buf, size_t buf_len)
@@ -98,7 +98,7 @@ int qcloud_lib_base64encode_md5sum(char *md5sumhex, char *outbase64, int outbase
 void qcloud_lib_md5_deinit(void *md5)
 {
     if (NULL != md5) {
-        HAL_Free(md5);
+        memset(md5, 0, sizeof(iot_md5_context));
     }
 }
 
