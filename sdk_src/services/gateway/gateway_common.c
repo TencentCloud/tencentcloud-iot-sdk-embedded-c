@@ -309,17 +309,26 @@ static int _gateway_subdev_unbind_all(Gateway *gateway)
 
 static void _gateway_subdev_unbind_all_reply(Qcloud_IoT_Client *mqtt)
 {
-    char        reply_buf[1024];
+    char        reply_buf[128];
     char        topic_name[128];
     const char *search_ack_fmt = "{\"type\":\"%s\", \"payload\":{\"result\":%d}}";
 
-    HAL_Snprintf(reply_buf, sizeof(reply_buf), search_ack_fmt, GATEWAY_UNBIND_ALL_OP_STR, 0);
-    HAL_Snprintf(topic_name, 128, GATEWAY_TOPIC_OPERATION_FMT, mqtt->device_info.product_id,
-                 mqtt->device_info.device_name);
+    int payload_len = HAL_Snprintf(reply_buf, sizeof(reply_buf), search_ack_fmt, GATEWAY_UNBIND_ALL_OP_STR, 0);
+    if (payload_len < 0 || payload_len > sizeof(reply_buf)) {
+        Log_e("buf size < payload length!");
+        return;
+    }
+
+    int topic_len = HAL_Snprintf(topic_name, sizeof(topic_name), GATEWAY_TOPIC_OPERATION_FMT,
+                                 mqtt->device_info.product_id, mqtt->device_info.device_name);
+    if (topic_len < 0 || topic_len > sizeof(topic_name)) {
+        Log_e("buf size < topic length!");
+        return;
+    }
 
     PublishParams params = DEFAULT_PUB_PARAMS;
     params.qos           = QOS0;
-    params.payload_len   = strlen(reply_buf);
+    params.payload_len   = payload_len;
     params.payload       = (char *)reply_buf;
 
     Log_d("reply %s", reply_buf);
