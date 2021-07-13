@@ -60,6 +60,13 @@ extern "C" {
 #define CERT_DATA    "clientCert"
 #define KEY_DATA     "clientKey"
 
+#ifdef AUTH_MODE_CERT
+/* NULL cert file */
+#define QCLOUD_IOT_NULL_CERT_FILENAME "YOUR_DEVICE_NAME_cert.crt"
+/* NULL key file */
+#define QCLOUD_IOT_NULL_KEY_FILENAME "YOUR_DEVICE_NAME_private.key"
+#endif
+
 typedef enum {
     eCERT_TYPE = 1,
     ePSK_TYPE  = 2,
@@ -182,6 +189,27 @@ static void _deal_transfer(char *data, uint32_t dataLen)
     }
 }
 
+/*'\n' in data change to \\n */
+static void _deal_transfer_back(char *in_data, uint32_t dataLen, char *out_data)
+{
+    int i, j;
+
+    for (i = 0, j = 0; i < dataLen; i++) {
+        if (in_data[i] == '\n') {
+            out_data[j]     = '\\';
+            out_data[j + 1] = 'n';
+            j += 2;
+        } else if (in_data[i] == '\r') {
+            out_data[j]     = '\\';
+            out_data[j + 1] = 'r';
+            j += 2;
+        } else {
+            out_data[j] = in_data[i];
+            j += 1;
+        }
+    }
+}
+
 static int _cert_file_save(const char *fileName, char *data, uint32_t dataLen)
 {
     FILE *   fp;
@@ -192,7 +220,7 @@ static int _cert_file_save(const char *fileName, char *data, uint32_t dataLen)
     memset(filePath, 0, FILE_PATH_MAX_LEN);
     HAL_Snprintf(filePath, FILE_PATH_MAX_LEN, "./certs/%s", STRING_PTR_PRINT_SANITY_CHECK(fileName));
 
-    if ((fp = fopen(filePath, "w+")) == NULL) {
+    if ((fp = fopen(filePath, "w")) == NULL) {
         Log_e("fail to open file %s", STRING_PTR_PRINT_SANITY_CHECK(fileName));
         goto exit;
     }
@@ -208,6 +236,86 @@ static int _cert_file_save(const char *fileName, char *data, uint32_t dataLen)
 
 exit:
     return Ret;
+}
+
+static long _get_fileSize(FILE *stream)
+{
+    long curpos = 0;
+    long length = 0;
+
+    curpos = ftell(stream);
+    fseek(stream, 0L, SEEK_END);
+    length = ftell(stream);
+    fseek(stream, curpos, SEEK_SET);
+
+    return length;
+}
+
+char *_get_dev_cert_file(char *dev_name)
+{
+    FILE *fp;
+    char  filePath[FILE_PATH_MAX_LEN];
+    char  fileName[MAX_SIZE_OF_DEVICE_CERT_FILE_NAME];
+    long  fileSize = 0;
+    char *devCert  = NULL;
+
+    memset(fileName, 0, MAX_SIZE_OF_DEVICE_CERT_FILE_NAME);
+    HAL_Snprintf(fileName, MAX_SIZE_OF_DEVICE_CERT_FILE_NAME, "%s_cert.crt", STRING_PTR_PRINT_SANITY_CHECK(dev_name));
+
+    memset(filePath, 0, FILE_PATH_MAX_LEN);
+    HAL_Snprintf(filePath, FILE_PATH_MAX_LEN, "./certs/%s", fileName);
+
+    if ((fp = fopen(filePath, "r")) == NULL) {
+        Log_e("fail to open file %s", fileName);
+        goto exit;
+    }
+
+    fileSize = _get_fileSize(fp);
+    if (fileSize <= 0) {
+        Log_e("file %s is empty", fileName);
+        fclose(fp);
+        goto exit;
+    }
+
+    devCert = HAL_Malloc(fileSize + 1);
+    if (devCert == NULL) {
+        Log_e("Out of memory");
+        fclose(fp);
+        goto exit;
+    }
+
+    char *devCert_out = HAL_Malloc(fileSize * 2 + 1);
+    if (devCert_out == NULL) {
+        Log_e("Out of memory");
+        fclose(fp);
+        goto exit;
+    }
+    memset(devCert, 0, fileSize + 1);
+    memset(devCert_out, 0, fileSize + 1);
+
+    if (1 != fread(devCert, fileSize, 1, fp)) {
+        Log_e("Read file ERROR");
+        fclose(fp);
+        HAL_Free(devCert);
+        goto exit;
+    }
+
+    _deal_transfer_back(devCert, fileSize, devCert_out);
+
+    HAL_Free(devCert);
+    fclose(fp);
+
+    return devCert_out;
+
+exit:
+    if(devCert) {
+        HAL_Free(devCert);
+    }
+
+	if(devCert_out) {
+        HAL_Free(devCert_out);
+    }
+    return NULL;
 }
 
 #endif
@@ -285,40 +393,46 @@ static int _parse_devinfo(char *jdoc, DeviceInfo *pDevInfo)
         goto exit;
     }
 
-    clientCert = _get_json_cert_data(decodeBuff);
-    if (NULL != clientCert) {
-        memset(pDevInfo->dev_cert_file_name, 0, MAX_SIZE_OF_DEVICE_CERT_FILE_NAME);
-        HAL_Snprintf(pDevInfo->dev_cert_file_name, MAX_SIZE_OF_DEVICE_CERT_FILE_NAME, "%s_cert.crt",
-                     STRING_PTR_PRINT_SANITY_CHECK(pDevInfo->device_name));
-        if (QCLOUD_RET_SUCCESS != _cert_file_save(pDevInfo->dev_cert_file_name, clientCert, strlen(clientCert))) {
-            Log_e("save %s file fail", pDevInfo->dev_cert_file_name);
-            ret = QCLOUD_ERR_FAILURE;
-        }
-
-        HAL_Free(clientCert);
-
-    } else {
-        Log_e("Get clientCert data fail");
-        ret = QCLOUD_ERR_FAILURE;
-    }
-
-    clientKey = _get_json_key_data(decodeBuff);
-    if (NULL != clientKey) {
-        memset(pDevInfo->dev_key_file_name, 0, MAX_SIZE_OF_DEVICE_SECRET_FILE_NAME);
-        HAL_Snprintf(pDevInfo->dev_key_file_name, MAX_SIZE_OF_DEVICE_SECRET_FILE_NAME, "%s_private.key",
-                     pDevInfo->device_name);
-        if (QCLOUD_RET_SUCCESS != _cert_file_save(pDevInfo->dev_key_file_name, clientKey, strlen(clientKey))) {
-            Log_e("save %s file fail", pDevInfo->dev_key_file_name);
-            ret = QCLOUD_ERR_FAILURE;
-        }
-
-        HAL_Free(clientKey);
+    if (!strcmp(pDevInfo->dev_cert_file_name, QCLOUD_IOT_NULL_CERT_FILENAME) ||
+        !strcmp(pDevInfo->dev_key_file_name, QCLOUD_IOT_NULL_KEY_FILENAME)) {
+        Log_d("dev Cert not exist, here must parse cert!");
+        clientCert = _get_json_cert_data(decodeBuff);
+        if (NULL != clientCert) {
+            if (strcmp(clientCert, "null") != 0) {
+                memset(pDevInfo->dev_cert_file_name, 0, MAX_SIZE_OF_DEVICE_CERT_FILE_NAME);
+                HAL_Snprintf(pDevInfo->dev_cert_file_name, MAX_SIZE_OF_DEVICE_CERT_FILE_NAME, "%s_cert.crt",
+                             STRING_PTR_PRINT_SANITY_CHECK(pDevInfo->device_name));
+                if (QCLOUD_RET_SUCCESS !=
+                    _cert_file_save(pDevInfo->dev_cert_file_name, clientCert, strlen(clientCert))) {
+                    Log_e("save %s file fail", pDevInfo->dev_cert_file_name);
+                    ret = QCLOUD_ERR_FAILURE;
+                }
+            }
+            HAL_Free(clientCert);
 
     } else {
         Log_e("Get clientCert data fail");
         ret = QCLOUD_ERR_FAILURE;
     }
 
+        clientKey = _get_json_key_data(decodeBuff);
+        if (NULL != clientKey) {
+            if (strcmp(clientKey, "null") != 0) {
+                memset(pDevInfo->dev_key_file_name, 0, MAX_SIZE_OF_DEVICE_SECRET_FILE_NAME);
+                HAL_Snprintf(pDevInfo->dev_key_file_name, MAX_SIZE_OF_DEVICE_SECRET_FILE_NAME, "%s_private.key",
+                             pDevInfo->device_name);
+                if (QCLOUD_RET_SUCCESS != _cert_file_save(pDevInfo->dev_key_file_name, clientKey, strlen(clientKey))) {
+                    Log_e("save %s file fail", pDevInfo->dev_key_file_name);
+                    ret = QCLOUD_ERR_FAILURE;
+                }
+            }
+            HAL_Free(clientKey);
+
+        } else {
+            Log_e("Get clientKey data fail and no local clientKey exist!");
+            ret = QCLOUD_ERR_FAILURE;
+        }
+    }
 #else
     if (ePSK_TYPE != enType) {
         Log_e("encryt type should be psk type");
@@ -439,14 +553,24 @@ static int _cal_dynreg_sign(DeviceInfo *pDevInfo, char *signout, int max_signlen
 
 int IOT_DynReg_Device(DeviceInfo *pDevInfo)
 {
+#ifdef AUTH_MODE_CERT
+    const char *para_format =
+        "{\"deviceName\":\"%s\",\"nonce\":%d,\"productId\":\"%s\",\"timestamp\":%d,\"signature\":\"%s\",\"clientCert\":"
+        "\"%s\"}";
+#else
     const char *para_format =
         "{\"deviceName\":\"%s\",\"nonce\":%d,\"productId\":\"%s\",\"timestamp\":%d,\"signature\":\"%s\"}";
+#endif
+
     int      nonce;
     int      Ret;
     uint32_t timestamp;
     int      len;
     char     sign[DYN_REG_SIGN_LEN] = {0};
     char *   pRequest               = NULL;
+#ifdef AUTH_MODE_CERT
+    char *clientCert = NULL;
+#endif
 
     if (strlen(pDevInfo->product_secret) < UTILS_AES_BLOCK_LEN) {
         Log_e("product key inllegal");
@@ -466,15 +590,39 @@ int IOT_DynReg_Device(DeviceInfo *pDevInfo)
     }
 
     /*format http request*/
+#ifdef AUTH_MODE_CERT
+    clientCert = _get_dev_cert_file(pDevInfo->device_name);
+
     len = strlen(para_format) + strlen(pDevInfo->product_id) + strlen(pDevInfo->device_name) + sizeof(int) +
           sizeof(uint32_t) + strlen(sign) + DYN_BUFF_DATA_MORE;
+    if (clientCert != NULL) {
+        len += strlen(clientCert);
+        memset(pDevInfo->dev_cert_file_name, 0, MAX_SIZE_OF_DEVICE_CERT_FILE_NAME);
+        HAL_Snprintf(pDevInfo->dev_cert_file_name, MAX_SIZE_OF_DEVICE_CERT_FILE_NAME, "%s_cert.crt",
+                     STRING_PTR_PRINT_SANITY_CHECK(pDevInfo->device_name));
+        memset(pDevInfo->dev_key_file_name, 0, MAX_SIZE_OF_DEVICE_SECRET_FILE_NAME);
+        HAL_Snprintf(pDevInfo->dev_key_file_name, MAX_SIZE_OF_DEVICE_SECRET_FILE_NAME, "%s_private.key",
+                     pDevInfo->device_name);
+    }
+#else
+    len = strlen(para_format) + strlen(pDevInfo->product_id) + strlen(pDevInfo->device_name) + sizeof(int) +
+          sizeof(uint32_t) + strlen(sign) + DYN_BUFF_DATA_MORE;
+#endif
     pRequest = HAL_Malloc(len);
     if (!pRequest) {
         Log_e("malloc request memory fail");
         return QCLOUD_ERR_FAILURE;
     }
     memset(pRequest, 0, len);
+#ifdef AUTH_MODE_CERT
+    HAL_Snprintf(pRequest, len, para_format, pDevInfo->device_name, nonce, pDevInfo->product_id, timestamp, sign,
+                 clientCert == NULL ? "null" : clientCert);
+    if (clientCert) {
+        HAL_Free(clientCert);
+    }
+#else
     HAL_Snprintf(pRequest, len, para_format, pDevInfo->device_name, nonce, pDevInfo->product_id, timestamp, sign);
+#endif
     Log_d("request:%s", pRequest);
 
     Log_d("resbuff len:%d", DYN_RESPONSE_BUFF_LEN);
