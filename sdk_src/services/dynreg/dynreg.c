@@ -258,6 +258,7 @@ char *_get_dev_cert_file(char *dev_name)
     char  fileName[MAX_SIZE_OF_DEVICE_CERT_FILE_NAME];
     long  fileSize = 0;
     char *devCert  = NULL;
+    char *devCert_out = NULL;
 
     memset(fileName, 0, MAX_SIZE_OF_DEVICE_CERT_FILE_NAME);
     HAL_Snprintf(fileName, MAX_SIZE_OF_DEVICE_CERT_FILE_NAME, "%s_cert.crt", STRING_PTR_PRINT_SANITY_CHECK(dev_name));
@@ -273,49 +274,44 @@ char *_get_dev_cert_file(char *dev_name)
     fileSize = _get_fileSize(fp);
     if (fileSize <= 0) {
         Log_e("file %s is empty", fileName);
-        fclose(fp);
         goto exit;
     }
 
     devCert = HAL_Malloc(fileSize + 1);
     if (devCert == NULL) {
         Log_e("Out of memory");
-        fclose(fp);
         goto exit;
     }
 
-    char *devCert_out = HAL_Malloc(fileSize * 2 + 1);
+    devCert_out = HAL_Malloc(fileSize * 2 + 1);
     if (devCert_out == NULL) {
         Log_e("Out of memory");
-        fclose(fp);
         goto exit;
     }
+
     memset(devCert, 0, fileSize + 1);
     memset(devCert_out, 0, fileSize + 1);
 
     if (1 != fread(devCert, fileSize, 1, fp)) {
         Log_e("Read file ERROR");
-        fclose(fp);
-        HAL_Free(devCert);
         goto exit;
     }
 
     _deal_transfer_back(devCert, fileSize, devCert_out);
 
+exit:
+    if(fp) {
+        fclose(fp);
+    }
+
     HAL_Free(devCert);
-    fclose(fp);
+
+    if(devCert_out != NULL && strlen(devCert_out) == 0) {
+        HAL_Free(devCert_out);
+        devCert_out = NULL;
+    }
 
     return devCert_out;
-
-exit:
-    if(devCert) {
-        HAL_Free(devCert);
-    }
-
-	if(devCert_out) {
-        HAL_Free(devCert_out);
-    }
-    return NULL;
 }
 
 #endif
@@ -617,9 +613,7 @@ int IOT_DynReg_Device(DeviceInfo *pDevInfo)
 #ifdef AUTH_MODE_CERT
     HAL_Snprintf(pRequest, len, para_format, pDevInfo->device_name, nonce, pDevInfo->product_id, timestamp, sign,
                  clientCert == NULL ? "null" : clientCert);
-    if (clientCert) {
-        HAL_Free(clientCert);
-    }
+    HAL_Free(clientCert);
 #else
     HAL_Snprintf(pRequest, len, para_format, pDevInfo->device_name, nonce, pDevInfo->product_id, timestamp, sign);
 #endif
