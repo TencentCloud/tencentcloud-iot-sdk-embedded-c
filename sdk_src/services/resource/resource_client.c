@@ -32,7 +32,7 @@ extern "C" {
 #include "resource_lib.h"
 
 #define QCLOUD_IOT_RESOURCE_NAME_LEN 64
-#define QCLOUD_IOT_RESOURCE_URL_LEN  256
+#define QCLOUD_IOT_RESOURCE_URL_LEN  1024
 
 typedef struct {
     const char *product_id;  /* point to product id */
@@ -809,7 +809,7 @@ int QCLOUD_IOT_RESOURCE_UploadResetClientMD5(void *handle)
     QCLOUD_RESOURCE_CONTEXT_T *resource_handle = (QCLOUD_RESOURCE_CONTEXT_T *)handle;
 
     qcloud_lib_md5_deinit(&(resource_handle->upload_md5));
-    qcloud_lib_md5_init(&(resource_handle->md5));
+    qcloud_lib_md5_init(&(resource_handle->upload_md5));
 
     return QCLOUD_RET_SUCCESS;
 }
