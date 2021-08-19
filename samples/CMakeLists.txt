@@ -70,6 +70,13 @@ if(${FEATURE_OTA_COMM_ENABLED} STREQUAL "ON" AND ${FEATURE_OTA_SIGNAL_CHANNEL} S
 	target_link_libraries(ota_mqtt_sample			 ${lib})
 endif()
 
+# Resource MQTT
+if(${FEATURE_RESOURCE_COMM_ENABLED} STREQUAL "ON" AND ${FEATURE_RESOURCE_SIGNAL_CHANNEL} STREQUAL "MQTT")
+	file(GLOB src_resource_mqtt_sample 				${PROJECT_SOURCE_DIR}/samples/resource/resource_mqtt_sample.c)
+	add_executable(resource_mqtt_sample				${src_resource_mqtt_sample})
+	target_link_libraries(resource_mqtt_sample			 ${lib})
+endif()
+
 # SHADOW
 if(${FEATURE_MQTT_DEVICE_SHADOW} STREQUAL "ON")
 	file(GLOB src_shadow_sample 				${PROJECT_SOURCE_DIR}/samples/shadow/shadow_sample.c)

@@ -296,14 +296,14 @@ static int _http_client_send_header(HTTPClient *client, const char *url, HttpMet
     return QCLOUD_RET_SUCCESS;
 }
 
-static int _http_client_send_userdata(HTTPClient *client, HTTPClientData *client_data)
+static int _http_client_send_userdata(HTTPClient *client, HTTPClientData *client_data, uint32_t timeout_ms)
 {
     if (client_data->post_buf && client_data->post_buf_len) {
         // Log_d("client_data->post_buf: %s", client_data->post_buf);
         {
             size_t written_len = 0;
             int    rc = client->network_stack.write(&client->network_stack, (unsigned char *)client_data->post_buf,
-                                                 client_data->post_buf_len, 5000, &written_len);
+                                                 client_data->post_buf_len, timeout_ms, &written_len);
             if (written_len > 0) {
                 // Log_d("Written %d bytes", written_len);
             } else if (written_len == 0) {
@@ -453,6 +453,7 @@ static int _http_client_retrieve_content(HTTPClient *client, char *data, int len
             if (readLen == 0) {
                 client_data->is_more = IOT_FALSE;
                 Log_d("no more (last chunk)");
+                IOT_FUNC_EXIT_RC(QCLOUD_RET_SUCCESS);
             }
 
             if (n != 1) {
@@ -645,7 +646,7 @@ static int _http_client_send_request(HTTPClient *client, const char *url, HttpMe
     }
 
     if (method == HTTP_POST || method == HTTP_PUT) {
-        rc = _http_client_send_userdata(client, client_data);
+        rc = _http_client_send_userdata(client, client_data, 5000);
     }
 
     return rc;
@@ -793,6 +794,16 @@ int qcloud_http_recv_data(HTTPClient *client, uint32_t timeout_ms, HTTPClientDat
         }
     }
     IOT_FUNC_EXIT_RC(QCLOUD_RET_SUCCESS);
+}
+
+int qcloud_http_send_data(HTTPClient *client, HttpMethod method, uint32_t timeout_ms, HTTPClientData *client_data)
+{
+    int rc = QCLOUD_ERR_INVAL;
+    if (method == HTTP_POST || method == HTTP_PUT) {
+        rc = _http_client_send_userdata(client, client_data, timeout_ms);
+    }
+
+    return rc;
 }
 
 #ifdef __cplusplus

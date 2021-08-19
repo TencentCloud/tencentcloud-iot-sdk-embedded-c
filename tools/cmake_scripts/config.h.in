@@ -18,3 +18,5 @@
 #cmakedefine BROADCAST_ENABLED
 #cmakedefine RRPC_ENABLED
 #cmakedefine REMOTE_CONFIG_MQTT
+#cmakedefine RESOURCE_USE_HTTPS
+

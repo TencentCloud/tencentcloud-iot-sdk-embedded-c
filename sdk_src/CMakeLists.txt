@@ -25,6 +25,20 @@ if(${FEATURE_MQTT_COMM_ENABLED} STREQUAL "ON")
 		list(APPEND src_sdk ${src_mqtt_ota})
 	endif()
 	
+	# resource mqtt
+	if(${FEATURE_RESOURCE_COMM_ENABLED} STREQUAL "ON" AND ${FEATURE_RESOURCE_SIGNAL_CHANNEL} STREQUAL "MQTT")
+		file(GLOB src_mqtt_resource
+					${CMAKE_CURRENT_SOURCE_DIR}/services/resource/resource_client.c
+					${CMAKE_CURRENT_SOURCE_DIR}/services/resource/resource_upload.c
+					${CMAKE_CURRENT_SOURCE_DIR}/services/resource/resource_lib.c
+					${CMAKE_CURRENT_SOURCE_DIR}/services/resource/resource_mqtt.c)
+		if (NOT ${FEATURE_OTA_COMM_ENABLED} STREQUAL "ON")
+			file(GLOB src_mqtt_resource_fetch
+				${CMAKE_CURRENT_SOURCE_DIR}/services/ota/ota_fetch.c)
+		endif()
+		list(APPEND src_sdk ${src_mqtt_resource} ${src_mqtt_resource_fetch})
+	endif()
+	
 	# gateway
 	if(${FEATURE_GATEWAY_ENABLED} STREQUAL "ON")
 		file(GLOB src_gateway ${CMAKE_CURRENT_SOURCE_DIR}/services/gateway/*.c)

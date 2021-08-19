@@ -68,6 +68,8 @@ int qcloud_http_recv_data(HTTPClient *client, uint32_t timeout_ms, HTTPClientDat
 
 int qcloud_http_client_connect(HTTPClient *client, const char *url, int port, const char *ca_crt);
 
+int qcloud_http_send_data(HTTPClient *client, HttpMethod method, uint32_t timeout_ms, HTTPClientData *client_data);
+
 void qcloud_http_client_close(HTTPClient *client);
 
 #ifdef __cplusplus
