@@ -30,6 +30,7 @@
 #define GATEWAY_CHANGE_OP_STR             "change"
 #define GATEWAY_SEARCH_OP_STR             "search_devices"
 #define GATEWAY_DESCRIBE_SUBDEVIES_OP_STR "describe_sub_devices"
+#define GATEWAY_UNBIND_ALL_OP_STR         "unbind_all"
 
 /* The format of operation of gateway topic */
 #define GATEWAY_TOPIC_OPERATION_FMT "$gateway/operation/%s/%s"

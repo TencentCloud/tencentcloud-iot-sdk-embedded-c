@@ -130,6 +130,21 @@ INF|2019-09-16 14:35:35|gateway_sample.c|_event_handler(88): publish success, pa
 INF|2019-09-16 14:35:35|gateway_sample.c|_message_handler(111): Receive Message With topicName:S3EUVBRJLB/test_device/data, payload:{"data":"test gateway"}
 ```
 
+#### 6. 观察网关解绑所有子设备的日志
+```
+DBG|2021-05-18 11:09:07|gateway_common.c|_gateway_message_handler(369): msg payload: {"type":"unbind_all"}
+DBG|2021-05-18 11:09:07|gateway_common.c|_gateway_message_handler(377): recv request for unbind_all
+DBG|2021-05-18 11:09:07|gateway_common.c|_gateway_subdev_unbind_all(300): remove all session product id: D95V6NB56B device_name: deng1
+DBG|2021-05-18 11:09:07|gateway_common.c|_gateway_subdev_unbind_all_reply(325): reply {"type":"unbind_all", "payload":{"result":0}}
+DBG|2021-05-18 11:09:07|mqtt_client_publish.c|qcloud_iot_mqtt_publish(341): publish packetID=0|topicName=$gateway/operation/GU25ZFSZLA/gw1|payload={"type":"unbind_all", "payload":{"result":0}}
+DBG|2021-05-18 11:09:07|gateway_api.c|_gateway_event_handler(62): gateway all subdev have been unbind
+DBG|2021-05-18 11:09:07|gateway_sample.c|_event_handler(90): gateway all subdev have been unbind
+INF|2021-05-18 11:09:07|gateway_sample.c|_event_handler(75): publish success, packet-id=51834
+DBG|2021-05-18 11:09:07|gateway_sample.c|main(408): gateway all subdev have been unbind by cloud platform stop publish subdev msg
+DBG|2021-05-18 11:09:07|gateway_api.c|IOT_Gateway_Subdev_Offline(209): no session, can not offline
+ERR|2021-05-18 11:09:07|gateway_sample.c|main(420): IOT_Gateway_Subdev_Offline fail.
+```
+
 ## 三. 代码说明
 
 #### 如何通过SDK绑定子设备
