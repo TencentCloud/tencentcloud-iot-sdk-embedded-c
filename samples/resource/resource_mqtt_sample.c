@@ -191,7 +191,7 @@ static int _cal_exist_resource_md5(ResourceContextData *resource_ctx)
     size_t rlen, total_read = 0;
     int    ret = QCLOUD_RET_SUCCESS;
 
-    ret = QCLOUD_IOT_RESOURCE_DownloadResetClientMD5(resource_ctx->resource_handle);
+    ret = IOT_Resource_DownloadResetClientMD5(resource_ctx->resource_handle);
     if (ret) {
         Log_e("reset MD5 failed: %d", ret);
         return QCLOUD_ERR_FAILURE;
@@ -213,7 +213,7 @@ static int _cal_exist_resource_md5(ResourceContextData *resource_ctx)
             ret = QCLOUD_ERR_FAILURE;
             break;
         }
-        QCLOUD_IOT_RESOURCE_UpdateDownloadClientMd5(resource_ctx->resource_handle, buff, rlen);
+        IOT_Resource_UpdateDownloadClientMd5(resource_ctx->resource_handle, buff, rlen);
         size -= rlen;
         total_read += rlen;
     }
@@ -414,7 +414,7 @@ bool process_resource_download(void *ctx)
     void *               resource_handle = resource_ctx->resource_handle;
     int                  packetid;
 
-    packetid = QCLOUD_IOT_RESOURCE_GetDownloadTask(resource_handle);
+    packetid = IOT_Resource_GetDownloadTask(resource_handle);
     _wait_for_download_pub_ack(resource_ctx, packetid);
 
     do {
@@ -423,11 +423,10 @@ bool process_resource_download(void *ctx)
         Log_i("wait for resource download command...");
 
         // recv the upgrade cmd
-        if (QCLOUD_IOT_RESOURCE_IsStartDownload(resource_handle)) {
-            QCLOUD_IOT_RESOURCE_DownloadIoctl(resource_handle, QCLOUD_IOT_RESOURCE_SIZE_E, &resource_ctx->resource_size,
-                                              4);
-            QCLOUD_IOT_RESOURCE_DownloadIoctl(resource_handle, QCLOUD_IOT_RESOURCE_NAME_E, resource_ctx->resource_name,
-                                              RESOURCE_NAME_MAX_LEN);
+        if (IOT_Resource_IsStartDownload(resource_handle)) {
+            IOT_Resource_DownloadIoctl(resource_handle, QCLOUD_IOT_RESOURCE_SIZE_E, &resource_ctx->resource_size, 4);
+            IOT_Resource_DownloadIoctl(resource_handle, QCLOUD_IOT_RESOURCE_NAME_E, resource_ctx->resource_name,
+                                       RESOURCE_NAME_MAX_LEN);
 
             DeviceInfo *device_info = IOT_MQTT_GetDeviceInfo(resource_ctx->mqtt_client);
 
@@ -443,8 +442,8 @@ bool process_resource_download(void *ctx)
             _update_resource_downloaded_size(resource_ctx);
 
             /*set offset and start http connect*/
-            rc = QCLOUD_IOT_RESOURCE_StartDownload(resource_handle, resource_ctx->resource_downloaded_size,
-                                                   resource_ctx->resource_size);
+            rc = IOT_Resource_StartDownload(resource_handle, resource_ctx->resource_downloaded_size,
+                                            resource_ctx->resource_size);
             if (QCLOUD_RET_SUCCESS != rc) {
                 Log_e("resource download start err,rc:%d", rc);
                 download_fetch_success = false;
@@ -453,7 +452,7 @@ bool process_resource_download(void *ctx)
 
             // download and save the fw
             do {
-                int len = QCLOUD_IOT_RESOURCE_DownloadYield(resource_handle, buf_download, RESOURCE_BUF_LEN, 1);
+                int len = IOT_Resource_DownloadYield(resource_handle, buf_download, RESOURCE_BUF_LEN, 1);
                 if (len > 0) {
                     rc = _save_resource_data_to_file(resource_ctx->resource_file_path,
                                                      resource_ctx->resource_downloaded_size, buf_download, len);
@@ -469,8 +468,8 @@ bool process_resource_download(void *ctx)
                 }
 
                 /* get resource information and update local info */
-                QCLOUD_IOT_RESOURCE_DownloadIoctl(resource_handle, QCLOUD_IOT_RESOURCE_FETCHED_SIZE_E,
-                                                  &resource_ctx->resource_downloaded_size, 4);
+                IOT_Resource_DownloadIoctl(resource_handle, QCLOUD_IOT_RESOURCE_FETCHED_SIZE_E,
+                                           &resource_ctx->resource_downloaded_size, 4);
                 rc = _update_local_resource_info(resource_ctx);
                 if (QCLOUD_RET_SUCCESS != rc) {
                     Log_e("update local resource info err,rc:%d", rc);
@@ -483,7 +482,7 @@ bool process_resource_download(void *ctx)
                     return false;
                 }
 
-            } while (!QCLOUD_IOT_RESOURCE_IsDownloadFinish(resource_handle));
+            } while (!IOT_Resource_IsDownloadFinish(resource_handle));
 
             /* Must check MD5 match or not */
             if (download_fetch_success) {
@@ -491,7 +490,7 @@ bool process_resource_download(void *ctx)
                 _delete_resource_info_file(resource_ctx->resource_info_file_path);
 
                 uint32_t resource_valid;
-                QCLOUD_IOT_RESOURCE_DownloadIoctl(resource_handle, QCLOUD_IOT_RESOURCE_MD5CHECK_E, &resource_valid, 4);
+                IOT_Resource_DownloadIoctl(resource_handle, QCLOUD_IOT_RESOURCE_MD5CHECK_E, &resource_valid, 4);
                 if (0 == resource_valid) {
                     Log_e("The resource is invalid");
                     download_fetch_success = false;
@@ -512,9 +511,9 @@ bool process_resource_download(void *ctx)
 
     // report result
     if (download_fetch_success) {
-        packetid = QCLOUD_IOT_RESOURCE_ReportDownloadSuccess(resource_handle, resource_ctx->resource_name);
+        packetid = IOT_Resource_ReportDownloadSuccess(resource_handle, resource_ctx->resource_name);
     } else {
-        packetid = QCLOUD_IOT_RESOURCE_ReportDownloadFail(resource_handle, resource_ctx->resource_name);
+        packetid = IOT_Resource_ReportDownloadFail(resource_handle, resource_ctx->resource_name);
     }
     _wait_for_download_pub_ack(resource_ctx, packetid);
 
@@ -544,7 +543,7 @@ bool process_resource_upload(void *ctx)
     /* md5 calc */
     offset  = 0;
     readlen = 0;
-    QCLOUD_IOT_RESOURCE_UploadResetClientMD5(resource_handle);
+    IOT_Resource_UploadResetClientMD5(resource_handle);
     while (offset < resource_size) {
         readlen = RESOURCE_BUF_LEN > (resource_size - offset) ? (resource_size - offset) : RESOURCE_BUF_LEN;
         rc      = _read_local_resource_data(upload_resource_name, offset, buf_upload, readlen);
@@ -553,16 +552,16 @@ bool process_resource_upload(void *ctx)
             upload_resource_success = false;
             break;
         }
-        QCLOUD_IOT_RESOURCE_UploadMd5Update(resource_handle, buf_upload, readlen);
+        IOT_Resource_UploadMd5Update(resource_handle, buf_upload, readlen);
         offset += readlen;
     }
 
-    QCLOUD_IOT_RESOURCE_Upload_Md5_Finish(resource_handle, resource_md5);
+    IOT_Resource_Upload_Md5_Finish(resource_handle, resource_md5);
     offset  = 0;
     readlen = 0;
 
     /* request upload resource qos1 */
-    packet_id = QCLOUD_IOT_RESOURCE_Upload_Request(resource_handle, upload_resource_name, resource_size, resource_md5);
+    packet_id = IOT_Resource_Upload_Request(resource_handle, upload_resource_name, resource_size, resource_md5);
     _wait_for_upload_pub_ack(resource_ctx, packet_id);
 
     do {
@@ -571,9 +570,9 @@ bool process_resource_upload(void *ctx)
         Log_i("wait for resource upload command...");
 
         // recv the upload cmd
-        if (QCLOUD_IOT_RESOURCE_IsStartUpload(resource_handle)) {
+        if (IOT_Resource_IsStartUpload(resource_handle)) {
             /* start http connect ,send http header */
-            rc = QCLOUD_IOT_RESOURCE_StartUpload(resource_handle, buf_upload);
+            rc = IOT_Resource_StartUpload(resource_handle, buf_upload);
             if (QCLOUD_RET_SUCCESS != rc) {
                 Log_e("resource upload start err,rc:%d", rc);
                 upload_resource_success = false;
@@ -590,7 +589,7 @@ bool process_resource_upload(void *ctx)
             }
             do {
                 /* send resource data */
-                int len = QCLOUD_IOT_RESOURCE_UploadYield(resource_handle, buf_upload, readlen, 5);
+                int len = IOT_Resource_UploadYield(resource_handle, buf_upload, readlen, 5);
                 if (len > 0) {
                     offset += len;
                     readlen = RESOURCE_BUF_LEN > (resource_size - offset) ? (resource_size - offset) : RESOURCE_BUF_LEN;
@@ -616,12 +615,12 @@ bool process_resource_upload(void *ctx)
                     break;
                 }
 
-            } while (!QCLOUD_IOT_RESOURCE_IsUploadFinish(resource_handle));
+            } while (!IOT_Resource_IsUploadFinish(resource_handle));
 
             /* Must check MD5 match or not */
             if (upload_resource_success) {
                 uint32_t resource_valid;
-                QCLOUD_IOT_RESOURCE_UploadIoctl(resource_handle, QCLOUD_IOT_RESOURCE_MD5CHECK_E, &resource_valid, 4);
+                IOT_Resource_UploadIoctl(resource_handle, QCLOUD_IOT_RESOURCE_MD5CHECK_E, &resource_valid, 4);
                 if (0 == resource_valid) {
                     Log_e("The upload resource is invalid");
                     upload_resource_success = false;
@@ -640,13 +639,13 @@ bool process_resource_upload(void *ctx)
 
     // report upload result
     if (upload_resource_success) {
-        rc = QCLOUD_IOT_RESOURCE_ReportUploadSuccess(resource_handle, upload_resource_name);
+        rc = IOT_Resource_ReportUploadSuccess(resource_handle, upload_resource_name);
         if (rc != QCLOUD_RET_SUCCESS) {
             Log_e("upload failed %d", rc);
             upload_resource_success = false;
         }
     } else {
-        rc = QCLOUD_IOT_RESOURCE_ReportUploadFail(resource_handle, upload_resource_name);
+        rc = IOT_Resource_ReportUploadFail(resource_handle, upload_resource_name);
         if (rc != QCLOUD_RET_SUCCESS) {
             Log_e("upload failed %d", rc);
         }
@@ -722,7 +721,7 @@ int main(int argc, char **argv)
     }
 
     // init resource handle
-    resource_handle = QCLOUD_IOT_RESOURCE_Init(device_info.product_id, device_info.device_name, mqtt_client);
+    resource_handle = IOT_Resource_Init(device_info.product_id, device_info.device_name, mqtt_client);
     if (NULL == resource_handle) {
         Log_e("initialize resource handle failed");
         goto exit;
@@ -797,7 +796,7 @@ exit:
     HAL_Free(resource_ctx);
 
     if (NULL != resource_handle) {
-        QCLOUD_IOT_RESOURCE_DeInit(resource_handle);
+        IOT_Resource_DeInit(resource_handle);
     }
 
     IOT_MQTT_Destroy(&mqtt_client);

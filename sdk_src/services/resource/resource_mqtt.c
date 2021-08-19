@@ -25,7 +25,7 @@ extern "C" {
 #include "resource_client.h"
 #include "resource_lib.h"
 
-#define QCLOUD_RESOURCE_MAX_TOPIC_LEN (64)
+#define QCLOUD_RESOURCE_MAX_TOPIC_LEN (128)
 
 typedef struct {
     void *mqtt_client;  // MQTT cient
@@ -40,11 +40,9 @@ typedef struct {
     bool                      topic_sub_ready;
 } QCLOUD_RESOURCE_MQTT_T;
 
-static char *sg_report_str[] = {"uploading", "downloading", "done", "fail"};
+static const char *sg_report_str[] = {"uploading", "downloading", "done", "fail"};
 
 static char *sg_result_code_str[] = {"", "time_out", "file_not_exist", "sign invalid", "md5sum not matched"};
-
-static char *sg_report_type[] = {"report_upload_progress", "report_download_progress"};
 
 static void _qcloud_resource_mqtt_cb(void *pClient, MQTTMessage *message, void *pcontext)
 {
@@ -107,11 +105,6 @@ void *qcloud_resource_mqtt_init(const char *productId, const char *deviceName, v
     ret = HAL_Snprintf(handle->topic, QCLOUD_RESOURCE_MAX_TOPIC_LEN, "$resource/down/service/%s/%s", productId,
                        deviceName);
 
-    if (ret < 0 || ret >= QCLOUD_RESOURCE_MAX_TOPIC_LEN) {
-        Log_e("generate topic name of resources download failed");
-        goto do_exit;
-    }
-
     SubscribeParams sub_params      = DEFAULT_SUB_PARAMS;
     sub_params.on_message_handler   = _qcloud_resource_mqtt_cb;
     sub_params.on_sub_event_handler = _qcloud_resource_mqtt_event_callback;
@@ -161,29 +154,21 @@ int qcloud_resource_mqtt_report_progress(void *resource_mqtt, QCLOUD_RESOURCE_RE
 {
     IOT_FUNC_ENTRY;
 
-    char                    topic[QCLOUD_RESOURCE_MAX_TOPIC_LEN];
+    char                    topic[QCLOUD_RESOURCE_MAX_TOPIC_LEN] = {0};
     int                     ret;
-    PublishParams           pub_params = DEFAULT_PUB_PARAMS;
-    QCLOUD_RESOURCE_MQTT_T *handle     = (QCLOUD_RESOURCE_MQTT_T *)resource_mqtt;
-    char *                  payload    = NULL;
+    PublishParams           pub_params   = DEFAULT_PUB_PARAMS;
+    QCLOUD_RESOURCE_MQTT_T *handle       = (QCLOUD_RESOURCE_MQTT_T *)resource_mqtt;
+    char                    payload[256] = {0};
     int                     payload_len;
     char *                  report_type = NULL;
-
-    if (true == download) {
-        report_type = sg_report_type[1];
-    } else {
-        report_type = sg_report_type[0];
-    }
-
-    payload_len = sizeof("{\"type\" :\"%s\",\"resource\":\"%s\",\"progress\":{") + sizeof(",\"percent\":%d") +
-                  sizeof("\"state\":\"%s\",\"result_code\":%d,\"result_msg\":\"%s\"}}") + strlen(resource_name) +
-                  strlen("report_download_progress");
-
-    payload = (char *)HAL_Malloc(payload_len);
-    if (payload == NULL) {
-        Log_e("payload malloc failed");
+    if (resultcode <= QCLOUD_RESOURCE_RESULTCODE_END || resultcode > QCLOUD_RESOURCE_RESULTCODE_SUCCESS_E) {
+        Log_e("resultcode is error. %d", resultcode);
         return QCLOUD_ERR_FAILURE;
     }
+    report_type = download ? "report_download_progress" : "report_upload_progress";
+    payload_len = sizeof("{\"type\" :\"%s\",\"name\":\"%s\",\"progress\":{") + sizeof(",\"percent\":%d") +
+                  sizeof("\"state\":\"%s\",\"result_code\":%d,\"result_msg\":\"%s\"}}") + strlen(resource_name) +
+                  (sizeof("report_download_progress") - 1);
 
     HAL_Snprintf(payload, payload_len, "{\"type\":\"%s\",\"name\":\"%s\",\"progress\":{", report_type, resource_name);
 
@@ -205,20 +190,12 @@ int qcloud_resource_mqtt_report_progress(void *resource_mqtt, QCLOUD_RESOURCE_RE
     pub_params.payload_len = strlen(payload);
 
     ret = HAL_Snprintf(topic, payload_len, "$resource/up/service/%s/%s", handle->product_id, handle->device_name);
-    if (ret < 0 || ret >= payload_len) {
-        Log_e("generate topic name of info failed");
-        ret = QCLOUD_RESOURCE_ERRCODE_FAIL_E;
-        goto exit;
-    }
 
     ret = IOT_MQTT_Publish(handle->mqtt_client, topic, &pub_params);
     if (ret < 0) {
         Log_e("publish to topic: %s failed", topic);
         ret = QCLOUD_RESOURCE_ERRCODE_OSC_FAILED_E;
     }
-
-exit:
-    HAL_Free(payload);
     IOT_FUNC_EXIT_RC(ret);
 }
 
@@ -245,8 +222,8 @@ int qcloud_resource_mqtt_upload_request(void *resource_mqtt, void *request_data)
 {
     IOT_FUNC_ENTRY;
 
-    char topic[QCLOUD_RESOURCE_MAX_TOPIC_LEN];
-    char payload[256];
+    char topic[QCLOUD_RESOURCE_MAX_TOPIC_LEN] = {0};
+    char payload[256]                         = {0};
 
     QCLOUD_RESOURCE_MQTT_T *handle = (QCLOUD_RESOURCE_MQTT_T *)resource_mqtt;
 
@@ -255,19 +232,15 @@ int qcloud_resource_mqtt_upload_request(void *resource_mqtt, void *request_data)
     int           ret;
     PublishParams pub_params = DEFAULT_PUB_PARAMS;
 
-    HAL_Snprintf(payload, 256, "{\"type\": \"create_upload_task\",\"size\": %d,\"name\": \"%s\",\"md5sum\": \"%s\"}",
-                 resource_data->resource_size, resource_data->resource_name, resource_data->resource_md5sum);
+    pub_params.payload_len = HAL_Snprintf(
+        payload, sizeof(payload), "{\"type\": \"create_upload_task\",\"size\": %d,\"name\": \"%s\",\"md5sum\": \"%s\"}",
+        resource_data->resource_size, resource_data->resource_name, resource_data->resource_md5sum);
 
-    pub_params.qos         = QOS1;
-    pub_params.payload     = (void *)payload;
-    pub_params.payload_len = strlen(payload);
+    pub_params.qos     = QOS1;
+    pub_params.payload = (void *)payload;
 
     ret = HAL_Snprintf(topic, QCLOUD_RESOURCE_MAX_TOPIC_LEN, "$resource/up/service/%s/%s", handle->product_id,
                        handle->device_name);
-    if (ret < 0 || ret >= QCLOUD_RESOURCE_MAX_TOPIC_LEN) {
-        Log_e("generate topic name of info failed");
-        IOT_FUNC_EXIT_RC(QCLOUD_RESOURCE_ERRCODE_FAIL_E);
-    }
 
     ret = IOT_MQTT_Publish(handle->mqtt_client, topic, &pub_params);
     if (ret < 0) {
@@ -280,15 +253,15 @@ int qcloud_resource_mqtt_upload_request(void *resource_mqtt, void *request_data)
 
 int qcloud_resource_mqtt_download_get(void *resource_mqtt)
 {
-    char topic[QCLOUD_RESOURCE_MAX_TOPIC_LEN];
-    char payload[64];
+    char topic[QCLOUD_RESOURCE_MAX_TOPIC_LEN] = {0};
+    char payload[64]                          = {0};
 
     QCLOUD_RESOURCE_MQTT_T *handle = (QCLOUD_RESOURCE_MQTT_T *)resource_mqtt;
 
     int           ret;
     PublishParams pub_params = DEFAULT_PUB_PARAMS;
 
-    HAL_Snprintf(payload, 64, "{\"type\": \"get_download_task\"}");
+    HAL_Snprintf(payload, sizeof(payload), "{\"type\": \"get_download_task\"}");
 
     pub_params.qos         = QOS1;
     pub_params.payload     = (void *)payload;
@@ -296,10 +269,6 @@ int qcloud_resource_mqtt_download_get(void *resource_mqtt)
 
     ret = HAL_Snprintf(topic, QCLOUD_RESOURCE_MAX_TOPIC_LEN, "$resource/up/service/%s/%s", handle->product_id,
                        handle->device_name);
-    if (ret < 0 || ret >= QCLOUD_RESOURCE_MAX_TOPIC_LEN) {
-        Log_e("generate topic name of info failed");
-        IOT_FUNC_EXIT_RC(QCLOUD_RESOURCE_ERRCODE_FAIL_E);
-    }
 
     ret = IOT_MQTT_Publish(handle->mqtt_client, topic, &pub_params);
     if (ret < 0) {

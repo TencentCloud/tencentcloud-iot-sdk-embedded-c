@@ -50,7 +50,8 @@ typedef enum {
     QCLOUD_RESOURCE_RESULTCODE_TIMEOUT_E       = -1,
     QCLOUD_RESOURCE_RESULTCODE_FILE_NOTEXIST_E = -2,
     QCLOUD_RESOURCE_RESULTCODE_SIGN_INVALID_E  = -3,
-    QCLOUD_RESOURCE_RESULTCODE_MD5_NOTMATCH_E  = -4
+    QCLOUD_RESOURCE_RESULTCODE_MD5_NOTMATCH_E  = -4,
+    QCLOUD_RESOURCE_RESULTCODE_END             = -5,
 } QCLOUD_RESOURCE_RESULTCODE_E;
 
 typedef enum {
@@ -80,7 +81,7 @@ typedef enum {
  *
  * @return a void resource handle when success, or NULL otherwise
  */
-void *QCLOUD_IOT_RESOURCE_Init(const char *product_id, const char *device_name, void *mqtt_client);
+void *IOT_Resource_Init(const char *product_id, const char *device_name, void *mqtt_client);
 
 /**
  * @brief send resource upload request to get upload url
@@ -93,7 +94,7 @@ void *QCLOUD_IOT_RESOURCE_Init(const char *product_id, const char *device_name, 
  *
  * @return  >= 0 send success, > 0 is publish packetid, other send fail
  */
-int QCLOUD_IOT_RESOURCE_Upload_Request(void *handle, char *resource_name, int resource_size, char *md5sum);
+int IOT_Resource_Upload_Request(void *handle, char *resource_name, int resource_size, char *md5sum);
 
 /**
  * @brief send get resource download task, check offline download, download failed etc
@@ -103,7 +104,7 @@ int QCLOUD_IOT_RESOURCE_Upload_Request(void *handle, char *resource_name, int re
  *
  * @return  >= 0 send success, > 0 is publish packetid, other send fail
  */
-int QCLOUD_IOT_RESOURCE_GetDownloadTask(void *handle);
+int IOT_Resource_GetDownloadTask(void *handle);
 
 /**
  * @brief Deinit resource handle download & upload
@@ -112,7 +113,7 @@ int QCLOUD_IOT_RESOURCE_GetDownloadTask(void *handle);
  *
  * @return QCLOUD_RET_SUCCESS when success, or err code for failure
  */
-int QCLOUD_IOT_RESOURCE_DeInit(void *handle);
+int IOT_Resource_DeInit(void *handle);
 
 /**
  * @brief Setup HTTP connection and prepare resource download
@@ -123,7 +124,7 @@ int QCLOUD_IOT_RESOURCE_DeInit(void *handle);
  *
  * @return QCLOUD_RET_SUCCESS when success, or err code for failure
  */
-int QCLOUD_IOT_RESOURCE_StartDownload(void *handle, uint32_t offset, uint32_t size);
+int IOT_Resource_StartDownload(void *handle, uint32_t offset, uint32_t size);
 
 /**
  * @brief Setup HTTP connection send http put request and prepare resource upload
@@ -133,7 +134,7 @@ int QCLOUD_IOT_RESOURCE_StartDownload(void *handle, uint32_t offset, uint32_t si
  *
  * @return QCLOUD_RET_SUCCESS when success, or err code for failure
  */
-int QCLOUD_IOT_RESOURCE_StartUpload(void *handle, char *buf);
+int IOT_Resource_StartUpload(void *handle, char *buf);
 
 /**
  * @brief Update MD5 calc value of local downloaded resource
@@ -143,7 +144,7 @@ int QCLOUD_IOT_RESOURCE_StartUpload(void *handle, char *buf);
  * @param size:   size of buffer
  *
  */
-void QCLOUD_IOT_RESOURCE_UpdateDownloadClientMd5(void *handle, char *buff, uint32_t size);
+void IOT_Resource_UpdateDownloadClientMd5(void *handle, char *buff, uint32_t size);
 
 /**
  * @brief reset download MD5 handle
@@ -151,7 +152,7 @@ void QCLOUD_IOT_RESOURCE_UpdateDownloadClientMd5(void *handle, char *buff, uint3
  * @param handle: resource handle
  *
  */
-int QCLOUD_IOT_RESOURCE_DownloadResetClientMD5(void *handle);
+int IOT_Resource_DownloadResetClientMD5(void *handle);
 
 /**
  * @brief reset upload MD5 handle
@@ -159,7 +160,7 @@ int QCLOUD_IOT_RESOURCE_DownloadResetClientMD5(void *handle);
  * @param handle: resource handle
  *
  */
-int QCLOUD_IOT_RESOURCE_UploadResetClientMD5(void *handle);
+int IOT_Resource_UploadResetClientMD5(void *handle);
 
 /**
  * @brief Update uplaod MD5 calc value
@@ -169,7 +170,7 @@ int QCLOUD_IOT_RESOURCE_UploadResetClientMD5(void *handle);
  * @param size:   size of buffer
  *
  */
-void QCLOUD_IOT_RESOURCE_UploadMd5Update(void *handle, char *buf, int buf_len);
+void IOT_Resource_UploadMd5Update(void *handle, char *buf, int buf_len);
 
 /**
  * @brief finish uplaod MD5 calc value ,get finsh md5sum >= 33B
@@ -178,7 +179,7 @@ void QCLOUD_IOT_RESOURCE_UploadMd5Update(void *handle, char *buf, int buf_len);
  * @param md5_str: output md5sum, 32B lowercase hex
  *
  */
-void QCLOUD_IOT_RESOURCE_Upload_Md5_Finish(void *handle, char *md5_str);
+void IOT_Resource_Upload_Md5_Finish(void *handle, char *md5_str);
 
 /**
  * @brief Report resource download success to server
@@ -188,7 +189,7 @@ void QCLOUD_IOT_RESOURCE_Upload_Md5_Finish(void *handle, char *md5_str);
  *
  * @return (>=0) when success, > 0 is publish packetid, or err code (<0) for failure
  */
-int QCLOUD_IOT_RESOURCE_ReportDownloadSuccess(void *handle, char *resource_name);
+int IOT_Resource_ReportDownloadSuccess(void *handle, char *resource_name);
 
 /**
  * @brief Report resource upload success to server
@@ -198,7 +199,7 @@ int QCLOUD_IOT_RESOURCE_ReportDownloadSuccess(void *handle, char *resource_name)
  *
  * @return = 0 success, other for failure
  */
-int QCLOUD_IOT_RESOURCE_ReportUploadSuccess(void *handle, char *resource_name);
+int IOT_Resource_ReportUploadSuccess(void *handle, char *resource_name);
 
 /**
  * @brief Report resource download fail to server
@@ -208,7 +209,7 @@ int QCLOUD_IOT_RESOURCE_ReportUploadSuccess(void *handle, char *resource_name);
  *
  * @return (>=0) when success, > 0 is publish packetid, or err code (<0) for failure
  */
-int QCLOUD_IOT_RESOURCE_ReportDownloadFail(void *handle, char *resource_name);
+int IOT_Resource_ReportDownloadFail(void *handle, char *resource_name);
 
 /**
  * @brief Report resource upload fail to server
@@ -218,7 +219,7 @@ int QCLOUD_IOT_RESOURCE_ReportDownloadFail(void *handle, char *resource_name);
  *
  * @return = 0 success, other for failure
  */
-int QCLOUD_IOT_RESOURCE_ReportUploadFail(void *handle, char *resource_name);
+int IOT_Resource_ReportUploadFail(void *handle, char *resource_name);
 
 /**
  * @brief Check if has resource can fetching/downloading
@@ -228,7 +229,7 @@ int QCLOUD_IOT_RESOURCE_ReportUploadFail(void *handle, char *resource_name);
  * @retval 1 : Yes.
  * @retval 0 : No.
  */
-int QCLOUD_IOT_RESOURCE_IsStartDownload(void *handle);
+int IOT_Resource_IsStartDownload(void *handle);
 
 /**
  * @brief Check if has resource can uploading
@@ -238,7 +239,7 @@ int QCLOUD_IOT_RESOURCE_IsStartDownload(void *handle);
  * @retval 1 : Yes.
  * @retval 0 : No.
  */
-int QCLOUD_IOT_RESOURCE_IsStartUpload(void *handle);
+int IOT_Resource_IsStartUpload(void *handle);
 
 /**
  * @brief Download resource from HTTP server and save to buffer
@@ -252,7 +253,7 @@ int QCLOUD_IOT_RESOURCE_IsStartUpload(void *handle);
  * @retval        0 : no data is downloaded in this period and timeout happen
  * @retval (0, len] : size of the downloaded data
  */
-int QCLOUD_IOT_RESOURCE_DownloadYield(void *handle, char *buf, uint32_t buf_len, uint32_t timeout_s);
+int IOT_Resource_DownloadYield(void *handle, char *buf, uint32_t buf_len, uint32_t timeout_s);
 
 /**
  * @brief upload resource send to HTTP server
@@ -266,7 +267,7 @@ int QCLOUD_IOT_RESOURCE_DownloadYield(void *handle, char *buf, uint32_t buf_len,
  * @retval        0 : no data is upload in this period and timeout happen
  * @retval (0, len] : size of the downloaded data
  */
-int QCLOUD_IOT_RESOURCE_UploadYield(void *handle, char *buf, uint32_t buf_len, uint32_t timeout_s);
+int IOT_Resource_UploadYield(void *handle, char *buf, uint32_t buf_len, uint32_t timeout_s);
 
 /**
  * @brief Check if resource fetching/downloading is finished
@@ -276,7 +277,7 @@ int QCLOUD_IOT_RESOURCE_UploadYield(void *handle, char *buf, uint32_t buf_len, u
  * @retval 1 : Yes.
  * @retval 0 : No.
  */
-int QCLOUD_IOT_RESOURCE_IsDownloadFinish(void *handle);
+int IOT_Resource_IsDownloadFinish(void *handle);
 
 /**
  * @brief Check if resource uploading is finished
@@ -286,7 +287,7 @@ int QCLOUD_IOT_RESOURCE_IsDownloadFinish(void *handle);
  * @retval 1 : Yes.
  * @retval 0 : No.
  */
-int QCLOUD_IOT_RESOURCE_IsUploadFinish(void *handle);
+int IOT_Resource_IsUploadFinish(void *handle);
 
 /**
  * @brief Get resource download info (resource name, size, md5sum, check md5)
@@ -299,7 +300,7 @@ int QCLOUD_IOT_RESOURCE_IsUploadFinish(void *handle);
  * @retval   0 : success
  * @retval < 0 : error code for failure
  */
-int QCLOUD_IOT_RESOURCE_DownloadIoctl(void *handle, QCLOUD_IOT_RESOURCE_CMDTYPE_E type, void *buf, size_t buf_len);
+int IOT_Resource_DownloadIoctl(void *handle, QCLOUD_IOT_RESOURCE_CMDTYPE_E type, void *buf, size_t buf_len);
 
 /**
  * @brief Get resource upload info (resource name, size, md5sum, check upload md5)
@@ -312,7 +313,7 @@ int QCLOUD_IOT_RESOURCE_DownloadIoctl(void *handle, QCLOUD_IOT_RESOURCE_CMDTYPE_
  * @retval   0 : success
  * @retval < 0 : error code for failure
  */
-int QCLOUD_IOT_RESOURCE_UploadIoctl(void *handle, QCLOUD_IOT_RESOURCE_CMDTYPE_E type, void *buf, size_t buf_len);
+int IOT_Resource_UploadIoctl(void *handle, QCLOUD_IOT_RESOURCE_CMDTYPE_E type, void *buf, size_t buf_len);
 
 /**
  * @brief Get error code of last upload operation
@@ -330,7 +331,7 @@ int QCLOUD_IOT_RESOURCE_DownloadGetLastError(void *handle);
  *
  * @return error code
  */
-int QCLOUD_IOT_RESOURCE_UploadGetLastError(void *handle);
+int IOT_Resource_UploadGetLastError(void *handle);
 
 #ifdef __cplusplus
 }
