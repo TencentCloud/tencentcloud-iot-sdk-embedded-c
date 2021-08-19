@@ -30,6 +30,8 @@ extern "C" {
 #include "mbedtls/error.h"
 #include "mbedtls/net_sockets.h"
 #include "mbedtls/ssl.h"
+#include "mbedtls/sha256.h"
+
 #include "qcloud_iot_export_error.h"
 #include "qcloud_iot_export_log.h"
 #include "utils_param_check.h"
@@ -52,6 +54,75 @@ typedef struct {
     mbedtls_x509_crt         client_cert;
     mbedtls_pk_context       private_key;
 } TLSDataParams;
+
+/**
+ * parse private key file
+ */
+
+#ifdef AUTH_MODE_CERT
+void *HAL_TLS_Get_PrivateKey_FromFile(const char *privatekey_path)
+{
+    int ret;
+
+    mbedtls_pk_context *private_key = (mbedtls_pk_context *)HAL_Malloc(sizeof(mbedtls_pk_context));
+    if (NULL == private_key) {
+        Log_e("malloc private_key failed");
+        return NULL;
+    }
+
+    mbedtls_pk_init(private_key);
+
+    if ((ret = mbedtls_pk_parse_keyfile(private_key, privatekey_path, "")) != 0) {
+        Log_e("load client key file failed returned 0x%x", ret < 0 ? -ret : ret);
+        HAL_Free(private_key);
+
+        return NULL;
+    }
+    Log_e("parse private key");
+    return private_key;
+}
+
+void HAL_TLS_Destory_PrivateKey(void *private_key)
+{
+    mbedtls_pk_free((mbedtls_pk_context *)private_key);
+    HAL_Free(private_key);
+}
+
+int HAL_TLS_Get_RSASHA256_Result_Len(void *private_key)
+{
+    mbedtls_pk_context * privatekey = (mbedtls_pk_context *)private_key;
+    mbedtls_rsa_context *rsa_ctx    = (mbedtls_rsa_context *)(privatekey->pk_ctx);
+    return (rsa_ctx->len);
+}
+
+void HAL_TLS_Calc_SHA256(unsigned char *inbuf, size_t inbuf_len, unsigned char *outsign)
+{
+    mbedtls_sha256(inbuf, inbuf_len, outsign, 0);
+}
+
+// rfc 5702, rsa key 2048 ---> out sign 256
+int HAL_TLS_Calc_Sign_RSASHA256(void *private_key, char *inbuf, int inbuf_len, char *outsign)
+{
+    unsigned char       sha256sum[32];
+    mbedtls_pk_context *privatekey = (mbedtls_pk_context *)private_key;
+
+    if (mbedtls_rsa_check_privkey((mbedtls_rsa_context *)(privatekey->pk_ctx)) != 0) {
+        Log_e("check error");
+
+        return QCLOUD_ERR_SSL_CERT;
+    }
+
+    mbedtls_sha256((unsigned char *)inbuf, inbuf_len, sha256sum, 0);
+
+    if (mbedtls_rsa_pkcs1_sign((mbedtls_rsa_context *)(privatekey->pk_ctx), NULL, NULL, MBEDTLS_RSA_PRIVATE,
+                               MBEDTLS_MD_SHA256, 0, sha256sum, (unsigned char *)outsign) != 0) {
+        Log_e("calc error");
+        return QCLOUD_ERR_FAILURE;
+    }
+
+    return QCLOUD_RET_SUCCESS;
+}
+#endif
 
 /**
  * @brief free memory/resources allocated by mbedtls

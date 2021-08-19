@@ -34,24 +34,25 @@ extern "C" {
 #include "utils_hmac.h"
 #include "utils_httpc.h"
 #include "utils_timer.h"
+#include "qcloud_iot_http.h"
 
 /* log post header format */
 #define TIMESTAMP_SIZE  10
 #define SIGNATURE_SIZE  40
 #define CTRL_BYTES_SIZE 4
-// LOG_BUF_FIXED_HEADER_SIZE = 112
-#define LOG_BUF_FIXED_HEADER_SIZE \
-    (SIGNATURE_SIZE + CTRL_BYTES_SIZE + MAX_SIZE_OF_PRODUCT_ID + MAX_SIZE_OF_DEVICE_NAME + TIMESTAMP_SIZE)
 
 /* do immediate log update if buffer is lower than this threshold (about two max log item) */
 #define LOG_LOW_BUFFER_THRESHOLD (LOG_UPLOAD_BUFFER_SIZE / 4)
 
 /* log upload buffer */
 static char *   sg_log_buffer  = NULL;
-static uint32_t sg_write_index = LOG_BUF_FIXED_HEADER_SIZE;
+static uint32_t sg_write_index = 0;
 
 #define SIGN_KEY_SIZE 24
 static char sg_sign_key[SIGN_KEY_SIZE + 1] = {0};
+
+static void *sg_sign_log_privatekey = NULL;
+static int   sg_log_buffer_head_len = 0;
 
 /* Log upload feature switch */
 /* To check log http server return msg or not */
@@ -94,81 +95,19 @@ typedef struct {
 static LogUploaderStruct *sg_uploader               = NULL;
 static bool               sg_log_uploader_init_done = false;
 
-#ifdef AUTH_MODE_CERT
-static int _gen_key_from_file(const char *file_path)
-{
-    FILE *fp;
-    int   len;
-    char  line_buf[128] = {0};
-
-    if ((fp = fopen(file_path, "r")) == NULL) {
-        UPLOAD_ERR("fail to open cert file %s", STRING_PTR_PRINT_SANITY_CHECK(file_path));
-        return -1;
-    }
-
-    /* find the begin line */
-    do {
-        if (NULL == fgets(line_buf, sizeof(line_buf), fp)) {
-            UPLOAD_ERR("fail to fgets file %s", file_path);
-            return -1;
-        }
-    } while (strstr(line_buf, "-----BEGIN ") == NULL);
-
-    if (feof(fp)) {
-        UPLOAD_ERR("invalid cert file %s", file_path);
-        return -1;
-    }
-
-    if (NULL == fgets(line_buf, sizeof(line_buf), fp)) {
-        UPLOAD_ERR("fail to fgets file %s", file_path);
-        return -1;
-    }
-
-    len = strlen(line_buf);
-    memcpy(sg_sign_key, line_buf, len > SIGN_KEY_SIZE ? SIGN_KEY_SIZE : len);
-    UPLOAD_DBG("sign key %s", sg_sign_key);
-
-    fclose(fp);
-
-    return 0;
-}
-#endif
-
-static long _get_system_time(void)
-{
-#ifdef SYSTEM_COMM
-    if (sg_uploader->mqtt_client == NULL)
-        return 0;
-
-    long sys_time = 0;
-    int  rc       = IOT_Get_SysTime(sg_uploader->mqtt_client, &sys_time);
-    if (rc == QCLOUD_RET_SUCCESS)
-        return sys_time;
-    else
-        return 0;
-#else
-    return 0;
-#endif
-}
-
-static void _update_system_time(void)
-{
-    /* to avoid frequent get_system_time */
-#define LOG_TIME_UPDATE_INTERVAL 2
-
-    if (!expired(&sg_uploader->time_update_timer))
-        return;
-
-    sg_uploader->system_time = _get_system_time();
-
-    countdown(&sg_uploader->time_update_timer, LOG_TIME_UPDATE_INTERVAL);
-}
-
 static int _check_server_connection()
 {
-    int rc;
+    int  rc;
+    char url[128] = {0};
+    int  port;
 
-    rc = qcloud_http_client_connect(&sg_http_c->http, sg_http_c->url, sg_http_c->port, sg_http_c->ca_crt);
+    /*format URL*/
+    const char *url_format = "%s://%s/device/reportlog";
+
+    HAL_Snprintf(url, 128, url_format, "http", sg_http_c->url);
+    port = 80;
+
+    rc = qcloud_http_client_connect(&sg_http_c->http, url, port, sg_http_c->ca_crt);
     if (rc != QCLOUD_RET_SUCCESS)
         return rc;
 
@@ -178,16 +117,20 @@ static int _check_server_connection()
 }
 
 #ifdef LOG_CHECK_HTTP_RET_CODE
-static bool _get_json_ret_code(char *json, int32_t *res)
+static bool _get_json_ret_code(char *json)
 {
-    char *v = LITE_json_value_of("Retcode", json);
+    char *error = NULL;
+    char *v     = LITE_json_value_of("Response", json);
     if (v == NULL) {
         UPLOAD_ERR("Invalid json content: %s", STRING_PTR_PRINT_SANITY_CHECK(json));
         return false;
     }
-    if (LITE_get_int32(res, v) != QCLOUD_RET_SUCCESS) {
-        UPLOAD_ERR("Invalid json content: %s", json);
+
+    error = LITE_json_value_of("Error", json);
+    if (NULL != error) {
+        UPLOAD_ERR("upload failed; json content: %s", json);
         HAL_Free(v);
+        HAL_Free(error);
         return false;
     }
     HAL_Free(v);
@@ -197,18 +140,30 @@ static bool _get_json_ret_code(char *json, int32_t *res)
 
 static int _post_one_http_to_server(char *post_buf, size_t post_size)
 {
-    int rc = 0;
+    int   rc       = 0;
+    char  url[128] = {0};
+    int   port;
+    char *upload_log_uri = "/device/reportlog";
 
     if (sg_http_c == NULL)
         return QCLOUD_ERR_INVAL;
 
-    sg_http_c->http_data.post_content_type = "text/plain;charset=utf-8";
+    sg_http_c->http.header = qcloud_iot_http_header_create(post_buf, post_size, sg_http_c->url, upload_log_uri,
+                                                           "application/json;", sg_sign_key, sg_sign_log_privatekey);
+
+    sg_http_c->http_data.post_content_type = "application/json;charset=utf-8";
     sg_http_c->http_data.post_buf          = post_buf;
     sg_http_c->http_data.post_buf_len      = post_size;
 
-    rc = qcloud_http_client_common(&sg_http_c->http, sg_http_c->url, sg_http_c->port, sg_http_c->ca_crt, HTTP_POST,
-                                   &sg_http_c->http_data);
+    /*format URL*/
+    const char *url_format = "%s://%s%s";
+
+    HAL_Snprintf(url, 128, url_format, "http", sg_http_c->url, upload_log_uri);
+    port = 80;
+
+    rc = qcloud_http_client_common(&sg_http_c->http, url, port, sg_http_c->ca_crt, HTTP_POST, &sg_http_c->http_data);
     if (rc != QCLOUD_RET_SUCCESS) {
+        qcloud_iot_http_header_destory(sg_http_c->http.header);
         UPLOAD_ERR("qcloud_http_client_common failed, rc = %d", rc);
         return rc;
     }
@@ -226,50 +181,46 @@ static int _post_one_http_to_server(char *post_buf, size_t post_size)
     if (QCLOUD_RET_SUCCESS != rc) {
         UPLOAD_ERR("qcloud_http_recv_data failed, rc = %d", rc);
     } else {
-        int32_t ret = -1;
-
         buf[HTTP_RET_JSON_LENGTH - 1] = '\0';  // json_parse relies on a string
-        if (strlen(buf) > 0 && _get_json_ret_code(buf, &ret) && ret == 0) {
+        if (strlen(buf) > 0 && _get_json_ret_code(buf)) {
             UPLOAD_DBG("Log server return SUCCESS: %s", buf);
         } else {
-            UPLOAD_ERR("Log server return FAIL(%d): %s", ret, buf);
+            UPLOAD_ERR("Log server return FAIL: %s", buf);
             rc = QCLOUD_ERR_HTTP;
         }
     }
 #endif
 
+    qcloud_iot_http_header_destory(sg_http_c->http.header);
     qcloud_http_client_close(&sg_http_c->http);
 
     return rc;
 }
 
-static void _update_time_and_signature(char *log_buf, size_t log_size)
+static void _append_endchar_to_upload_buffer(char *log_buf, size_t log_size)
 {
-    char timestamp[TIMESTAMP_SIZE + 1] = {0};
-    char signature[SIGNATURE_SIZE + 1] = {0};
+    log_buf[log_size - 2] = ']';
+    log_buf[log_size - 1] = '}';
+}
 
-    /* get system time from IoT hub first */
-    _update_system_time();
-
-    /* record the timestamp for this log uploading */
-    HAL_Snprintf(timestamp, TIMESTAMP_SIZE + 1, "%010ld", sg_uploader->system_time);
-    memcpy(log_buf + LOG_BUF_FIXED_HEADER_SIZE - TIMESTAMP_SIZE, timestamp, strlen(timestamp));
-
-    /* signature of this log uploading */
-    utils_hmac_sha1(log_buf + SIGNATURE_SIZE, log_size - SIGNATURE_SIZE, signature, sg_sign_key, strlen(sg_sign_key));
-    memcpy(log_buf, signature, SIGNATURE_SIZE);
+static void _remove_endchar_from_upload_buffer(char *log_buf, size_t log_size)
+{
+    log_buf[log_size - 2] = ',';
+    log_buf[log_size - 1] = ' ';
 }
 
 static int _post_log_to_server(char *post_buf, size_t post_size, size_t *actual_post_payload)
 {
-#define LOG_DELIMITER "\n\f"
+#define LOG_DELIMITER "\", "
     int ret = QCLOUD_RET_SUCCESS;
     /* one shot upload */
     if (post_size < MAX_HTTP_LOG_POST_SIZE) {
-        _update_time_and_signature(post_buf, post_size);
+        _append_endchar_to_upload_buffer(post_buf, post_size);
         ret = _post_one_http_to_server(post_buf, post_size);
+        _remove_endchar_from_upload_buffer(post_buf, post_size);
+
         if (QCLOUD_RET_SUCCESS == ret) {
-            *actual_post_payload = post_size - LOG_BUF_FIXED_HEADER_SIZE;
+            *actual_post_payload = post_size - sg_log_buffer_head_len;
         } else {
             UPLOAD_ERR("one time log send failed");
             *actual_post_payload = 0;
@@ -294,12 +245,12 @@ static int _post_log_to_server(char *post_buf, size_t post_size, size_t *actual_
             next_log_buf = strstr(post_buf + upload_size, LOG_DELIMITER);
             if (next_log_buf == NULL) {
                 UPLOAD_ERR("Invalid log delimiter. Total sent: %d. Left: %d",
-                           *actual_post_payload + LOG_BUF_FIXED_HEADER_SIZE, post_size);
+                           *actual_post_payload + sg_log_buffer_head_len, post_size);
                 return QCLOUD_ERR_INVAL;
             }
             possible_size = (size_t)(next_log_buf - post_buf + delimiter_len);
             /* end of log */
-            if (next_log_buf[delimiter_len] == 0 && possible_size < MAX_HTTP_LOG_POST_SIZE) {
+            if (next_log_buf[delimiter_len] == 0 && possible_size < sg_log_buffer_head_len) {
                 upload_size = possible_size;
                 break;
             }
@@ -307,35 +258,37 @@ static int _post_log_to_server(char *post_buf, size_t post_size, size_t *actual_
 
         if (upload_size == 0) {
             UPLOAD_ERR("Upload size should not be 0! Total sent: %d. Left: %d",
-                       *actual_post_payload + LOG_BUF_FIXED_HEADER_SIZE, post_size);
+                       *actual_post_payload + sg_log_buffer_head_len, post_size);
             return QCLOUD_ERR_FAILURE;
         }
 
-        _update_time_and_signature(post_buf, upload_size);
+        _append_endchar_to_upload_buffer(post_buf, upload_size);
         ret = _post_one_http_to_server(post_buf, upload_size);
+        _remove_endchar_from_upload_buffer(post_buf, post_size);
+
         if (QCLOUD_RET_SUCCESS != ret) {
-            UPLOAD_ERR("Send log failed. Total sent: %d. Left: %d", *actual_post_payload + LOG_BUF_FIXED_HEADER_SIZE,
+            UPLOAD_ERR("Send log failed. Total sent: %d. Left: %d", *actual_post_payload + sg_log_buffer_head_len,
                        post_size);
             return QCLOUD_ERR_FAILURE;
         }
 
         /* move the left log forward and do next upload */
-        memmove(post_buf + LOG_BUF_FIXED_HEADER_SIZE, post_buf + upload_size, post_size - upload_size);
-        post_payload = upload_size - LOG_BUF_FIXED_HEADER_SIZE;
+        memmove(post_buf + sg_log_buffer_head_len, post_buf + upload_size, post_size - upload_size);
+        post_payload = upload_size - sg_log_buffer_head_len;
         post_size -= post_payload;
         *actual_post_payload += post_payload;
         memset(post_buf + post_size, 0, orig_post_size - post_size);
         UPLOAD_DBG("post log %d OK. Total sent: %d. Left: %d", upload_size,
-                   *actual_post_payload + LOG_BUF_FIXED_HEADER_SIZE, post_size);
-    } while (post_size > LOG_BUF_FIXED_HEADER_SIZE);
+                   *actual_post_payload + sg_log_buffer_head_len, post_size);
+    } while (post_size > sg_log_buffer_head_len);
 
     return QCLOUD_RET_SUCCESS;
 }
 
 static void _reset_log_buffer(void)
 {
-    sg_write_index = LOG_BUF_FIXED_HEADER_SIZE;
-    memset(sg_log_buffer + LOG_BUF_FIXED_HEADER_SIZE, 0, LOG_UPLOAD_BUFFER_SIZE - LOG_BUF_FIXED_HEADER_SIZE);
+    sg_write_index = sg_log_buffer_head_len;
+    memset(sg_log_buffer + sg_log_buffer_head_len, 0, LOG_UPLOAD_BUFFER_SIZE - sg_log_buffer_head_len);
 }
 
 static int _save_log(char *log_buf, size_t log_size)
@@ -372,16 +325,16 @@ static int _handle_saved_log(void)
         if (_check_server_connection() != QCLOUD_RET_SUCCESS)
             return QCLOUD_ERR_FAILURE;
 
-        size_t buf_size = whole_log_size + LOG_BUF_FIXED_HEADER_SIZE + 1;
+        size_t buf_size = whole_log_size + sg_log_buffer_head_len + 1;
         char * log_buf  = HAL_Malloc(buf_size);
         if (log_buf != NULL) {
             /* read the whole log to buffer */
-            size_t read_len = sg_uploader->read_func(log_buf + LOG_BUF_FIXED_HEADER_SIZE, whole_log_size);
+            size_t read_len = sg_uploader->read_func(log_buf + sg_log_buffer_head_len, whole_log_size);
             if (read_len == whole_log_size) {
-                size_t upload_size = whole_log_size + LOG_BUF_FIXED_HEADER_SIZE;
+                size_t upload_size = whole_log_size + sg_log_buffer_head_len;
 
                 /* copy header from global log buffer */
-                memcpy(log_buf, sg_log_buffer, LOG_BUF_FIXED_HEADER_SIZE);
+                memcpy(log_buf, sg_log_buffer, sg_log_buffer_head_len);
                 log_buf[buf_size - 1] = 0;
 
                 size_t actual_post_payload;
@@ -424,6 +377,7 @@ void set_log_upload_in_comm_err(bool value)
 
 int append_to_upload_buffer(const char *log_content, size_t log_size)
 {
+    int index = 0;
     if (!sg_log_uploader_init_done)
         return -1;
 
@@ -437,20 +391,65 @@ int append_to_upload_buffer(const char *log_content, size_t log_size)
         return -1;
     }
 
-    if ((sg_write_index + log_size + 1) > LOG_UPLOAD_BUFFER_SIZE) {
+    /* ["log 1", "log 2", "log 3", ] */
+    /* [\"\", ] 4B char */
+    if ((sg_write_index + log_size + 5) > LOG_UPLOAD_BUFFER_SIZE) {
         countdown_ms(&sg_uploader->upload_timer, 0);
         HAL_MutexUnlock(sg_uploader->lock_buf);
         UPLOAD_ERR("log upload buffer is not enough!");
         return -1;
     }
 
-    memcpy(sg_log_buffer + sg_write_index, log_content, log_size);
+    sg_log_buffer[sg_write_index++] = '\"';
+    while (index < (log_size - 2)) {
+        // replace may overflow buffer size
+        if ((sg_write_index + 5) > LOG_UPLOAD_BUFFER_SIZE) {
+            break;
+        }
+        // replace special char for json
+        switch (log_content[index]) {
+            case '\"':
+                sg_log_buffer[sg_write_index++] = '\\';
+                sg_log_buffer[sg_write_index++] = '\"';
+                break;
+            case '\\':
+                sg_log_buffer[sg_write_index++] = '\\';
+                sg_log_buffer[sg_write_index++] = '\\';
+                break;
+            case '/':
+                sg_log_buffer[sg_write_index++] = '\\';
+                sg_log_buffer[sg_write_index++] = '/';
+                break;
+            case '\b':
+                sg_log_buffer[sg_write_index++] = '\\';
+                sg_log_buffer[sg_write_index++] = 'b';
+                break;
+            case '\f':
+                sg_log_buffer[sg_write_index++] = '\\';
+                sg_log_buffer[sg_write_index++] = 'f';
+                break;
+            case '\n':
+                sg_log_buffer[sg_write_index++] = '\\';
+                sg_log_buffer[sg_write_index++] = 'n';
+                break;
+            case '\r':
+                sg_log_buffer[sg_write_index++] = '\\';
+                sg_log_buffer[sg_write_index++] = 'r';
+                break;
+            case '\t':
+                sg_log_buffer[sg_write_index++] = '\\';
+                sg_log_buffer[sg_write_index++] = 't';
+                break;
+            default:
+                sg_log_buffer[sg_write_index++] = log_content[index];
+        }
+        index++;
+    }
 
-    sg_write_index += log_size;
-
-    /* replace \r\n to \n\f as delimiter */
-    sg_log_buffer[sg_write_index - 1] = '\f';
-    sg_log_buffer[sg_write_index - 2] = '\n';
+    /* replace \r\n to \", add  as delimiter */
+    sg_log_buffer[sg_write_index++] = '\"';
+    sg_log_buffer[sg_write_index++] = ',';
+    sg_log_buffer[sg_write_index++] = ' ';
 
     HAL_MutexUnlock(sg_uploader->lock_buf);
     return 0;
@@ -489,23 +488,17 @@ int init_log_uploader(LogUploadInitParams *init_params)
         return QCLOUD_ERR_FAILURE;
     }
 
-    int i;
-    for (i = 0; i < LOG_BUF_FIXED_HEADER_SIZE; i++) sg_log_buffer[i] = '#';
-
 #ifdef AUTH_MODE_CERT
-    if (_gen_key_from_file(init_params->sign_key) != 0) {
-        UPLOAD_ERR("gen_key_from_file failed");
-        goto err_exit;
-    }
-    sg_log_buffer[SIGNATURE_SIZE] = 'C';
+    sg_sign_log_privatekey = qcloud_iot_http_create_privatekey((char *)init_params->sign_key);
 #else
     memcpy(sg_sign_key, init_params->sign_key, key_len > SIGN_KEY_SIZE ? SIGN_KEY_SIZE : key_len);
-    sg_log_buffer[SIGNATURE_SIZE] = 'P';
 #endif
 
-    memcpy(sg_log_buffer + SIGNATURE_SIZE + CTRL_BYTES_SIZE, init_params->product_id, MAX_SIZE_OF_PRODUCT_ID);
-    memcpy(sg_log_buffer + SIGNATURE_SIZE + CTRL_BYTES_SIZE + MAX_SIZE_OF_PRODUCT_ID, init_params->device_name,
-           strlen(init_params->device_name));
+    HAL_Snprintf(sg_log_buffer, LOG_UPLOAD_BUFFER_SIZE,
+                 "{\"DeviceName\":\"%s\",\"Level\":\"ERR\",\"ProductId\":\"%s\",\"Message\":[",
+                 init_params->device_name, init_params->product_id);
+    sg_log_buffer_head_len = strlen(sg_log_buffer);
+    sg_write_index         = sg_log_buffer_head_len;
 
     if (NULL == (sg_uploader = HAL_Malloc(sizeof(LogUploaderStruct)))) {
         UPLOAD_ERR("allocate for LogUploaderStruct failed");
@@ -590,6 +583,10 @@ void fini_log_uploader(void)
     sg_uploader = NULL;
     HAL_Free(sg_http_c);
     sg_http_c = NULL;
+
+#ifdef AUTH_MODE_CERT
+    qcloud_iot_http_destory_privatekey(sg_sign_log_privatekey);
+#endif
 }
 
 bool is_log_uploader_init(void)
@@ -649,7 +646,7 @@ int do_log_upload(bool force_upload)
     }
 
     /* no more log in buffer */
-    if (sg_write_index == LOG_BUF_FIXED_HEADER_SIZE)
+    if (sg_write_index == sg_log_buffer_head_len)
         return QCLOUD_RET_SUCCESS;
 
     HAL_MutexLock(sg_uploader->lock_buf);
@@ -673,7 +670,7 @@ int do_log_upload(bool force_upload)
             }
             upload_log_size = sg_write_index;
             HAL_MutexUnlock(sg_uploader->lock_buf);
-            _save_log(sg_log_buffer + LOG_BUF_FIXED_HEADER_SIZE, upload_log_size - LOG_BUF_FIXED_HEADER_SIZE);
+            _save_log(sg_log_buffer + sg_log_buffer_head_len, upload_log_size - sg_log_buffer_head_len);
             unhandle_saved_log = true;
         }
     }
@@ -683,9 +680,9 @@ int do_log_upload(bool force_upload)
     if (upload_log_size == sg_write_index) {
         _reset_log_buffer();
     } else {
-        memmove(sg_log_buffer + LOG_BUF_FIXED_HEADER_SIZE, sg_log_buffer + upload_log_size,
+        memmove(sg_log_buffer + sg_log_buffer_head_len, sg_log_buffer + upload_log_size,
                 sg_write_index - upload_log_size);
-        sg_write_index = sg_write_index - upload_log_size + LOG_BUF_FIXED_HEADER_SIZE;
+        sg_write_index = sg_write_index - upload_log_size + sg_log_buffer_head_len;
         memset(sg_log_buffer + sg_write_index, 0, LOG_UPLOAD_BUFFER_SIZE - sg_write_index);
     }
     HAL_MutexUnlock(sg_uploader->lock_buf);
