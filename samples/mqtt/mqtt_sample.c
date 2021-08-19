@@ -226,7 +226,7 @@ static int _init_log_upload(MQTTInitParams *init_params)
     log_init_params.product_id  = init_params->product_id;
     log_init_params.device_name = init_params->device_name;
 #ifdef AUTH_MODE_CERT
-    log_init_params.sign_key = init_params->cert_file;
+    log_init_params.sign_key = init_params->key_file;
 #else
     log_init_params.sign_key = init_params->device_secret;
 #endif

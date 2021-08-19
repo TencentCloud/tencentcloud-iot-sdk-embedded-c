@@ -526,7 +526,7 @@ int main(int argc, char **argv)
     ota_ctx->ota_handle  = h_ota;
     ota_ctx->mqtt_client = mqtt_client;
 
-    bool ota_success;
+    bool ota_success = false;
     do {
         // mqtt should be ready first
         rc = IOT_MQTT_Yield(mqtt_client, 500);
