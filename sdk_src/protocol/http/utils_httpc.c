@@ -508,12 +508,12 @@ static int _http_client_retrieve_content(HTTPClient *client, char *data, int len
             }
         } while (readLen);
 
+        len = readLen;
         if (client_data->is_chunked) {
             if (len < 2) {
                 int new_trf_len, rc;
                 /* Read missing chars to find end of chunk */
-                rc = _http_client_recv(client, data + len, 2 - len, HTTP_CLIENT_CHUNK_SIZE - len - 1, &new_trf_len,
-                                       left_ms(&timer), client_data);
+                rc = _http_client_recv(client, data + len, 2 - len, 7, &new_trf_len, left_ms(&timer), client_data);
                 if ((rc != QCLOUD_RET_SUCCESS) || (0 >= left_ms(&timer))) {
                     Log_w("_http_client_recv ret: %d, left_time: %d", rc, left_ms(&timer));
                     IOT_FUNC_EXIT_RC(rc);
@@ -607,7 +607,7 @@ static int _http_client_response_parse(HTTPClient *client, char *data, int len, 
         client_data->retrieve_len         = client_data->response_content_len;
     } else if (NULL != (tmp_ptr = strstr(data, "Transfer-Encoding"))) {
         int   len_chunk   = strlen("Chunked");
-        char *chunk_value = data + strlen("Transfer-Encoding: ");
+        char *chunk_value = tmp_ptr + strlen("Transfer-Encoding: ");
 
         if ((!memcmp(chunk_value, "Chunked", len_chunk)) || (!memcmp(chunk_value, "chunked", len_chunk))) {
             client_data->is_chunked           = IOT_TRUE;

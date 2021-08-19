@@ -24,7 +24,65 @@ extern "C" {
 #include "qcloud_iot_import.h"
 
 #ifndef AUTH_WITH_NOTLS
-#if defined(AUTH_MODE_CERT) || defined(DEV_DYN_REG_ENABLED)
+#if defined(DEV_DYN_REG_ENABLED)
+static const char *iot_dynreg_https_ca_crt = {
+    "-----BEGIN CERTIFICATE-----\r\n"
+    "MIIDrzCCApegAwIBAgIQCDvgVpBCRrGhdWrJWZHHSjANBgkqhkiG9w0BAQUFADBh\r\n"
+    "MQswCQYDVQQGEwJVUzEVMBMGA1UEChMMRGlnaUNlcnQgSW5jMRkwFwYDVQQLExB3\r\n"
+    "d3cuZGlnaWNlcnQuY29tMSAwHgYDVQQDExdEaWdpQ2VydCBHbG9iYWwgUm9vdCBD\r\n"
+    "QTAeFw0wNjExMTAwMDAwMDBaFw0zMTExMTAwMDAwMDBaMGExCzAJBgNVBAYTAlVT\r\n"
+    "MRUwEwYDVQQKEwxEaWdpQ2VydCBJbmMxGTAXBgNVBAsTEHd3dy5kaWdpY2VydC5j\r\n"
+    "b20xIDAeBgNVBAMTF0RpZ2lDZXJ0IEdsb2JhbCBSb290IENBMIIBIjANBgkqhkiG\r\n"
+    "9w0BAQEFAAOCAQ8AMIIBCgKCAQEA4jvhEXLeqKTTo1eqUKKPC3eQyaKl7hLOllsB\r\n"
+    "CSDMAZOnTjC3U/dDxGkAV53ijSLdhwZAAIEJzs4bg7/fzTtxRuLWZscFs3YnFo97\r\n"
+    "nh6Vfe63SKMI2tavegw5BmV/Sl0fvBf4q77uKNd0f3p4mVmFaG5cIzJLv07A6Fpt\r\n"
+    "43C/dxC//AH2hdmoRBBYMql1GNXRor5H4idq9Joz+EkIYIvUX7Q6hL+hqkpMfT7P\r\n"
+    "T19sdl6gSzeRntwi5m3OFBqOasv+zbMUZBfHWymeMr/y7vrTC0LUq7dBMtoM1O/4\r\n"
+    "gdW7jVg/tRvoSSiicNoxBN33shbyTApOB6jtSj1etX+jkMOvJwIDAQABo2MwYTAO\r\n"
+    "BgNVHQ8BAf8EBAMCAYYwDwYDVR0TAQH/BAUwAwEB/zAdBgNVHQ4EFgQUA95QNVbR\r\n"
+    "TLtm8KPiGxvDl7I90VUwHwYDVR0jBBgwFoAUA95QNVbRTLtm8KPiGxvDl7I90VUw\r\n"
+    "DQYJKoZIhvcNAQEFBQADggEBAMucN6pIExIK+t1EnE9SsPTfrgT1eXkIoyQY/Esr\r\n"
+    "hMAtudXH/vTBH1jLuG2cenTnmCmrEbXjcKChzUyImZOMkXDiqw8cvpOp/2PV5Adg\r\n"
+    "06O/nVsJ8dWO41P0jmP6P6fbtGbfYmbW0W5BjfIttep3Sp+dWOIrWcBAI+0tKIJF\r\n"
+    "PnlUkiaY4IBIqDfv8NZ5YBberOgOzW6sRBc4L0na4UU+Krk2U886UAb3LujEV0ls\r\n"
+    "YSEY1QSteDwsOoBrp+uvFRTp2InBuThs4pFsiv9kuXclVzDAGySj4dzp30d8tbQk\r\n"
+    "CAUw7C29C79Fv1C5qfPrmAESrciIxpg0X40KPMbp1ZWVbd4=\r\n"
+    "-----END CERTIFICATE-----\r\n"
+    "-----BEGIN CERTIFICATE-----\r\n"
+    "MIIFGjCCBAKgAwIBAgIQCgRw0Ja8ihLIkKbfgm7sSzANBgkqhkiG9w0BAQsFADBh\r\n"
+    "MQswCQYDVQQGEwJVUzEVMBMGA1UEChMMRGlnaUNlcnQgSW5jMRkwFwYDVQQLExB3\r\n"
+    "d3cuZGlnaWNlcnQuY29tMSAwHgYDVQQDExdEaWdpQ2VydCBHbG9iYWwgUm9vdCBD\r\n"
+    "QTAeFw0xOTA2MjAxMjI3NThaFw0yOTA2MjAxMjI3NThaMF8xCzAJBgNVBAYTAlVT\r\n"
+    "MRUwEwYDVQQKEwxEaWdpQ2VydCBJbmMxGTAXBgNVBAsTEHd3dy5kaWdpY2VydC5j\r\n"
+    "b20xHjAcBgNVBAMTFUdlb1RydXN0IENOIFJTQSBDQSBHMTCCASIwDQYJKoZIhvcN\r\n"
+    "AQEBBQADggEPADCCAQoCggEBALFJ+j1KeZVG4jzgQob23lQ8PJUNhY31ufZihuUx\r\n"
+    "hYc6HSU4Lw0fxfA43a9DpJl74M3E6F1ZRBOfJ+dWnaiyYD0PxRIQd4wJisti4Uad\r\n"
+    "vz61IYY/oQ/Elxk/X7GFDquYuxCSyBdHtTVMXCxFSvQ2C/7jWZFDfGGKKNoQSiJy\r\n"
+    "wDe8iiHbUOakLMmXmOTZyWJnFdR/TH5YNTiMKCNUPHAleG4IigGxDyL/gbwrdDNi\r\n"
+    "bDA4lUNhD0xNvPjQ8BNKqm5HWDvirUuHdC+4hpi0GJO34O3iiRV16YmWTuVFNboU\r\n"
+    "LDZ0+PQtctJnatpuZKPGyKX6jCpPvzzPw/EhNDlpEdrYHZMCAwEAAaOCAc4wggHK\r\n"
+    "MB0GA1UdDgQWBBSRn14xFa4Qn61gwffBzKpINC8MJjAfBgNVHSMEGDAWgBQD3lA1\r\n"
+    "VtFMu2bwo+IbG8OXsj3RVTAOBgNVHQ8BAf8EBAMCAYYwHQYDVR0lBBYwFAYIKwYB\r\n"
+    "BQUHAwEGCCsGAQUFBwMCMA8GA1UdEwEB/wQFMAMBAf8wMQYIKwYBBQUHAQEEJTAj\r\n"
+    "MCEGCCsGAQUFBzABhhVodHRwOi8vb2NzcC5kY29jc3AuY24wRAYDVR0fBD0wOzA5\r\n"
+    "oDegNYYzaHR0cDovL2NybC5kaWdpY2VydC1jbi5jb20vRGlnaUNlcnRHbG9iYWxS\r\n"
+    "b290Q0EuY3JsMIHOBgNVHSAEgcYwgcMwgcAGBFUdIAAwgbcwKAYIKwYBBQUHAgEW\r\n"
+    "HGh0dHBzOi8vd3d3LmRpZ2ljZXJ0LmNvbS9DUFMwgYoGCCsGAQUFBwICMH4MfEFu\r\n"
+    "eSB1c2Ugb2YgdGhpcyBDZXJ0aWZpY2F0ZSBjb25zdGl0dXRlcyBhY2NlcHRhbmNl\r\n"
+    "IG9mIHRoZSBSZWx5aW5nIFBhcnR5IEFncmVlbWVudCBsb2NhdGVkIGF0IGh0dHBz\r\n"
+    "Oi8vd3d3LmRpZ2ljZXJ0LmNvbS9ycGEtdWEwDQYJKoZIhvcNAQELBQADggEBABfg\r\n"
+    "eXrxIrtlixBv+KMDeqKxtNJbZiLDzJBkGCd4HI63X5eS6BElJBn6mI9eYVrr7qOL\r\n"
+    "Tp7WiO02Sf1Yrpaz/ePSjZ684o89UAGpxOfbgVSMvo/a07n/220jUWLxzaJhQNLu\r\n"
+    "lACXwwWsxYf8twP8glkoIHnUUNTlhsyyl1ZzvVC4bDpI4hC6QkJGync1MNqYSMj8\r\n"
+    "tZbhQNw3HdSmcTO0Nc/J/pK2VZc6fFbKBgspmzdHc6jMKG2t4lisXEysS3wPcg0a\r\n"
+    "Nfr1Odl5+myh3MnMK08f6pTXvduLz+QZiIh8IYL+Z6QWgTZ9e2jnV8juumX1I8Ge\r\n"
+    "7cZdtNnTCB8hFfwGLUA=\r\n"
+    "-----END CERTIFICATE-----"};
+#endif
+#endif
+
+#ifndef AUTH_WITH_NOTLS
+#if defined(AUTH_MODE_CERT)
 static const char *iot_ca_crt = {
     "-----BEGIN CERTIFICATE-----\r\n"
     "MIIDxTCCAq2gAwIBAgIJALM1winYO2xzMA0GCSqGSIb3DQEBCwUAMHkxCzAJBgNV\r\n"
@@ -106,7 +164,7 @@ static const char *iot_https_ca_crt = {
 const char *iot_ca_get()
 {
 #ifndef AUTH_WITH_NOTLS
-#if defined(AUTH_MODE_CERT) || defined(DEV_DYN_REG_ENABLED)
+#if defined(AUTH_MODE_CERT)
     return iot_ca_crt;
 #else
     return NULL;
@@ -115,6 +173,20 @@ const char *iot_ca_get()
     return NULL;
 #endif
 }
+
+const char *iot_dynreg_https_ca_get()
+{
+#ifndef AUTH_WITH_NOTLS
+#if defined(DEV_DYN_REG_ENABLED)
+    return iot_dynreg_https_ca_crt;
+#else
+    return NULL;
+#endif
+#else
+    return NULL;
+#endif
+}
+
 
 const char *iot_https_ca_get()
 {

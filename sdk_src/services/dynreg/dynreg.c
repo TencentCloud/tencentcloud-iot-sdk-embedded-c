@@ -365,7 +365,7 @@ static int _post_reg_request_by_http(char *request_buf, DeviceInfo *pDevInfo)
 #ifndef AUTH_WITH_NOTLS
     HAL_Snprintf(url, REG_URL_MAX_LEN, url_format, "https", DYN_REG_SERVER_URL);
     port   = DYN_REG_SERVER_PORT_TLS;
-    ca_crt = iot_ca_get();
+    ca_crt = iot_dynreg_https_ca_get();
 #else
     HAL_Snprintf(url, REG_URL_MAX_LEN, url_format, "http", DYN_REG_SERVER_URL);
     port = DYN_REG_SERVER_PORT;
