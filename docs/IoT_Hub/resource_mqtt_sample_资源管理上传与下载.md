@@ -126,7 +126,7 @@ ERR|2021-03-15 10:35:26|resource_mqtt_sample.c|main(775): resource upload enter
 DBG|2021-03-15 10:35:26|mqtt_client_publish.c|qcloud_iot_mqtt_publish(334): publish topic seq=31596|topicName=$resource/up/service/D95V6NB56B/deng4|payload={"type": "create_upload_task","size": 1174267,"name": "uploadtest","md5sum": "2af9455c6051c337cbfba7fbc0e1abc1"}
 INF|2021-03-15 10:35:26|resource_mqtt_sample.c|_event_handler(84): publish success, packet-id=31596
 DBG|2021-03-15 10:35:26|resource_mqtt.c|_qcloud_resource_mqtt_cb(53): topic=$resource/down/service/D95V6NB56B/deng4
-INF|2021-03-15 10:35:26|resource_mqtt.c|_qcloud_resource_mqtt_cb(54): len=519, topic_msg={"type":"create_upload_task_rsp","size":1174267,"name":"uploadtest","md5sum":"2af9455c6051c337cbfba7fbc0e1abc1","url":"https://iothub-tasktest-1258344699.cos.ap-guangzhou.myqcloud.com/100000548204%2FD95V6NB56B_device%2Fdeng4%2Fuploadtest?sign=q-sign-algorithm%3Dsha1%26q-ak%3DAKIDCMK8Tk7KMDyZLys1KQivxnYBgz74lZ2A%26q-sign-time%3D1615775725%3B1615779325%26q-key-time%3D1615775725%3B1615779325%26q-header-list%3Dcontent-length%3Bcontent-md5%26q-url-param-list%3D%26q-signature%3D70c8e04d360528d73a49215485aab31fc1bba283"}
+INF|2021-03-15 10:35:26|resource_mqtt.c|_qcloud_resource_mqtt_cb(54): len=519, topic_msg={"type":"create_upload_task_rsp","size":1174267,"name":"uploadtest","md5sum":"2af9455c6051c337cbfba7fbc0e1abc1","url":"https://iothub-tasktest-1258344699.cos.ap-guangzhou.myqcloud.com/xxx"}
 INF|2021-03-15 10:35:27|resource_mqtt_sample.c|process_resource_upload(568): wait for resource upload command...
 DBG|2021-03-15 10:35:27|resource_client.c|QCLOUD_IOT_RESOURCE_StartUpload(583): to upload resource total size: 1174267
 ERR|2021-03-15 10:35:27|resource_upload.c|qcloud_resource_upload_http_init(81): http head:Content-MD5:KvlFXGBRwzfL+6f7wOGrwQ==
@@ -220,7 +220,8 @@ INF|2021-03-15 10:35:54|resource_client.c|_qcloud_iot_resource_upload_reset(230)
 ```
 资源下载日志
 INF|2021-03-15 10:35:48|resource_mqtt.c|_qcloud_resource_mqtt_cb(54): len=458, topic_msg={"type":"download","size":401463,
-"name":"test","md5sum":"935c4b721df0ac41d1b09a7cf6a4cc22","url":"https://iothub-tasktest-1258344699.cos.ap-guangzhou.myqcloud.com/100000548204%2FD95V6NB56B_product%2Ftest?sign=q-sign-algorithm%3Dsha1%26q-ak%3DAKIDCMK8Tk7KMDyZLys1KQivxnYBgz74lZ2A%26q-sign-time%3D1615775747%3B1615776347%26q-key-time%3D1615775747%3B1615776347%26q-header-list%3D%26q-url-param-list%3D%26q-signature%3D1691fa6154a160acfc997a29d31afb7e4435d9bc"}
+"name":"test","md5sum":"935c4b721df0ac41d1b09a7cf6a4cc22","url":"https://iothub-tasktest-1258344699.cos.ap-guan
+xxxbc"}
 ERR|2021-03-15 10:35:59|resource_mqtt_sample.c|main(782): resource download enter
 INF|2021-03-15 10:35:59|resource_mqtt_sample.c|process_resource_download(419): wait for resource download command...
 ERR|2021-03-15 10:35:59|resource_mqtt_sample.c|_get_local_resource_info(267): open file ./download_D95V6NB56Bdeng4.json failed
