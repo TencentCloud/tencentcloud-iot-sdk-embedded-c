@@ -12,7 +12,7 @@
 
 | 名称                             | 配置        | 说明                                                         |
 | :------------------------------- | ------------- | ------------------------------------------------------------ |
-| BUILD_TYPE                       | debug/release,根据需要设置 |
+| BUILD_TYPE                       | debug/release | 根据需要设置 |
 | EXTRACT_SRC                      | ON       | 使能代码抽取                                               |
 | COMPILE_TOOLS                    | gcc/MSVC      | 根据需要设置，IDE情况不关注            |
 | PLATFORM                         | linux/windows | 根据需要设置，IDE情况不关注                |
