@@ -196,13 +196,12 @@ static void _mqtt_message_handler(void *pClient, MQTTMessage *message, void *use
             temp = strstr(action_value, "-");
             if (NULL != temp) {
                 tempRow = atoi(temp + 1);
-                HAL_Free(action_value);
             } else {
-                HAL_Free(action_value);
                 Log_e("invalid action value: %s", action_value);
                 sg_rx_unexpected_count++;
                 return;
             }
+            HAL_Free(action_value);
         } else {
             Log_e("action value not found!");
             sg_rx_unexpected_count++;

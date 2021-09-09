@@ -69,7 +69,8 @@ typedef enum {
 } eAuthType;
 
 /*Global value*/
-static unsigned int _seed = 1;
+static unsigned int _seed                       = 1;
+static bool         sg_dynreg_with_private_cert = false;
 
 int rand_r(unsigned int *seed)
 {
@@ -185,6 +186,27 @@ static void _deal_transfer(char *data, uint32_t dataLen)
     }
 }
 
+/*'\n' in data change to \\n */
+static void _deal_transfer_back(char *in_data, uint32_t dataLen, char *out_data)
+{
+    int i, j;
+
+    for (i = 0, j = 0; i < dataLen; i++) {
+        if (in_data[i] == '\n') {
+            out_data[j]     = '\\';
+            out_data[j + 1] = 'n';
+            j += 2;
+        } else if (in_data[i] == '\r') {
+            out_data[j]     = '\\';
+            out_data[j + 1] = 'r';
+            j += 2;
+        } else {
+            out_data[j] = in_data[i];
+            j += 1;
+        }
+    }
+}
+
 static int _cert_file_save(const char *fileName, char *data, uint32_t dataLen)
 {
     FILE *   fp;
@@ -213,6 +235,82 @@ exit:
     return Ret;
 }
 
+static long _get_fileSize(FILE *stream)
+{
+    long curpos = 0;
+    long length = 0;
+
+    curpos = ftell(stream);
+    fseek(stream, 0L, SEEK_END);
+    length = ftell(stream);
+    fseek(stream, curpos, SEEK_SET);
+    Log_d("file length: %ld", length);
+    return length;
+}
+
+static char *_get_dev_cert_file(char *dev_name)
+{
+    FILE *fp;
+    char  filePath[FILE_PATH_MAX_LEN];
+    char  fileName[MAX_SIZE_OF_DEVICE_CERT_FILE_NAME];
+    long  fileSize    = 0;
+    char *devCert     = NULL;
+    char *devCert_out = NULL;
+
+    memset(fileName, 0, MAX_SIZE_OF_DEVICE_CERT_FILE_NAME);
+    HAL_Snprintf(fileName, MAX_SIZE_OF_DEVICE_CERT_FILE_NAME, "%s_cert.crt", STRING_PTR_PRINT_SANITY_CHECK(dev_name));
+
+    memset(filePath, 0, FILE_PATH_MAX_LEN);
+    HAL_Snprintf(filePath, FILE_PATH_MAX_LEN, "./certs/%s", fileName);
+
+    if ((fp = fopen(filePath, "r")) == NULL) {
+        Log_e("fail to open file %s", fileName);
+        goto exit;
+    }
+
+    fileSize = _get_fileSize(fp);
+    if (fileSize <= 0) {
+        Log_e("file %s is empty", fileName);
+        goto exit;
+    }
+
+    devCert = HAL_Malloc(fileSize + 1);
+    if (devCert == NULL) {
+        Log_e("Out of memory");
+        goto exit;
+    }
+
+    devCert_out = HAL_Malloc(fileSize * 2 + 1);
+    if (devCert_out == NULL) {
+        Log_e("Out of memory");
+        goto exit;
+    }
+
+    memset(devCert, 0, fileSize + 1);
+    memset(devCert_out, 0, fileSize + 1);
+
+    if (1 != fread(devCert, fileSize, 1, fp)) {
+        Log_e("Read file ERROR");
+        goto exit;
+    }
+
+    _deal_transfer_back(devCert, fileSize, devCert_out);
+
+exit:
+    if (fp) {
+        fclose(fp);
+    }
+
+    HAL_Free(devCert);
+
+    if (devCert_out != NULL && strlen(devCert_out) == 0) {
+        HAL_Free(devCert_out);
+        devCert_out = NULL;
+    }
+
+    return devCert_out;
+}
+
 #endif
 
 static int _parse_devinfo(char *jdoc, DeviceInfo *pDevInfo)
@@ -235,7 +333,7 @@ static int _parse_devinfo(char *jdoc, DeviceInfo *pDevInfo)
     char *psk;
 #endif
 
-    Log_d("recv: %s", STRING_PTR_PRINT_SANITY_CHECK(jdoc));
+    HAL_Printf("recv: %s\r\n", STRING_PTR_PRINT_SANITY_CHECK(jdoc));
     ret      = _get_json_resault_code(jdoc);
     response = LITE_json_value_of("Response", jdoc);
     if (NULL == response) {
@@ -269,7 +367,7 @@ static int _parse_devinfo(char *jdoc, DeviceInfo *pDevInfo)
     ret = utils_aes_cbc((uint8_t *)decodeBuff, datalen, (uint8_t *)decodeBuff, DECODE_BUFF_LEN, UTILS_AES_DECRYPT,
                         (uint8_t *)key, keybits, iv);
     if (QCLOUD_RET_SUCCESS == ret) {
-        // Log_d("The decrypted data is:%s", decodeBuff);
+        Log_d("The decrypted data is:%s", decodeBuff);
 
     } else {
         Log_e("data decry err,ret:%d", ret);
@@ -289,41 +387,44 @@ static int _parse_devinfo(char *jdoc, DeviceInfo *pDevInfo)
         ret = QCLOUD_ERR_FAILURE;
         goto exit;
     }
+    // dynreg with private
+    if (sg_dynreg_with_private_cert) {
+        ret = QCLOUD_RET_SUCCESS;
+    } else {
+        clientCert = _get_json_cert_data(decodeBuff);
+        if (NULL != clientCert) {
+            memset(pDevInfo->dev_cert_file_name, 0, MAX_SIZE_OF_DEVICE_CERT_FILE_NAME);
+            HAL_Snprintf(pDevInfo->dev_cert_file_name, MAX_SIZE_OF_DEVICE_CERT_FILE_NAME, "%s_cert.crt",
+                         STRING_PTR_PRINT_SANITY_CHECK(pDevInfo->device_name));
+            if (QCLOUD_RET_SUCCESS != _cert_file_save(pDevInfo->dev_cert_file_name, clientCert, strlen(clientCert))) {
+                Log_e("save %s file fail", pDevInfo->dev_cert_file_name);
+                ret = QCLOUD_ERR_FAILURE;
+            }
 
-    clientCert = _get_json_cert_data(decodeBuff);
-    if (NULL != clientCert) {
-        memset(pDevInfo->dev_cert_file_name, 0, MAX_SIZE_OF_DEVICE_CERT_FILE_NAME);
-        HAL_Snprintf(pDevInfo->dev_cert_file_name, MAX_SIZE_OF_DEVICE_CERT_FILE_NAME, "%s_cert.crt",
-                     STRING_PTR_PRINT_SANITY_CHECK(pDevInfo->device_name));
-        if (QCLOUD_RET_SUCCESS != _cert_file_save(pDevInfo->dev_cert_file_name, clientCert, strlen(clientCert))) {
-            Log_e("save %s file fail", pDevInfo->dev_cert_file_name);
+            HAL_Free(clientCert);
+
+        } else {
+            Log_e("Get clientCert data fail");
             ret = QCLOUD_ERR_FAILURE;
         }
 
-        HAL_Free(clientCert);
+        clientKey = _get_json_key_data(decodeBuff);
+        if (NULL != clientKey) {
+            memset(pDevInfo->dev_key_file_name, 0, MAX_SIZE_OF_DEVICE_SECRET_FILE_NAME);
+            HAL_Snprintf(pDevInfo->dev_key_file_name, MAX_SIZE_OF_DEVICE_SECRET_FILE_NAME, "%s_private.key",
+                         pDevInfo->device_name);
+            if (QCLOUD_RET_SUCCESS != _cert_file_save(pDevInfo->dev_key_file_name, clientKey, strlen(clientKey))) {
+                Log_e("save %s file fail", pDevInfo->dev_key_file_name);
+                ret = QCLOUD_ERR_FAILURE;
+            }
 
-    } else {
-        Log_e("Get clientCert data fail");
-        ret = QCLOUD_ERR_FAILURE;
-    }
+            HAL_Free(clientKey);
 
-    clientKey = _get_json_key_data(decodeBuff);
-    if (NULL != clientKey) {
-        memset(pDevInfo->dev_key_file_name, 0, MAX_SIZE_OF_DEVICE_SECRET_FILE_NAME);
-        HAL_Snprintf(pDevInfo->dev_key_file_name, MAX_SIZE_OF_DEVICE_SECRET_FILE_NAME, "%s_private.key",
-                     pDevInfo->device_name);
-        if (QCLOUD_RET_SUCCESS != _cert_file_save(pDevInfo->dev_key_file_name, clientKey, strlen(clientKey))) {
-            Log_e("save %s file fail", pDevInfo->dev_key_file_name);
+        } else {
+            Log_e("Get clientCert data fail");
             ret = QCLOUD_ERR_FAILURE;
         }
-
-        HAL_Free(clientKey);
-
-    } else {
-        Log_e("Get clientCert data fail");
-        ret = QCLOUD_ERR_FAILURE;
     }
-
 #else
     if (ePSK_TYPE != enType) {
         Log_e("encryt type should be psk type");
@@ -376,7 +477,7 @@ static int _post_reg_request_by_http(char *request_buf, DeviceInfo *pDevInfo)
     ca_crt = iot_dynreg_https_ca_get();
 #else
     HAL_Snprintf(url, REG_URL_MAX_LEN, url_format, "http", DYN_REG_SERVER_URL, dynreg_uri);
-    port = DYN_REG_SERVER_PORT;
+    port                     = DYN_REG_SERVER_PORT;
 #endif
 
     memset((char *)&http_client, 0, sizeof(HTTPClient));
@@ -399,7 +500,7 @@ static int _post_reg_request_by_http(char *request_buf, DeviceInfo *pDevInfo)
     http_data.response_buf_len = DYN_RESPONSE_BUFF_LEN;
     http_data.response_buf     = respbuff;
 
-    Log_e("dynamic register recvl, Ret = %d", Ret);
+    Log_d("dynamic register recvl, Ret = %d", Ret);
     Ret = qcloud_http_recv_data(&http_client, DYN_REG_RES_HTTP_TIMEOUT_MS, &http_data);
     if (QCLOUD_RET_SUCCESS != Ret) {
         Log_e("dynamic register response fail, Ret = %d", Ret);
@@ -419,24 +520,44 @@ static int _post_reg_request_by_http(char *request_buf, DeviceInfo *pDevInfo)
 
 int IOT_DynReg_Device(DeviceInfo *pDevInfo)
 {
-    int Ret;
+    int         Ret;
+    const char *http_request_body_format = NULL;
+    char *      clientCert               = NULL;
     if (strlen(pDevInfo->product_secret) < UTILS_AES_BLOCK_LEN) {
         Log_e("product key inllegal");
         return QCLOUD_ERR_FAILURE;
     }
-
-    const char *http_request_body_format = "{\"ProductId\":\"%s\",\"DeviceName\":\"%s\"}";
-
+#ifdef AUTH_MODE_CERT
+    clientCert = _get_dev_cert_file(pDevInfo->device_name);
+    if (clientCert) {
+        sg_dynreg_with_private_cert = true;
+        http_request_body_format    = "{\"ProductId\":\"%s\",\"DeviceName\":\"%s\",\"clientCert\":\"%s\"}";
+    } else {
+        sg_dynreg_with_private_cert = false;
+        http_request_body_format    = "{\"ProductId\":\"%s\",\"DeviceName\":\"%s\"}";
+    }
+#else
+    http_request_body_format = "{\"ProductId\":\"%s\",\"DeviceName\":\"%s\"}";
+#endif
     int request_body_len =
         strlen(http_request_body_format) + strlen(pDevInfo->product_id) + strlen(pDevInfo->device_name);
+    if (sg_dynreg_with_private_cert) {
+        request_body_len += strlen(clientCert);
+    }
     char *request_body = HAL_Malloc(request_body_len);
     if (NULL == request_body) {
         Log_e("request body malloc failed");
         return QCLOUD_ERR_FAILURE;
     }
+    if (sg_dynreg_with_private_cert) {
+        HAL_Snprintf(request_body, request_body_len, http_request_body_format, pDevInfo->product_id,
+                     pDevInfo->device_name, clientCert);
+    } else {
+        HAL_Snprintf(request_body, request_body_len, http_request_body_format, pDevInfo->product_id,
+                     pDevInfo->device_name);
+    }
 
-    HAL_Snprintf(request_body, request_body_len, http_request_body_format, pDevInfo->product_id, pDevInfo->device_name);
-    Log_d("request:%s", request_body);
+    HAL_Printf("request:%s\r\n", request_body);
 
     /*post request*/
     Ret = _post_reg_request_by_http(request_body, pDevInfo);
@@ -447,7 +568,7 @@ int IOT_DynReg_Device(DeviceInfo *pDevInfo)
     }
 
     HAL_Free(request_body);
-
+    HAL_Free(clientCert);
     return Ret;
 }
 

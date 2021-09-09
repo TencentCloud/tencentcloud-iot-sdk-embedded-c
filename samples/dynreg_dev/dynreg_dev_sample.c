@@ -56,6 +56,7 @@ int main(int argc, char **argv)
     int        ret;
     DeviceInfo sDevInfo;
     bool       infoNullFlag = false;
+    bool       userCertFlag = false;
 
     memset((char *)&sDevInfo, 0, sizeof(DeviceInfo));
 
@@ -67,6 +68,10 @@ int main(int argc, char **argv)
         !strcmp(sDevInfo.dev_key_file_name, QCLOUD_IOT_NULL_KEY_FILENAME)) {
         Log_d("dev Cert not exist!");
         infoNullFlag = true;
+    } else if (0 != strcmp(sDevInfo.dev_cert_file_name, QCLOUD_IOT_NULL_CERT_FILENAME) &&
+               0 != strcmp(sDevInfo.dev_key_file_name, QCLOUD_IOT_NULL_KEY_FILENAME)) {
+        Log_d("dev Cert is exist!");
+        userCertFlag = true;
     } else {
         Log_d("dev Cert exist");
     }
@@ -81,7 +86,7 @@ int main(int argc, char **argv)
 #endif
 
     /* device cert/key files or PSK is empty, do dynamic register to fetch */
-    if (infoNullFlag) {
+    if (infoNullFlag || userCertFlag) {
         if (QCLOUD_RET_SUCCESS == IOT_DynReg_Device(&sDevInfo)) {
             ret = HAL_SetDevInfo(&sDevInfo);
             if (QCLOUD_RET_SUCCESS != ret) {
