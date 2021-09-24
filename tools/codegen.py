@@ -15,7 +15,7 @@ try: import simplejson as json
 except: import json
 
 
-# {"version":"1.0","properties":[{"id":"light_switch","name":"电灯开关","desc":"控制电灯开灭","required":true,"mode":"rw","define":{"type":"bool","mapping":{"0":"关","1":"开"}}},{"id":"color","name":"颜色","desc":"灯光颜色","mode":"rw","define":{"type":"enum","mapping":{"0":"Red","1":"Green","2":"Blue"}}},{"id":"brightness","name":"颜色","desc":"灯光颜色","mode":"rw","define":{"type":"int","unit":"%","unitDesc":"亮度百分比","min":"0","max":"100"}},{"id":"name","name":"灯位置名称","desc":"灯位置名称：书房、客厅等","mode":"rw","required":true,"define":{"type":"string","min":"0","max":"64"}}]}
+# {"version":"1.0","properties":[{"id":"light_switch","name":"Light Switch","desc":"On/Off Switch Control","required":true,"mode":"rw","define":{"type":"bool","mapping":{"0":"Close","1":"开Open"}}},{"id":"color","name":"Color","desc":"Color of Light","mode":"rw","define":{"type":"enum","mapping":{"0":"Red","1":"Green","2":"Blue"}}},{"id":"brightness","name":"Brightness","desc":"Brightness of Light","mode":"rw","define":{"type":"int","unit":"%","unitDesc":"Brightness percentage","min":"0","max":"100"}},{"id":"name","name":"Light Location","desc":"Light Location: Study, Living room, etc","mode":"rw","required":true,"define":{"type":"string","min":"0","max":"64"}}]}
 class TEMPLATE_CONSTANTS:
     VERSION = "version"
     TYPE = "type"
@@ -63,7 +63,7 @@ class iot_field:
             self.type_define = "TYPE_DEF_TEMPLATE_ENUM"
             self.type_id = "TYPE_TEMPLATEENUM"
             if TEMPLATE_CONSTANTS.DEFINE not in field_obj:
-                raise ValueError("错误：{} 字段定义中未找到枚举定义{} 字段".format(name, TEMPLATE_CONSTANTS.DEFINE))
+                raise ValueError("ERROR：{} Enumeration Definition NOT Found in Field Definition {} FIELD".format(name, TEMPLATE_CONSTANTS.DEFINE))
 
             enum_defs = field_obj["define"]["mapping"]
 
@@ -75,7 +75,7 @@ class iot_field:
                 if self.default_value == "":
                     self.default_value = enum_id
             if self.default_value == "":
-                raise ValueError("错误：{} 字段默认值 {} 非法".format(name, field_obj["default"]))
+                raise ValueError("ERROR：{} Field Default Value {} 非法".format(name, field_obj["default"]))
 
         elif self.type_name == "float":
             self.type_define = "TYPE_DEF_TEMPLATE_FLOAT"
@@ -85,7 +85,7 @@ class iot_field:
             self.max_value = field_obj["define"]["max"]
             self.default_value = field_obj["define"]["start"]
             if float(self.default_value) < float(self.min_value) or float(self.default_value) > float(self.max_value):
-                raise ValueError("错误：{} 字段 default 指定的默认值超出 min~max 取值范围".format(name))
+                raise ValueError("ERROR：{} default value specified by the field default is outside the MIN~MAX range.".format(name))
         elif self.type_name == "int":
             self.type_define = "TYPE_DEF_TEMPLATE_INT"
             self.type_id = "TYPE_TEMPLATE_INT"
@@ -94,7 +94,7 @@ class iot_field:
             self.max_value = field_obj["define"]["max"]
             self.default_value = field_obj["define"]["start"]
             if int(self.default_value) < int(self.min_value) or int(self.default_value) > int(self.max_value):
-                raise ValueError("错误：{} 字段 default 指定的默认值超出 min~max 取值范围".format(name))
+                raise ValueError("ERROR：{} default value specified by the field default is outside the MIN~MAX range.".format(name))
         elif self.type_name == "string":
             self.type_define = "TYPE_DEF_TEMPLATE_STRING"
             self.type_id = "TYPE_TEMPLATE_STRING"
@@ -107,7 +107,7 @@ class iot_field:
             self.type_id = "TYPE_TEMPLATE_TIME"
             self.default_value = 0
         else:
-            raise ValueError('{} 字段 数据类型 type={} 取值非法，有效值应为：bool,enum,int,float,string'.format(name, field_obj["type"]))
+            raise ValueError('{} fields datatype type={} value illegal, the valid value should be：bool,enum,int,float,string'.format(name, field_obj["type"]))
 
     def get_id_c_macro_name(self):
         return "TC_IOT_PROP_{}".format(self.id)
@@ -190,13 +190,13 @@ class iot_struct:
         self.event_id = 0
         for field_define in model["properties"]:
             if TEMPLATE_CONSTANTS.NAME not in field_define:
-                raise ValueError("错误：字段定义中未找到 Name 字段")
+                raise ValueError("ERROR：The Name field was not found in the field definition")
             self.fields.append(iot_field(field_define["id"], field_define["name"], self.field_id, field_define))
             self.field_id += 1
 
         for event in model["events"]:
             if TEMPLATE_CONSTANTS.NAME not in event:
-                raise ValueError("错误：字段定义中未找到 Name 字段")
+                raise ValueError("ERROR：The Name field was not found in the field definition")
             self.events.append(iot_event(event["id"], event["name"], self.event_id, event))
             self.event_id += 1
 
@@ -299,7 +299,7 @@ def main():
 
     config_path = args.config
     if not os.path.exists(config_path):
-        print(u"错误：配置文件不存在，请重新指定数据模板配置文件路径,请参考用法 ./codegen.py -c xx/data_template.json".format(config_path))
+        print(u"ERROR：The configuration file does not exist, please specify the data template configuration file path again. Usage: ./codegen.py -c xx/data_template.json".format(config_path))
         return 1
 
     config_dir = os.path.dirname(config_path)
@@ -315,13 +315,13 @@ def main():
         if 'events' not in thingmodel:
             thingmodel.events = []
 
-        print(u"加载 {} 文件成功".format(config_path))
+        print(u"Load {} file successfully".format(config_path))
     except ValueError as e:
-        print(u"错误：文件格式非法，请检查 {} 文件是否是 JSON 格式。".format(config_path))
+        print(u"ERROR：Illegal, check if {} file is in JSON format".format(config_path))
         return 1
 
     if TEMPLATE_CONSTANTS.PROPERTIES not in thingmodel:
-        print(u"错误：{} 文件中未发现 DataTemplate 属性字段，请检查文件格式是否合法。".format(config_path))
+        print(u"ERROR：{} The DataTemplate property field is not found in the file, check that the file format is legal.".format(config_path))
         return 1
 
     try:
@@ -338,8 +338,8 @@ def main():
         output_file.close()
 
 
-        print(u"文件 {} 生成成功".format(output_data_config_file_name))
-        print(u"文件 {} 生成成功".format(output_event_config_file_name))
+        print(u"File {} generated successfully".format(output_data_config_file_name))
+        print(u"File {} generated successfully".format(output_event_config_file_name))
 
         return 0
     except ValueError as e:

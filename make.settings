@@ -1,9 +1,12 @@
 # 编译类型: release/debug
+# Compilation Type: release/debug
 BUILD_TYPE                  	= release
 # Makefile编译打印 echo
+# Makefile Compile Print echo
 DEBUG_MAKEFILE                  = n
 
 # 编译工具链
+# Compilation Toolchain
 PLATFORM_CC                 	= gcc
 PLATFORM_AR                 	= ar
 PLATFORM_OS                 	= linux
@@ -11,79 +14,104 @@ PLATFORM_SSL					= mbedtls
 PLATFORM_AT_DEV					= esp8266
 
 # 交叉编译工具链示例
+# Croos-Compilation Toolchain Example
 # PLATFORM_CC                 = /opt/openwrt/packages/toolchain/mipsel-linux-gcc
 # PLATFORM_AR                 = /opt/openwrt/packages/toolchain/mipsel-linux-ar
 # PLATFORM_CC                 = armcc
 # PLATFORM_AR                 = armar
 
 # 是否打开MQTT通道的总开关
+# Whether to Turn on Master Switch for MQTT Channel
 FEATURE_MQTT_COMM_ENABLED               = y
 
 # 是否打开设备影子的总开关
+# Whether to Turn on Master Switch for Device Shadow
 FEATURE_MQTT_DEVICE_SHADOW              = y
 
 # 是否打开CoAP通道的总开关
+# Whether to Turn on Master Switch for CoAP Channel
 FEATURE_COAP_COMM_ENABLED               = n
 
 # 是否打开MQTT通道网关功能
+# Whether to Turn on Master Switch for MQTT Gateway Channel
 FEATURE_GATEWAY_ENABLED                 = y
 
 # 是否打开OTA固件升级总开关
+# Whether to Turn on Master Switch for OTA Firmware Update
 FEATURE_OTA_COMM_ENABLED                = y
 
 # OTA信令通道类型：MQTT/COAP
+# OTA Signaling Channel Type：MQTT/COAP
 FEATURE_OTA_SIGNAL_CHANNEL              = MQTT
 
 # MQTT/CoAP接入认证方式，使用证书认证：CERT；使用密钥认证：KEY
+# MQTT/CoAP Access Authentication Method，Certificate Authentication：CERT；Key Authentication：KEY
 FEATURE_AUTH_MODE				        = KEY
 
 # 接入认证是否不使用TLS，证书方式必须选择使用TLS，密钥认证可选择不使用TLS
+# Whether access authentication uses TLS, certificate authentication must use TLS, key authentication can choose not to use TLS
 FEATURE_AUTH_WITH_NOTLS					= n
 
 # 是否使能设备动态注册
+# Whether to enable dynamic device registration
 FEATURE_DEV_DYN_REG_ENABLED             = n
 
 # 是否打开日志上报云端功能
+# Whether to enable the log report cloud feature
 FEATURE_LOG_UPLOAD_ENABLED              = n
 
 # 是否打开获取iot后台时间功能
+# Whether to access the feature of getting iot background time
 FEATURE_SYSTEM_COMM_ENABLED             = y
 
 # 是否打开多线程功能支持
+# Whether to turn on multi-threading support
 FEATURE_MULTITHREAD_ENABLED             = y
 
 # 是否使用HTTPS下载固件
+# Whether to use HTTPS to download firmware
 FEATURE_OTA_USE_HTTPS                   = y
 
 # 是否打开代码中获取设备信息功能，设为n时将从device_info.json中读取设备信息
+# Whether to turn on the function of getting device information in the code, if set to n, the device information will be read from device_info.json
 FEATURE_DEBUG_DEV_INFO_USED             = n
 
 # 是否使用AT方式实现TCP通信
+# Whether to use the AT method to achieve TCP communication
 FEATURE_AT_TCP_ENABLED                  = n	
 
 # 是否打开AT模组中断接收功能
+# Whether to turn on the AT module interrupt reception feature
 FEATURE_AT_UART_RECV_IRQ                = n
 
 # 是否打开AT模组多线程功能
+# Whether to open the AT module multi-threading feature
 FEATURE_AT_OS_USED                      = n
 
 # 是否打开AT模组调试功能
+# Whether to open the AT module debugging feature
 FEATURE_AT_DEBUG                        = n
 
 # 是否打开广播功能
+# Whether to turn on the broadcast feature
 FEATURE_BROADCAST_ENABLED               = y
 
 # 是否打开RRPC功能
+# Whether to turn on the RRPC feature
 FEATURE_RRPC_ENABLED                    = y
 
 # 是否打开MQTT远程配置功能
+# Whether to turn on the MQTT remote configuration
 FEATURE_REMOTE_CONFIG_MQTT_ENABLED      = y
 
 # 是否打开资源管理总开关
+# Whether to turn on Master Switch for the resource manage
 FEATURE_RESOURCE_COMM_ENABLED           = y
 
 # 资源管理通道类型：MQTT
+# resource manage Signaling Channel Type：MQTT
 FEATURE_RESOURCE_SIGNAL_CHANNEL         = MQTT
 
 # 资源管理使用 https 通信
+# Whether to use HTTPS for resource manage
 FEATURE_RESOURCE_USE_HTTPS              = y

@@ -53,7 +53,7 @@ C-SDK 的使用可以根据具体场景需求，配置相应的参数，满足�
 | 6    | IOT_MQTT_Unsubscribe | 取消订阅已订阅的 MQTT 主题                      |
 | 7    | IOT_MQTT_IsConnected | 查看当前 MQTT 是否已连接                        |
 | 8    | IOT_MQTT_IsSubReady  | 查询对应的主题是否已经订阅成功              |
-| 9    | IOT_MQTT_GetDeviceInfo  | 获取该 MQTTclien对应的设备信息             |
+| 9    | IOT_MQTT_GetDeviceInfo  | 获取该 MQTTclient对应的设备信息             |
 | 10    | IOT_MQTT_StartLoop  | 多线程环境下，启动 MQTTclient后台Yield线程       |
 | 11    | IOT_MQTT_StopLoop  | 多线程环境下，停止 MQTTclient后台Yield线程             |
 
@@ -99,7 +99,7 @@ MQTT构造时候除了提供设备信息，还需要提供一个回调函数，�
 | 5    | IOT_COAP_GetMessageId        | 获取 COAP Response 消息 msgId                     |
 | 6    | IOT_COAP_GetMessagePayload   | 获取 COAP Response 消息内容                        |
 | 7    | IOT_COAP_GetMessageCode      | 获取 COAP Response 消息错误码                      |
-| 9    | IOT_COAP_GetDeviceInfo       | 获取该 COAPclien对应的设备信息             |
+| 9    | IOT_COAP_GetDeviceInfo       | 获取该 COAPclient对应的设备信息             |
 
 ### OTA 接口
 关于 OTA 固件下载功能介绍，可以参考[设备固件升级](https://cloud.tencent.com/document/product/634/14674)

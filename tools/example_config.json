@@ -28,22 +28,22 @@
         },
         {
             "id": "light_switch",
-            "name": "电灯开关",
+            "name": "Light Switch",
             "required": true,
-            "desc": "控制电灯开灭",
+            "desc": "Light On/Off Control",
             "mode": "rw",
             "define": {
                 "type": "bool",
                 "mapping": {
-                    "0": "关",
-                    "1": "开"
+                    "0": "Off",
+                    "1": "On"
                 }
             }
         },
         {
             "id": "color",
-            "name": "颜色",
-            "desc": "灯光颜色",
+            "name": "Color",
+            "desc": "Light Color",
             "mode": "rw",
             "define": {
                 "type": "enum",
@@ -56,9 +56,9 @@
         },
         {
             "id": "brightness",
-            "name": "亮度",
+            "name": "Brightness",
             "required": false,
-            "desc": "灯光亮度",
+            "desc": "Light Brightness",
             "mode": "rw",
             "define": {
                 "type": "int",
@@ -71,8 +71,8 @@
         },
         {
             "id": "name",
-            "name": "灯位置名称",
-            "desc": "灯位置名称：书房、客厅等",
+            "name": "Light Location Name",
+            "desc": "Light Location Name: Study, Living-room, etc.",
             "mode": "rw",
             "required": true,
             "define": {
@@ -96,8 +96,8 @@
                     "define": {
                         "type": "bool",
                         "mapping": {
-                            "0": "关",
-                            "1": "开"
+                            "0": "Off",
+                            "1": "On"
                         }
                     }
                 },
@@ -163,7 +163,7 @@
         {
             "id": "status_report",
             "name": "DeviceStatus",
-            "desc": "Report the device status我是中文",
+            "desc": "Report the device status",
             "type": "info",
             "required": true,
             "params": [

@@ -1,17 +1,22 @@
 # 项目信息
+# Project information
 project (QCloud_IoT_SDK C)
 
 # CMake 最低版本号要求
+# Cmake minimum version required
 cmake_minimum_required (VERSION 3.5)
 
 ######################CONFIG BEGIN####################################
 # 编译类型: release/debug
+# Compilation Type: release/debug
 set(BUILD_TYPE "release")
 
 # 代码抽取，ON表示根据配置抽取源码到ouput/qcloud_iot_c_sdk目录
+# Code extraction, ON means to extract the source code according to the configuration to ouput/qcloud_iot_c_sdk directory
 set(EXTRACT_SRC OFF)
 
 # 编译工具链
+# Compilation Toolchain
 set(COMPILE_TOOLS "gcc")
 set(PLATFORM 	  "linux")
 
@@ -19,100 +24,126 @@ set(PLATFORM 	  "linux")
 #set(PLATFORM 	  "windows") 
 
 # 是否打开MQTT通道的总开关
+# Whether to Turn on Master Switch for MQTT Channel
 set(FEATURE_MQTT_COMM_ENABLED ON)
 
 # 是否打开设备影子的总开关
+# Whether to Turn on Master Switch for Device Shadow
 set(FEATURE_MQTT_DEVICE_SHADOW ON)
 
 # 是否打开CoAP通道的总开关
+# Whether to Turn on Master Switch for CoAP Channel
 set(FEATURE_COAP_COMM_ENABLED OFF)
 
 # 是否打开MQTT通道网关功能
+# Whether to Turn on Master Switch for MQTT Gateway Channel
 set(FEATURE_GATEWAY_ENABLED ON)
 
 # 是否打开OTA固件升级总开关
+# Whether to Turn on Master Switch for OTA Firmware Update
 set(FEATURE_OTA_COMM_ENABLED ON)
 
 # OTA信令通道类型：MQTT/COAP
+# OTA Signaling Channel Type：MQTT/COAP
 set(FEATURE_OTA_SIGNAL_CHANNEL "MQTT")
 
 # MQTT/CoAP接入认证方式，使用证书认证：CERT；使用密钥认证：KEY
+# MQTT/CoAP Access Authentication Method，Certificate Authentication：CERT；Key Authentication：KEY
 set(FEATURE_AUTH_MODE "KEY")
 
 # 接入认证是否不使用TLS，证书方式必须选择使用TLS，密钥认证可选择不使用TLS
+# Whether access authentication uses TLS, certificate authentication must use TLS, key authentication can choose not to use TLS
 set(FEATURE_AUTH_WITH_NOTLS ON)
 
 # 是否打开多线程功能支持
+# Whether to turn on multi-threading support
 set(FEATURE_MULTITHREAD_ENABLED ON)
 
 # 是否使能设备动态注册
+# Whether to enable dynamic device registration
 set(FEATURE_DEV_DYN_REG_ENABLED ON)
 
 # 是否打开日志上报云端功能
+# Whether to enable the log report cloud feature
 set(FEATURE_LOG_UPLOAD_ENABLED OFF)
 
 # 是否打开代码中获取设备信息功能，OFF时将从device_info.json中读取设备信息
+# Whether to turn on the function of getting device information in the code, if set to OFF, the device information will be read from device_info.json
 set(FEATURE_DEBUG_DEV_INFO_USED OFF)
 
 # 是否打开获取iot后台时间功能
+# Whether to access the feature of getting iot background time
 set(FEATURE_SYSTEM_COMM_ENABLED ON)
 
 # 是否使用HTTPS下载固件
+# Whether to use HTTPS to download firmware
 set(FEATURE_OTA_USE_HTTPS ON)
 
 # 是否打开AT模组TCP功能
+# Whether to use the AT method to achieve TCP communication
 set(FEATURE_AT_TCP_ENABLED OFF)
 
 # 设置AT模组设备（目前只支持esp8266）
+# Set AT module device (only support ESP8266 so far)
 set(AT_DEVICE_NAME "esp8266")
 
 # 是否打开AT模组中断接收功能
+# Whether to turn on the AT module interrupt reception feature
 set(FEATURE_AT_UART_RECV_IRQ OFF)
 
 # 是否打开AT模组多线程功能
+# Whether to open the AT module multi-threading feature
 set(FEATURE_AT_OS_USED ON)
 
 # 是否打开AT模组调试功能
+# Whether to open the AT module debugging feature
 set(FEATURE_AT_DEBUG OFF)
 
 # 是否打开广播功能
+# Whether to turn on the broadcast feature
 set(FEATURE_BROADCAST_ENABLED ON)
 
 # 是否打开RRPC功能
+# Whether to turn on the RRPC feature
 set(FEATURE_RRPC_ENABLED ON)
 
 # 是否打开远程配置功能
+# Whether to turn on the MQTT remote configuration
 set(FEATURE_REMOTE_CONFIG_MQTT_ENABLED ON)
 
 # 是否打开资源管理总开关
+# Whether to turn on Master Switch for the resource manage
 set(FEATURE_RESOURCE_COMM_ENABLED ON)
 
 # 资源管理通道类型：MQTT
+# resource manage Signaling Channel Type：MQTT
 set(FEATURE_RESOURCE_SIGNAL_CHANNEL "MQTT")
 
 # 资源管理使用 https 通信
+# Whether to use HTTPS for resource manage
 set(FEATURE_RESOURCE_USE_HTTPS ON)
 
 ######################CONFIG END######################################
 
 # 设置CMAKE使用编译工具及编译选项
+# Set CMAKE to use compilation tools and compilation options
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
 if (PLATFORM STREQUAL "linux" AND COMPILE_TOOLS  STREQUAL "gcc")
 	set(CMAKE_C_COMPILER ${COMPILE_TOOLS}) 
 	if(${BUILD_TYPE} STREQUAL  "release")
-		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror -Wall -Wno-error=sign-compare -Wno-error=format -Os -pthread") # 编译选项
+		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror -Wall -Wno-error=sign-compare -Wno-error=format -Os -pthread") # 编译选项 Compilation options
 	elseif(${BUILD_TYPE} STREQUAL  "debug")
-		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -Werror -Wall -Wno-error=sign-compare -Wno-error=format -Os -pthread") # 编译选项
+		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -Werror -Wall -Wno-error=sign-compare -Wno-error=format -Os -pthread") # 编译选项 Compilation options
 	endif()
 elseif (PLATFORM STREQUAL "linux" AND COMPILE_TOOLS  STREQUAL "arm-none-linux-gnueabi-gcc")
 	set(CMAKE_C_COMPILER ${COMPILE_TOOLS}) 
 	if(${BUILD_TYPE} STREQUAL  "release")
-		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror -Wall -Wno-error=sign-compare -Wno-error=format -Os -pthread") # 编译选项
+		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror -Wall -Wno-error=sign-compare -Wno-error=format -Os -pthread") # 编译选项 Compilation options
 	elseif(${BUILD_TYPE} STREQUAL  "debug")
-		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -Werror -Wall -Wno-error=sign-compare -Wno-error=format -Os -pthread") # 编译选项
+		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -Werror -Wall -Wno-error=sign-compare -Wno-error=format -Os -pthread") # 编译选项 Compilation options
 	endif()
 elseif (PLATFORM STREQUAL "windows" AND COMPILE_TOOLS STREQUAL "MSVC")
-	# 去除相应的警告
+	# 去除相应的警告 Remove the corresponding warning
 	add_definitions(-D_CRT_SECURE_NO_WARNINGS -D_WINSOCK_DEPRECATED_NO_WARNINGS -D_USE_32BIT_TIME_T)
 	if(CMAKE_C_FLAGS MATCHES "/W[0-4]")
 		string(REGEX REPLACE "/W[0-4]" "/W2" CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
@@ -120,13 +151,14 @@ elseif (PLATFORM STREQUAL "windows" AND COMPILE_TOOLS STREQUAL "MSVC")
 		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /W2")
 	endif()
 else ()
-	#用户自定义
-	set(CMAKE_C_COMPILER ${COMPILE_TOOLS}) # 编译工具
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror -Wall -Wno-error=sign-compare -Wno-error=format -Os") 				   # 编译选项
+	#用户自定义 Custom
+	set(CMAKE_C_COMPILER ${COMPILE_TOOLS}) # 编译工具 Compilation tools
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror -Wall -Wno-error=sign-compare -Wno-error=format -Os") 				   # 编译选项 Compilation option
 	message(WARNING "User defined platform or compile tools!")
 endif()
 
 # 解析配置
+# Parsing configuration
 if(${BUILD_TYPE} STREQUAL  "release")
 	option(IOT_DEBUG "Enable IOT_DEBUG" OFF)
 elseif(${BUILD_TYPE} STREQUAL  "debug")
@@ -196,6 +228,7 @@ configure_file (
 )
 
 # 头文件目录
+# Header file directory
 include_directories(${PROJECT_SOURCE_DIR}/include 
 					${PROJECT_SOURCE_DIR}/include/exports 
 					${PROJECT_SOURCE_DIR}/platform/at_device/esp8266 
@@ -220,6 +253,7 @@ if(${EXTRACT_SRC} STREQUAL  "ON" AND  NOT DEFINED SAMPLE_ONLY)
 endif()
 
 # 添加源代码目录
+# Add source code directory
 if(NOT DEFINED SAMPLE_ONLY)
 	add_subdirectory(${PROJECT_SOURCE_DIR}/sdk_src)
 	add_subdirectory(${PROJECT_SOURCE_DIR}/platform)
@@ -232,6 +266,7 @@ if(SAMPLE_ONLY STREQUAL "ON")
 endif()
 
 # 证书及设备信息
+# Certificate and device information
 if(NOT DEFINED SAMPLE_ONLY)
 	file(COPY ${PROJECT_SOURCE_DIR}/certs DESTINATION ${PROJECT_SOURCE_DIR}/output/${BUILD_TYPE}/bin)
 	file(COPY ${PROJECT_SOURCE_DIR}/device_info.json DESTINATION ${PROJECT_SOURCE_DIR}/output/${BUILD_TYPE}/bin)
