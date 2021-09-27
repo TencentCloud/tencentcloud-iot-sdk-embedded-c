@@ -327,8 +327,8 @@ static int _parse_devinfo(char *jdoc, DeviceInfo *pDevInfo)
     char *        response = NULL;
 
 #ifdef AUTH_MODE_CERT
-    char *clientCert;
-    char *clientKey;
+    char *clientCert = NULL;
+    char *clientKey  = NULL;
 #else
     char *psk;
 #endif
@@ -367,7 +367,7 @@ static int _parse_devinfo(char *jdoc, DeviceInfo *pDevInfo)
     ret = utils_aes_cbc((uint8_t *)decodeBuff, datalen, (uint8_t *)decodeBuff, DECODE_BUFF_LEN, UTILS_AES_DECRYPT,
                         (uint8_t *)key, keybits, iv);
     if (QCLOUD_RET_SUCCESS == ret) {
-        Log_d("The decrypted data is:%s", decodeBuff);
+        // Log_d("The decrypted data is:%s", decodeBuff);
 
     } else {
         Log_e("data decry err,ret:%d", ret);
@@ -399,13 +399,12 @@ static int _parse_devinfo(char *jdoc, DeviceInfo *pDevInfo)
             if (QCLOUD_RET_SUCCESS != _cert_file_save(pDevInfo->dev_cert_file_name, clientCert, strlen(clientCert))) {
                 Log_e("save %s file fail", pDevInfo->dev_cert_file_name);
                 ret = QCLOUD_ERR_FAILURE;
+                goto exit;
             }
-
-            HAL_Free(clientCert);
-
         } else {
             Log_e("Get clientCert data fail");
             ret = QCLOUD_ERR_FAILURE;
+            goto exit;
         }
 
         clientKey = _get_json_key_data(decodeBuff);
@@ -416,13 +415,12 @@ static int _parse_devinfo(char *jdoc, DeviceInfo *pDevInfo)
             if (QCLOUD_RET_SUCCESS != _cert_file_save(pDevInfo->dev_key_file_name, clientKey, strlen(clientKey))) {
                 Log_e("save %s file fail", pDevInfo->dev_key_file_name);
                 ret = QCLOUD_ERR_FAILURE;
+                goto exit;
             }
-
-            HAL_Free(clientKey);
-
         } else {
             Log_e("Get clientCert data fail");
             ret = QCLOUD_ERR_FAILURE;
+            goto exit;
         }
     }
 #else
@@ -447,7 +445,14 @@ static int _parse_devinfo(char *jdoc, DeviceInfo *pDevInfo)
     }
 #endif
 exit:
-
+#ifdef AUTH_MODE_CERT
+    if (clientCert) {
+        HAL_Free(clientCert);
+    }
+    if (clientKey) {
+        HAL_Free(clientKey);
+    }
+#endif
     if (payload) {
         HAL_Free(payload);
     }
@@ -546,6 +551,7 @@ int IOT_DynReg_Device(DeviceInfo *pDevInfo)
     }
     char *request_body = HAL_Malloc(request_body_len);
     if (NULL == request_body) {
+        HAL_Free(clientCert);
         Log_e("request body malloc failed");
         return QCLOUD_ERR_FAILURE;
     }
