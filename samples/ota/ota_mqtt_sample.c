@@ -284,9 +284,9 @@ static int _get_local_fw_info(char *file_name, char *local_version)
         Log_w("local info offset invalid: %d", local_size);
         HAL_Free(version);
         local_size = 0;
+    } else {
+        strncpy(local_version, version, FW_VERSION_MAX_LEN);
     }
-
-    strncpy(local_version, version, FW_VERSION_MAX_LEN);
     HAL_Free(version);
     fclose(fp);
     return local_size;

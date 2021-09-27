@@ -198,9 +198,9 @@ static void _mqtt_message_handler(void *pClient, MQTTMessage *message, void *use
                 tempRow = atoi(temp + 1);
                 HAL_Free(action_value);
             } else {
-                HAL_Free(action_value);
                 Log_e("invalid action value: %s", action_value);
                 sg_rx_unexpected_count++;
+                HAL_Free(action_value);
                 return;
             }
         } else {
