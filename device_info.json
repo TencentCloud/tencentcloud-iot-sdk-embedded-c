@@ -1,6 +1,6 @@
 {
     "auth_mode":"KEY",
-
+    "region":"china",
     "productId":"PRODUCT_ID",
     "productSecret":"YOUR_PRODUCT_SECRET",
     "deviceName":"YOUR_DEV_NAME",
