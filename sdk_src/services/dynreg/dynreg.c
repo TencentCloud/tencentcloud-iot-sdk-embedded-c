@@ -472,16 +472,16 @@ static int _post_reg_request_by_http(char *request_buf, DeviceInfo *pDevInfo)
     int         port;
     const char *ca_crt = NULL;
     char        respbuff[DYN_RESPONSE_BUFF_LEN];
-    char *      dynreg_uri = "/device/register";
+    char *      dynreg_uri = DYN_REG_SERVER_URL_PATH;
     const char *url_format = "%s://%s%s";
 
 /*format URL*/
 #ifndef AUTH_WITH_NOTLS
-    HAL_Snprintf(url, REG_URL_MAX_LEN, url_format, "https", DYN_REG_SERVER_URL, dynreg_uri);
+    HAL_Snprintf(url, REG_URL_MAX_LEN, url_format, "https", iot_get_dyn_reg_domain(pDevInfo->region), dynreg_uri);
     port   = DYN_REG_SERVER_PORT_TLS;
     ca_crt = iot_dynreg_https_ca_get();
 #else
-    HAL_Snprintf(url, REG_URL_MAX_LEN, url_format, "http", DYN_REG_SERVER_URL, dynreg_uri);
+    HAL_Snprintf(url, REG_URL_MAX_LEN, url_format, "http", iot_get_dyn_reg_domain(pDevInfo->region), dynreg_uri);
     port                     = DYN_REG_SERVER_PORT;
 #endif
 

@@ -93,6 +93,7 @@ static int _report_desire_null(void *handle, char *jsonBuffer, size_t sizeOfBuff
 
 static int _setup_connect_init_params(ShadowInitParams *initParams, DeviceInfo *device_info)
 {
+    initParams->region      = device_info->region;
     initParams->product_id  = device_info->product_id;
     initParams->device_name = device_info->device_name;
 

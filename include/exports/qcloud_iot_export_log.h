@@ -68,6 +68,7 @@ typedef size_t (*LogGetSizeFunc)();
  */
 typedef struct {
     /* device info */
+    const char *region;
     const char *product_id;
     const char *device_name;
     /* auth key, use device secret for PSK device and cert file path for cert device */

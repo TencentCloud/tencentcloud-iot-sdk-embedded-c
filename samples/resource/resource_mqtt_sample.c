@@ -106,6 +106,7 @@ static int _setup_connect_init_params(MQTTInitParams *initParams, void *resource
 {
     initParams->product_id  = device_info->product_id;
     initParams->device_name = device_info->device_name;
+    initParams->region      = device_info->region;
 
 #ifdef AUTH_MODE_CERT
     char  certs_dir[16] = "certs";

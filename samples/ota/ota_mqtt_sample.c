@@ -102,6 +102,7 @@ static void _event_handler(void *pclient, void *handle_context, MQTTEventMsg *ms
 
 static int _setup_connect_init_params(MQTTInitParams *initParams, void *ota_ctx, DeviceInfo *device_info)
 {
+    initParams->region      = device_info->region;
     initParams->product_id  = device_info->product_id;
     initParams->device_name = device_info->device_name;
 

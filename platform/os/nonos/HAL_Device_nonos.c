@@ -33,6 +33,9 @@ static char sg_product_id[MAX_SIZE_OF_PRODUCT_ID + 1] = "PRODUCT_ID";
 /* device name */
 static char sg_device_name[MAX_SIZE_OF_DEVICE_NAME + 1] = "YOUR_DEV_NAME";
 
+/* region */
+static char sg_region[MAX_SIZE_OF_REGION + 1] = "china";
+
 #ifdef DEV_DYN_REG_ENABLED
 /* product secret for device dynamic Registration  */
 static char sg_product_secret[MAX_SIZE_OF_PRODUCT_SECRET + 1] = "YOUR_PRODUCT_SECRET";
@@ -76,6 +79,7 @@ int HAL_SetDevInfo(void *pdevInfo)
 #ifdef DEBUG_DEV_INFO_USED
     ret = device_info_copy(sg_product_id, devInfo->product_id, MAX_SIZE_OF_PRODUCT_ID);      // set product ID
     ret |= device_info_copy(sg_device_name, devInfo->device_name, MAX_SIZE_OF_DEVICE_NAME);  // set dev name
+    ret |= device_info_copy(sg_region, devInfo->region, MAX_SIZE_OF_REGION);                 // get region
 
 #ifdef AUTH_MODE_CERT
     ret |= device_info_copy(sg_device_cert_file_name, devInfo->dev_cert_file_name,
@@ -108,6 +112,7 @@ int HAL_GetDevInfo(void *pdevInfo)
 #ifdef DEBUG_DEV_INFO_USED
     ret = device_info_copy(devInfo->product_id, sg_product_id, MAX_SIZE_OF_PRODUCT_ID);      // get product ID
     ret |= device_info_copy(devInfo->device_name, sg_device_name, MAX_SIZE_OF_DEVICE_NAME);  // get dev name
+    ret |= device_info_copy(devInfo->region, sg_region, MAX_SIZE_OF_REGION);                 // get region
 
 #ifdef DEV_DYN_REG_ENABLED
     ret |= device_info_copy(devInfo->product_secret, sg_product_secret, MAX_SIZE_OF_PRODUCT_SECRET);  // get product ID

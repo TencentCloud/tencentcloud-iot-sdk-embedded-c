@@ -92,7 +92,7 @@ uintptr_t HAL_TCP_Connect(const char *host, uint16_t port)
         Log_e("fail to connect with TCP server: %s:%s", STRING_PTR_PRINT_SANITY_CHECK(host), port_str);
     } else {
         /* reduce log print due to frequent log server connect/disconnect */
-        if (0 == strncmp(host, LOG_UPLOAD_SERVER_DOMAIN, HOST_STR_LENGTH))
+        if (NULL != strstr(host, LOG_UPLOAD_SERVER_POSTFIX))
             UPLOAD_DBG("connected with TCP server: %s:%s", host, port_str);
         else
             Log_i("connected with TCP server: %s:%s", STRING_PTR_PRINT_SANITY_CHECK(host), port_str);

@@ -35,6 +35,7 @@ extern "C" {
 #include "utils_httpc.h"
 #include "utils_timer.h"
 #include "qcloud_iot_http.h"
+#include "qcloud_iot_ca.h"
 
 /* log post header format */
 #define TIMESTAMP_SIZE  10
@@ -43,8 +44,6 @@ extern "C" {
 
 /* do immediate log update if buffer is lower than this threshold (about two max log item) */
 #define LOG_LOW_BUFFER_THRESHOLD (LOG_UPLOAD_BUFFER_SIZE / 4)
-
-#define UPLOAD_LOG_URI_STRING "/device/reportlog"
 
 /* log upload buffer */
 static char *   sg_log_buffer  = NULL;
@@ -104,9 +103,9 @@ static int _check_server_connection()
     int  port;
 
     /*format URL*/
-    const char *url_format = "%s://%s/device/reportlog";
+    const char *url_format = "%s://%s%s";
 
-    HAL_Snprintf(url, 128, url_format, "http", sg_http_c->url);
+    HAL_Snprintf(url, 128, url_format, "http", sg_http_c->url, UPLOAD_LOG_URI_PATH);
     port = LOG_UPLOAD_SERVER_PORT;
 
     rc = qcloud_http_client_connect(&sg_http_c->http, url, port, sg_http_c->ca_crt);
@@ -128,7 +127,7 @@ static bool _get_json_ret_code(char *json)
         return false;
     }
 
-    error = LITE_json_value_of("Error", json);
+    error = LITE_json_value_of("Error", v);
     if (NULL != error) {
         UPLOAD_ERR("upload failed; json content: %s", json);
         HAL_Free(v);
@@ -145,7 +144,7 @@ static int _post_one_http_to_server(char *post_buf, size_t post_size)
     int   rc       = 0;
     char  url[128] = {0};
     int   port;
-    char *upload_log_uri = UPLOAD_LOG_URI_STRING;
+    char *upload_log_uri = UPLOAD_LOG_URI_PATH;
 
     if (sg_http_c == NULL)
         return QCLOUD_ERR_INVAL;
@@ -542,7 +541,7 @@ int init_log_uploader(LogUploadInitParams *init_params)
 
     /* set http request-header parameter */
     sg_http_c->http.header = "Accept:application/json;*/*\r\n";
-    sg_http_c->url         = LOG_UPLOAD_SERVER_URL;
+    sg_http_c->url         = iot_get_log_domain(init_params->region);
     sg_http_c->port        = LOG_UPLOAD_SERVER_PORT;
     sg_http_c->ca_crt      = NULL;
 

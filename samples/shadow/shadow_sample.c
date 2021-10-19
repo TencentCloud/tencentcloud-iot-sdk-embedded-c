@@ -56,6 +56,7 @@ static int _setup_connect_init_params(ShadowInitParams *initParams, DeviceInfo *
 {
     initParams->device_name = dev_info->device_name;
     initParams->product_id  = dev_info->product_id;
+    initParams->region      = dev_info->region;
 
 #ifdef AUTH_MODE_CERT
     char  certs_dir[16] = "certs";

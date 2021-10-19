@@ -20,8 +20,47 @@ extern "C" {
 #include "qcloud_iot_ca.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "qcloud_iot_import.h"
+#include "qcloud_iot_common.h"
+
+typedef struct _RegionDomain_ {
+    const char *region;
+    const char *domain;
+} RegionDomain;
+
+/*mqtt domain*/
+static RegionDomain sg_iot_mqtt_domain[] = {
+    {.region = "china", .domain = QCLOUD_IOT_MQTT_DIRECT_DOMAIN},          /* China */
+    {.region = "us-east", .domain = QCLOUD_IOT_MQTT_US_EAST_DOMAIN},       /* Eastern US */
+    {.region = "europe", .domain = QCLOUD_IOT_MQTT_EUROPE_DOMAIN},         /* Europe */
+    {.region = "ap-bangkok", .domain = QCLOUD_IOT_MQTT_AP_BANGKOK_DOMAIN}, /* Bangkok */
+};
+
+/*coap domain*/
+static RegionDomain sg_iot_coap_domain[] = {
+    {.region = "china", .domain = QCLOUD_IOT_COAP_DIRECT_DOMAIN},          /* China */
+    {.region = "us-east", .domain = QCLOUD_IOT_COAP_US_EAST_DOMAIN},       /* Eastern US */
+    {.region = "europe", .domain = QCLOUD_IOT_COAP_EUROPE_DOMAIN},         /* Europe */
+    {.region = "ap-bangkok", .domain = QCLOUD_IOT_COAP_AP_BANGKOK_DOMAIN}, /* Bangkok */
+};
+
+/*dynreg domain*/
+static RegionDomain sg_iot_dyn_reg_domain[] = {
+    {.region = "china", .domain = DYN_REG_SERVER_URL},                 /* China */
+    {.region = "us-east", .domain = DYN_REG_SERVER_US_EAST_URL},       /* Eastern US */
+    {.region = "europe", .domain = DYN_REG_SERVER_EUROPE_URL},         /* Europe */
+    {.region = "ap-bangkok", .domain = DYN_REG_SERVER_AP_BANGKOK_URL}, /* Bangkok */
+};
+
+/*log domain*/
+static RegionDomain sg_iot_log_domain[] = {
+    {.region = "china", .domain = LOG_UPLOAD_SERVER_DIRECT_URL},           /* China */
+    {.region = "us-east", .domain = LOG_UPLOAD_SERVER_US_EAST_URL},       /* Eastern US */
+    {.region = "europe", .domain = LOG_UPLOAD_SERVER_EUROPE_URL},         /* Europe */
+    {.region = "ap-bangkok", .domain = LOG_UPLOAD_SERVER_AP_BANGKOK_URL}, /* Bangkok */
+};
 
 #ifndef AUTH_WITH_NOTLS
 #if defined(DEV_DYN_REG_ENABLED)
@@ -201,6 +240,102 @@ const char *iot_https_ca_get()
 #else
     return NULL;
 #endif
+}
+
+const char *iot_get_mqtt_domain(const char *region)
+{
+    const char *pDomain = NULL;
+    int         i;
+
+    if (!region) {
+        goto end;
+    }
+
+    for (i = 0; i < sizeof(sg_iot_mqtt_domain) / sizeof(sg_iot_mqtt_domain[0]); i++) {
+        if (0 == strcmp(region, sg_iot_mqtt_domain[i].region)) {
+            pDomain = sg_iot_mqtt_domain[i].domain;
+            break;
+        }
+    }
+
+end:
+    if (!pDomain) {
+        pDomain = sg_iot_mqtt_domain[0].domain;
+    }
+
+    return pDomain;
+}
+
+const char *iot_get_coap_domain(const char *region)
+{
+    const char *pDomain = NULL;
+    int         i;
+
+    if (!region) {
+        goto end;
+    }
+
+    for (i = 0; i < sizeof(sg_iot_coap_domain) / sizeof(sg_iot_coap_domain[0]); i++) {
+        if (0 == strcmp(region, sg_iot_coap_domain[i].region)) {
+            pDomain = sg_iot_coap_domain[i].domain;
+            break;
+        }
+    }
+
+end:
+    if (!pDomain) {
+        pDomain = sg_iot_coap_domain[0].domain;
+    }
+
+    return pDomain;
+}
+
+const char *iot_get_dyn_reg_domain(const char *region)
+{
+    const char *pDomain = NULL;
+    int         i;
+
+    if (!region) {
+        goto end;
+    }
+
+    for (i = 0; i < sizeof(sg_iot_dyn_reg_domain) / sizeof(sg_iot_dyn_reg_domain[0]); i++) {
+        if (0 == strcmp(region, sg_iot_dyn_reg_domain[i].region)) {
+            pDomain = sg_iot_dyn_reg_domain[i].domain;
+            break;
+        }
+    }
+
+end:
+    if (!pDomain) {
+        pDomain = sg_iot_dyn_reg_domain[0].domain;
+    }
+
+    return pDomain;
+}
+
+const char *iot_get_log_domain(const char *region)
+{
+    const char *pDomain = NULL;
+    int         i;
+
+    if (!region) {
+        goto end;
+    }
+
+    for (i = 0; i < sizeof(sg_iot_log_domain) / sizeof(sg_iot_log_domain[0]); i++) {
+        if (0 == strcmp(region, sg_iot_log_domain[i].region)) {
+            pDomain = sg_iot_log_domain[i].domain;
+            break;
+        }
+    }
+
+end:
+    if (!pDomain) {
+        pDomain = sg_iot_log_domain[0].domain;
+    }
+
+    return pDomain;
 }
 
 #ifdef __cplusplus

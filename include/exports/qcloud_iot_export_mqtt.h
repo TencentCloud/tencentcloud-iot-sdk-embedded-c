@@ -164,6 +164,7 @@ typedef struct {
 /* The structure of MQTT init parameters */
 typedef struct {
     /* device info */
+    char *region;       // region
     char *product_id;   // product ID
     char *device_name;  // device name
 
@@ -188,14 +189,14 @@ typedef struct {
  * Default MQTT init parameters
  */
 #ifdef AUTH_MODE_CERT
-#define DEFAULT_MQTTINIT_PARAMS                              \
-    {                                                        \
-        NULL, NULL, {0}, {0}, 5000, 240 * 1000, 1, 1, {0}, 0 \
+#define DEFAULT_MQTTINIT_PARAMS                                       \
+    {                                                                 \
+        "china", NULL, NULL, {0}, {0}, 5000, 240 * 1000, 1, 1, {0}, 0 \
     }
 #else
-#define DEFAULT_MQTTINIT_PARAMS                          \
-    {                                                    \
-        NULL, NULL, NULL, 5000, 240 * 1000, 1, 1, {0}, 0 \
+#define DEFAULT_MQTTINIT_PARAMS                                   \
+    {                                                             \
+        "china", NULL, NULL, NULL, 5000, 240 * 1000, 1, 1, {0}, 0 \
     }
 #endif
 
