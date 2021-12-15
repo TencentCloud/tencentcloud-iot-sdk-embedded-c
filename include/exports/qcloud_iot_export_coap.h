@@ -102,12 +102,12 @@ typedef struct {
 #ifdef AUTH_MODE_CERT
 #define DEFAULT_COAPINIT_PARAMS                       \
     {                                                 \
-        "china", NULL, NULL, {0}, {0}, 2000, 5, { 0 } \
+        QCLOUD_IOT_DEFAULT_REGION, NULL, NULL, {0}, {0}, 2000, 5, { 0 } \
     }
 #else
 #define DEFAULT_COAPINIT_PARAMS                   \
     {                                             \
-        "china", NULL, NULL, NULL, 2000, 5, { 0 } \
+        QCLOUD_IOT_DEFAULT_REGION, NULL, NULL, NULL, 2000, 5, { 0 } \
     }
 #endif
 

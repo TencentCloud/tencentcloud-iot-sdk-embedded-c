@@ -55,6 +55,8 @@
 #define MAX_LOG_MSG_LEN (1023)
 #endif
 
+#define QCLOUD_IOT_DEFAULT_REGION "china"
+
 /*
  * Log upload related params, which will affect the size of device memory/disk consumption
  * the default value can be changed for different user situation

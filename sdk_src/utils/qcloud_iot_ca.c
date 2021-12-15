@@ -31,35 +31,19 @@ typedef struct _RegionDomain_ {
 } RegionDomain;
 
 /*mqtt domain*/
-static RegionDomain sg_iot_mqtt_domain[] = {
-    {.region = "china", .domain = QCLOUD_IOT_MQTT_DIRECT_DOMAIN},          /* China */
-    {.region = "us-east", .domain = QCLOUD_IOT_MQTT_US_EAST_DOMAIN},       /* Eastern US */
-    {.region = "europe", .domain = QCLOUD_IOT_MQTT_EUROPE_DOMAIN},         /* Europe */
-    {.region = "ap-bangkok", .domain = QCLOUD_IOT_MQTT_AP_BANGKOK_DOMAIN}, /* Bangkok */
-};
-
-/*coap domain*/
-static RegionDomain sg_iot_coap_domain[] = {
-    {.region = "china", .domain = QCLOUD_IOT_COAP_DIRECT_DOMAIN},          /* China */
-    {.region = "us-east", .domain = QCLOUD_IOT_COAP_US_EAST_DOMAIN},       /* Eastern US */
-    {.region = "europe", .domain = QCLOUD_IOT_COAP_EUROPE_DOMAIN},         /* Europe */
-    {.region = "ap-bangkok", .domain = QCLOUD_IOT_COAP_AP_BANGKOK_DOMAIN}, /* Bangkok */
+static RegionDomain sg_iot_mqtt_coap_domain[] = {
+    {.region = "china", .domain = QCLOUD_IOT_MQTT_COAP_DIRECT_DOMAIN},          /* China */
+    {.region = "us-east", .domain = QCLOUD_IOT_MQTT_COAP_US_EAST_DOMAIN},       /* Eastern US */
+    {.region = "europe", .domain = QCLOUD_IOT_MQTT_COAP_EUROPE_DOMAIN},         /* Europe */
+    {.region = "ap-bangkok", .domain = QCLOUD_IOT_MQTT_COAP_AP_BANGKOK_DOMAIN}, /* Bangkok */
 };
 
 /*dynreg domain*/
-static RegionDomain sg_iot_dyn_reg_domain[] = {
-    {.region = "china", .domain = DYN_REG_SERVER_URL},                 /* China */
-    {.region = "us-east", .domain = DYN_REG_SERVER_US_EAST_URL},       /* Eastern US */
-    {.region = "europe", .domain = DYN_REG_SERVER_EUROPE_URL},         /* Europe */
-    {.region = "ap-bangkok", .domain = DYN_REG_SERVER_AP_BANGKOK_URL}, /* Bangkok */
-};
-
-/*log domain*/
-static RegionDomain sg_iot_log_domain[] = {
-    {.region = "china", .domain = LOG_UPLOAD_SERVER_DIRECT_URL},           /* China */
-    {.region = "us-east", .domain = LOG_UPLOAD_SERVER_US_EAST_URL},       /* Eastern US */
-    {.region = "europe", .domain = LOG_UPLOAD_SERVER_EUROPE_URL},         /* Europe */
-    {.region = "ap-bangkok", .domain = LOG_UPLOAD_SERVER_AP_BANGKOK_URL}, /* Bangkok */
+static RegionDomain sg_iot_dynreg_log_domain[] = {
+    {.region = "china", .domain = DYNREG_LOG_SERVER_URL},                 /* China */
+    {.region = "us-east", .domain = DYNREG_LOG_SERVER_US_EAST_URL},       /* Eastern US */
+    {.region = "europe", .domain = DYNREG_LOG_SERVER_EUROPE_URL},         /* Europe */
+    {.region = "ap-bangkok", .domain = DYNREG_LOG_SERVER_AP_BANGKOK_URL}, /* Bangkok */
 };
 
 #ifndef AUTH_WITH_NOTLS
@@ -226,7 +210,6 @@ const char *iot_dynreg_https_ca_get()
 #endif
 }
 
-
 const char *iot_https_ca_get()
 {
 #ifndef AUTH_WITH_NOTLS
@@ -242,100 +225,46 @@ const char *iot_https_ca_get()
 #endif
 }
 
-const char *iot_get_mqtt_domain(const char *region)
+static const char *iot_get_domain(const char *region, const RegionDomain *region_domain_array, const int domain_num)
 {
-    const char *pDomain = NULL;
-    int         i;
+    const char *pDomain = region_domain_array[0].domain;
+    
+    int i;
 
-    if (!region) {
-        goto end;
-    }
-
-    for (i = 0; i < sizeof(sg_iot_mqtt_domain) / sizeof(sg_iot_mqtt_domain[0]); i++) {
-        if (0 == strcmp(region, sg_iot_mqtt_domain[i].region)) {
-            pDomain = sg_iot_mqtt_domain[i].domain;
-            break;
+    if (region) {
+        for (i = 0; i < domain_num; i++) {
+            if (0 == strcmp(region, region_domain_array[i].region)) {
+                pDomain = region_domain_array[i].domain;
+                break;
+            }
         }
     }
 
-end:
-    if (!pDomain) {
-        pDomain = sg_iot_mqtt_domain[0].domain;
-    }
-
     return pDomain;
+}
+
+const char *iot_get_mqtt_domain(const char *region)
+{
+    return iot_get_domain(region, sg_iot_mqtt_coap_domain,
+                          sizeof(sg_iot_mqtt_coap_domain) / sizeof(sg_iot_mqtt_coap_domain[0]));
 }
 
 const char *iot_get_coap_domain(const char *region)
 {
-    const char *pDomain = NULL;
-    int         i;
-
-    if (!region) {
-        goto end;
-    }
-
-    for (i = 0; i < sizeof(sg_iot_coap_domain) / sizeof(sg_iot_coap_domain[0]); i++) {
-        if (0 == strcmp(region, sg_iot_coap_domain[i].region)) {
-            pDomain = sg_iot_coap_domain[i].domain;
-            break;
-        }
-    }
-
-end:
-    if (!pDomain) {
-        pDomain = sg_iot_coap_domain[0].domain;
-    }
-
-    return pDomain;
+    return iot_get_domain(region, sg_iot_mqtt_coap_domain,
+                          sizeof(sg_iot_mqtt_coap_domain) / sizeof(sg_iot_mqtt_coap_domain[0]));
 }
 
 const char *iot_get_dyn_reg_domain(const char *region)
 {
-    const char *pDomain = NULL;
-    int         i;
-
-    if (!region) {
-        goto end;
-    }
-
-    for (i = 0; i < sizeof(sg_iot_dyn_reg_domain) / sizeof(sg_iot_dyn_reg_domain[0]); i++) {
-        if (0 == strcmp(region, sg_iot_dyn_reg_domain[i].region)) {
-            pDomain = sg_iot_dyn_reg_domain[i].domain;
-            break;
-        }
-    }
-
-end:
-    if (!pDomain) {
-        pDomain = sg_iot_dyn_reg_domain[0].domain;
-    }
-
-    return pDomain;
+    return iot_get_domain(region, sg_iot_dynreg_log_domain,
+                          sizeof(sg_iot_dynreg_log_domain) / sizeof(sg_iot_dynreg_log_domain[0]));
 }
 
 const char *iot_get_log_domain(const char *region)
 {
-    const char *pDomain = NULL;
-    int         i;
-
-    if (!region) {
-        goto end;
-    }
-
-    for (i = 0; i < sizeof(sg_iot_log_domain) / sizeof(sg_iot_log_domain[0]); i++) {
-        if (0 == strcmp(region, sg_iot_log_domain[i].region)) {
-            pDomain = sg_iot_log_domain[i].domain;
-            break;
-        }
-    }
-
-end:
-    if (!pDomain) {
-        pDomain = sg_iot_log_domain[0].domain;
-    }
-
-    return pDomain;
+    return iot_get_domain(region, sg_iot_dynreg_log_domain,
+                          sizeof(sg_iot_dynreg_log_domain) / sizeof(sg_iot_dynreg_log_domain[0]));
 }
 
 #ifdef __cplusplus

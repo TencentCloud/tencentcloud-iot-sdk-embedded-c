@@ -191,12 +191,12 @@ typedef struct {
 #ifdef AUTH_MODE_CERT
 #define DEFAULT_MQTTINIT_PARAMS                                       \
     {                                                                 \
-        "china", NULL, NULL, {0}, {0}, 5000, 240 * 1000, 1, 1, {0}, 0 \
+        QCLOUD_IOT_DEFAULT_REGION, NULL, NULL, {0}, {0}, 5000, 240 * 1000, 1, 1, {0}, 0 \
     }
 #else
 #define DEFAULT_MQTTINIT_PARAMS                                   \
     {                                                             \
-        "china", NULL, NULL, NULL, 5000, 240 * 1000, 1, 1, {0}, 0 \
+        QCLOUD_IOT_DEFAULT_REGION, NULL, NULL, NULL, 5000, 240 * 1000, 1, 1, {0}, 0 \
     }
 #endif
 

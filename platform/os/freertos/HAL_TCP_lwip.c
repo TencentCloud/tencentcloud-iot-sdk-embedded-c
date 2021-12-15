@@ -258,6 +258,6 @@ int HAL_TCP_Read(uintptr_t fd, unsigned char *buf, uint32_t len, uint32_t timeou
 
     if (err_code == QCLOUD_ERR_TCP_READ_TIMEOUT && len_recv == 0)
         err_code = QCLOUD_ERR_TCP_NOTHING_TO_READ;
-
+        
     return (len == len_recv) ? QCLOUD_RET_SUCCESS : err_code;
 }
