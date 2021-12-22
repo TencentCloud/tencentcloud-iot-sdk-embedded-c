@@ -142,7 +142,8 @@ int main(int argc, char **argv)
     IOT_Log_Set_Level(eLOG_DEBUG);
     int rc;
 
-    DeviceInfo device_info = {0};
+    DeviceInfo device_info;
+    memset(&device_info, 0, sizeof(device_info));
     rc                     = HAL_GetDevInfo((void *)&device_info);
     if (QCLOUD_RET_SUCCESS != rc) {
         Log_e("get device info failed: %d", rc);

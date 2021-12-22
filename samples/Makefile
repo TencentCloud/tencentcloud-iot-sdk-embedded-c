@@ -23,7 +23,7 @@ SAMPLE_DIR		:= $(CURDIR)
 FINAL_DIR       := $(CURDIR)/../output/$(BUILD_TYPE)
 
 IOT_LIB_DIR = $(FINAL_DIR)/lib
-IOT_INC_CFLAGS = -I$(FINAL_DIR)/include -I$(FINAL_DIR)/include/exports
+IOT_INC_CFLAGS = -I$(FINAL_DIR)/include -I$(FINAL_DIR)/include/exports  -I$(CURDIR)/../sdk_src/internal_inc
 
 LDFLAGS             := -Wl,--start-group $(IOT_LIB_DIR)/libiot_sdk.a
 ifeq ($(FEATURE_AUTH_WITH_NOTLS),n)
@@ -32,7 +32,7 @@ endif
 LDFLAGS             += $(IOT_LIB_DIR)/libiot_platform.a -Wl,--end-group
 
 
-CFLAGS += -Wall -Wno-error=sign-compare -Wno-error=format -Os -pthread -DFORCE_SSL_VERIFY
+CFLAGS += -Wall -Wno-error=sign-compare -Wno-error=format -Os -pthread -std=gnu99 -DFORCE_SSL_VERIFY
 CFLAGS += ${IOT_INC_CFLAGS}
 
 ifeq ($(FEATURE_AUTH_MODE),CERT)

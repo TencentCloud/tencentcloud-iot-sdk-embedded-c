@@ -458,11 +458,11 @@ int qcloud_iot_mqtt_init(Qcloud_IoT_Client *pClient, MQTTInitParams *pParams)
         Log_e("psk is empty!");
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_INVAL);
     }
-    if (strnlen(pClient->device_info.client_id, MAX_SIZE_OF_CLIENT_ID) == 0) {
-        Log_e("psk id is empty!");
-        IOT_FUNC_EXIT_RC(QCLOUD_ERR_INVAL);
-    }
-    pClient->network_stack.ssl_connect_params.psk_id     = pClient->device_info.client_id;
+
+    memset(pClient->network_stack.ssl_connect_params.psk_id, 0, MAX_SIZE_OF_CLIENT_ID);
+    HAL_Snprintf(pClient->network_stack.ssl_connect_params.psk_id, MAX_SIZE_OF_CLIENT_ID, "%s%s",
+                STRING_PTR_PRINT_SANITY_CHECK(pParams->product_id),
+                STRING_PTR_PRINT_SANITY_CHECK(pParams->device_name));
     pClient->network_stack.ssl_connect_params.ca_crt     = NULL;
     pClient->network_stack.ssl_connect_params.ca_crt_len = 0;
 #endif
@@ -470,9 +470,8 @@ int qcloud_iot_mqtt_init(Qcloud_IoT_Client *pClient, MQTTInitParams *pParams)
     pClient->network_stack.host = pClient->host_addr;
     pClient->network_stack.port = MQTT_SERVER_PORT_TLS;
     pClient->network_stack.ssl_connect_params.timeout_ms =
-        pClient->command_timeout_ms > QCLOUD_IOT_TLS_HANDSHAKE_TIMEOUT ? pClient->command_timeout_ms
-                                                                       : QCLOUD_IOT_TLS_HANDSHAKE_TIMEOUT;
-
+        (pClient->command_timeout_ms > QCLOUD_IOT_TLS_HANDSHAKE_TIMEOUT) ? pClient->command_timeout_ms
+                                                                         : QCLOUD_IOT_TLS_HANDSHAKE_TIMEOUT;
 #else
     pClient->network_stack.host = pClient->host_addr;
     pClient->network_stack.port = MQTT_SERVER_PORT_NOTLS;

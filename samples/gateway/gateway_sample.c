@@ -331,7 +331,8 @@ int main(int argc, char **argv)
     DeviceInfo *sub_dev_info = gw_dev_info.sub_dev_info;
 
     // to bind a new sub device
-    DeviceInfo new_sub_dev = {0};
+    DeviceInfo new_sub_dev;
+    memset(&new_sub_dev, 0, sizeof(DeviceInfo));
     if (new_subdev_file) {
         do {
             rc = HAL_GetDevInfoFromFile(new_subdev_file, &new_sub_dev);
