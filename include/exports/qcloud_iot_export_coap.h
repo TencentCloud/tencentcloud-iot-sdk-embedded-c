@@ -82,6 +82,7 @@ typedef struct {
  */
 typedef struct {
     /* device info */
+    char *region;       // region
     char *product_id;   // product ID
     char *device_name;  // device name
 
@@ -99,14 +100,14 @@ typedef struct {
 } CoAPInitParams;
 
 #ifdef AUTH_MODE_CERT
-#define DEFAULT_COAPINIT_PARAMS              \
-    {                                        \
-        NULL, NULL, {0}, {0}, 2000, 5, { 0 } \
+#define DEFAULT_COAPINIT_PARAMS                       \
+    {                                                 \
+        QCLOUD_IOT_DEFAULT_REGION, NULL, NULL, {0}, {0}, 2000, 5, { 0 } \
     }
 #else
-#define DEFAULT_COAPINIT_PARAMS          \
-    {                                    \
-        NULL, NULL, NULL, 2000, 5, { 0 } \
+#define DEFAULT_COAPINIT_PARAMS                   \
+    {                                             \
+        QCLOUD_IOT_DEFAULT_REGION, NULL, NULL, NULL, 2000, 5, { 0 } \
     }
 #endif
 

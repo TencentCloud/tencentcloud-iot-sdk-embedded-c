@@ -20,8 +20,31 @@ extern "C" {
 #include "qcloud_iot_ca.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "qcloud_iot_import.h"
+#include "qcloud_iot_common.h"
+
+typedef struct _RegionDomain_ {
+    const char *region;
+    const char *domain;
+} RegionDomain;
+
+/*mqtt domain*/
+static RegionDomain sg_iot_mqtt_coap_domain[] = {
+    {.region = "china", .domain = QCLOUD_IOT_MQTT_COAP_DIRECT_DOMAIN},          /* China */
+    {.region = "us-east", .domain = QCLOUD_IOT_MQTT_COAP_US_EAST_DOMAIN},       /* Eastern US */
+    {.region = "europe", .domain = QCLOUD_IOT_MQTT_COAP_EUROPE_DOMAIN},         /* Europe */
+    {.region = "ap-bangkok", .domain = QCLOUD_IOT_MQTT_COAP_AP_BANGKOK_DOMAIN}, /* Bangkok */
+};
+
+/*dynreg domain*/
+static RegionDomain sg_iot_dynreg_log_domain[] = {
+    {.region = "china", .domain = DYNREG_LOG_SERVER_URL},                 /* China */
+    {.region = "us-east", .domain = DYNREG_LOG_SERVER_US_EAST_URL},       /* Eastern US */
+    {.region = "europe", .domain = DYNREG_LOG_SERVER_EUROPE_URL},         /* Europe */
+    {.region = "ap-bangkok", .domain = DYNREG_LOG_SERVER_AP_BANGKOK_URL}, /* Bangkok */
+};
 
 #ifndef AUTH_WITH_NOTLS
 #if defined(DEV_DYN_REG_ENABLED)
@@ -187,7 +210,6 @@ const char *iot_dynreg_https_ca_get()
 #endif
 }
 
-
 const char *iot_https_ca_get()
 {
 #ifndef AUTH_WITH_NOTLS
@@ -201,6 +223,48 @@ const char *iot_https_ca_get()
 #else
     return NULL;
 #endif
+}
+
+static const char *iot_get_domain(const char *region, const RegionDomain *region_domain_array, const int domain_num)
+{
+    const char *pDomain = region_domain_array[0].domain;
+    
+    int i;
+
+    if (region) {
+        for (i = 0; i < domain_num; i++) {
+            if (0 == strcmp(region, region_domain_array[i].region)) {
+                pDomain = region_domain_array[i].domain;
+                break;
+            }
+        }
+    }
+
+    return pDomain;
+}
+
+const char *iot_get_mqtt_domain(const char *region)
+{
+    return iot_get_domain(region, sg_iot_mqtt_coap_domain,
+                          sizeof(sg_iot_mqtt_coap_domain) / sizeof(sg_iot_mqtt_coap_domain[0]));
+}
+
+const char *iot_get_coap_domain(const char *region)
+{
+    return iot_get_domain(region, sg_iot_mqtt_coap_domain,
+                          sizeof(sg_iot_mqtt_coap_domain) / sizeof(sg_iot_mqtt_coap_domain[0]));
+}
+
+const char *iot_get_dyn_reg_domain(const char *region)
+{
+    return iot_get_domain(region, sg_iot_dynreg_log_domain,
+                          sizeof(sg_iot_dynreg_log_domain) / sizeof(sg_iot_dynreg_log_domain[0]));
+}
+
+const char *iot_get_log_domain(const char *region)
+{
+    return iot_get_domain(region, sg_iot_dynreg_log_domain,
+                          sizeof(sg_iot_dynreg_log_domain) / sizeof(sg_iot_dynreg_log_domain[0]));
 }
 
 #ifdef __cplusplus

@@ -131,6 +131,7 @@ static int _setup_connect_init_params(MQTTInitParams *initParams)
         return ret;
     }
 
+    initParams->region      = sg_device_info.region;
     initParams->device_name = sg_device_info.device_name;
     initParams->product_id  = sg_device_info.product_id;
 

@@ -274,6 +274,7 @@ static int _setup_connect_init_params(ShadowInitParams *initParams)
         return ret;
     }
 
+    initParams->region      = sg_devInfo.region;
     initParams->device_name = sg_devInfo.device_name;
     initParams->product_id  = sg_devInfo.product_id;
 

@@ -367,7 +367,8 @@ int qcloud_iot_mqtt_init(Qcloud_IoT_Client *pClient, MQTTInitParams *pParams)
         return rc;
     }
 
-    int size = HAL_Snprintf(pClient->host_addr, HOST_STR_LENGTH, "%s.%s", product_id, QCLOUD_IOT_MQTT_DIRECT_DOMAIN);
+    int size =
+        HAL_Snprintf(pClient->host_addr, HOST_STR_LENGTH, "%s.%s", product_id, iot_get_mqtt_domain(pParams->region));
     if (size < 0 || size > HOST_STR_LENGTH - 1) {
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
     }

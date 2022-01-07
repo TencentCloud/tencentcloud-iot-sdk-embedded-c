@@ -159,6 +159,7 @@ static void _mqtt_event_handler(void *pclient, void *handle_context, MQTTEventMs
 // Setup MQTT construct parameters
 static int _setup_connect_init_params(MQTTInitParams *initParams, DeviceInfo *device_info)
 {
+    initParams->region      = device_info->region;
     initParams->product_id  = device_info->product_id;
     initParams->device_name = device_info->device_name;
 

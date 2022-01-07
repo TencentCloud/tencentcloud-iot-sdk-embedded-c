@@ -472,24 +472,25 @@ static int _post_reg_request_by_http(char *request_buf, DeviceInfo *pDevInfo)
     int         port;
     const char *ca_crt = NULL;
     char        respbuff[DYN_RESPONSE_BUFF_LEN];
-    char *      dynreg_uri = "/device/register";
+    char *      dynreg_uri = DYN_REG_SERVER_URL_PATH;
     const char *url_format = "%s://%s%s";
 
 /*format URL*/
 #ifndef AUTH_WITH_NOTLS
-    HAL_Snprintf(url, REG_URL_MAX_LEN, url_format, "https", DYN_REG_SERVER_URL, dynreg_uri);
+    HAL_Snprintf(url, REG_URL_MAX_LEN, url_format, "https", iot_get_dyn_reg_domain(pDevInfo->region), dynreg_uri);
     port   = DYN_REG_SERVER_PORT_TLS;
     ca_crt = iot_dynreg_https_ca_get();
 #else
-    HAL_Snprintf(url, REG_URL_MAX_LEN, url_format, "http", DYN_REG_SERVER_URL, dynreg_uri);
+    HAL_Snprintf(url, REG_URL_MAX_LEN, url_format, "http", iot_get_dyn_reg_domain(pDevInfo->region), dynreg_uri);
     port                     = DYN_REG_SERVER_PORT;
 #endif
 
     memset((char *)&http_client, 0, sizeof(HTTPClient));
     memset((char *)&http_data, 0, sizeof(HTTPClientData));
 
-    http_client.header = qcloud_iot_http_header_create(request_buf, strlen(request_buf), DYN_REG_SERVER_URL, dynreg_uri,
-                                                       "application/json;", pDevInfo->product_secret, NULL);
+    http_client.header =
+        qcloud_iot_http_header_create(request_buf, strlen(request_buf), iot_get_dyn_reg_domain(pDevInfo->region),
+                                      dynreg_uri, "application/json;", pDevInfo->product_secret, NULL);
     http_data.post_content_type = "application/json; charset=utf-8";
     http_data.post_buf          = request_buf;
     http_data.post_buf_len      = strlen(request_buf);

@@ -110,6 +110,7 @@ static int _setup_gw_init_params(GatewayInitParam *gw_init_params, GatewayDevice
 {
     MQTTInitParams *init_params = &gw_init_params->init_param;
     DeviceInfo *    dev_info    = &gw_dev_info->gw_info;
+    init_params->region         = dev_info->region;
     init_params->product_id     = dev_info->product_id;
     init_params->device_name    = dev_info->device_name;
 

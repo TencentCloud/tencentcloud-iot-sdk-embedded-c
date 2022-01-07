@@ -49,6 +49,9 @@ extern "C" {
 /* MAX size of device key file name */
 #define MAX_SIZE_OF_DEVICE_SECRET_FILE_NAME (128)
 
+/* MAX size of region len */
+#define MAX_SIZE_OF_REGION (64)
+
 /**************** QCloud IoT C-SDK constants end *************************/
 
 typedef struct {
@@ -66,6 +69,8 @@ typedef struct {
 #ifdef DEV_DYN_REG_ENABLED
     char product_secret[MAX_SIZE_OF_PRODUCT_SECRET + 1];
 #endif
+
+    char region[MAX_SIZE_OF_REGION];
 } DeviceInfo;
 
 #ifdef GATEWAY_ENABLED

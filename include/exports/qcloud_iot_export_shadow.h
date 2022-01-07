@@ -30,6 +30,7 @@ typedef enum _eShadowType_ {
 /* The structure of MQTT shadow init parameters */
 typedef struct {
     /* device info */
+    char *region;       // region
     char *product_id;   // product ID
     char *device_name;  // device name
 
@@ -51,12 +52,12 @@ typedef struct {
 #ifdef AUTH_MODE_CERT
 #define DEFAULT_SHAWDOW_INIT_PARAMS                          \
     {                                                        \
-        NULL, NULL, {0}, {0}, 5000, 240 * 1000, 1, 1, {0}, 0 \
+        QCLOUD_IOT_DEFAULT_REGION, NULL, NULL, {0}, {0}, 5000, 240 * 1000, 1, 1, {0}, 0 \
     }
 #else
 #define DEFAULT_SHAWDOW_INIT_PARAMS                      \
     {                                                    \
-        NULL, NULL, NULL, 5000, 240 * 1000, 1, 1, {0}, 0 \
+        QCLOUD_IOT_DEFAULT_REGION, NULL, NULL, NULL, 5000, 240 * 1000, 1, 1, {0}, 0 \
     }
 #endif
 

@@ -90,6 +90,7 @@ static void _mqtt_event_handler(void *pclient, void *handle_context, MQTTEventMs
 // Setup MQTT construct parameters
 static int _setup_connect_init_params(MQTTInitParams *initParams, DeviceInfo *device_info)
 {
+    initParams->region      = device_info->region;
     initParams->product_id  = device_info->product_id;
     initParams->device_name = device_info->device_name;
 
@@ -223,6 +224,7 @@ static int _init_log_upload(MQTTInitParams *init_params)
     LogUploadInitParams log_init_params;
     memset(&log_init_params, 0, sizeof(LogUploadInitParams));
 
+    log_init_params.region      = init_params->region;
     log_init_params.product_id  = init_params->product_id;
     log_init_params.device_name = init_params->device_name;
 #ifdef AUTH_MODE_CERT

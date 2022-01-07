@@ -33,6 +33,9 @@ static char sg_product_id[MAX_SIZE_OF_PRODUCT_ID + 1] = "PRODUCT_ID";
 /* device name */
 static char sg_device_name[MAX_SIZE_OF_DEVICE_NAME + 1] = "YOUR_DEV_NAME";
 
+/* region */
+static char sg_region[MAX_SIZE_OF_REGION + 1] = "china";
+
 #ifdef DEV_DYN_REG_ENABLED
 /* product secret for device dynamic Registration  */
 static char sg_product_secret[MAX_SIZE_OF_PRODUCT_SECRET + 1] = "YOUR_PRODUCT_SECRET";
@@ -80,6 +83,7 @@ int HAL_SetDevInfoFile(const char *file_name)
 #define MAX_DEV_INFO_FILE_LEN 1024
 #define MAX_CONFIG_FILE_NAME  256
 
+#define KEY_REGION            "region"
 #define KEY_AUTH_MODE         "auth_mode"
 #define KEY_PRODUCT_ID        "productId"
 #define KEY_PRODUCT_SECRET    "productSecret"
@@ -169,6 +173,15 @@ int HAL_GetDevInfoFromFile(const char *file_name, void *dev_info)
         Log_e("read data len (%d) less than needed (%d), %s", rlen, len, JsonDoc);
         ret = QCLOUD_ERR_FAILURE;
         goto exit;
+    }
+
+    /*Get region*/
+    char *region = LITE_json_value_of(KEY_REGION, JsonDoc);
+    if (NULL == region) {
+        Log_e("read region from json file failed!");
+    } else {
+        strncpy(pDevInfo->region, region, MAX_SIZE_OF_REGION);
+        HAL_Free(region);
     }
 
     /*Get device info*/
@@ -333,6 +346,10 @@ static int iot_save_devinfo_to_json_file(DeviceInfo *pDevInfo)
                                   STRING_PTR_PRINT_SANITY_CHECK(pDevInfo->device_name));
     remain_size -= rc_of_snprintf;
 
+    rc_of_snprintf =
+        HAL_Snprintf(JsonDoc + strlen(JsonDoc), remain_size, "\"%s\":\"%s\",\n", KEY_REGION, pDevInfo->region);
+    remain_size -= rc_of_snprintf;
+
     // product secret
 #ifdef DEV_DYN_REG_ENABLED
     rc_of_snprintf = HAL_Snprintf(JsonDoc + strlen(JsonDoc), remain_size, "\"%s\":\"%s\",\n", KEY_PRODUCT_SECRET,
@@ -385,6 +402,7 @@ int HAL_SetDevInfo(void *pdevInfo)
 #ifdef DEBUG_DEV_INFO_USED
     ret = device_info_copy(sg_product_id, devInfo->product_id, MAX_SIZE_OF_PRODUCT_ID);      // set product ID
     ret |= device_info_copy(sg_device_name, devInfo->device_name, MAX_SIZE_OF_DEVICE_NAME);  // set dev name
+    ret |= device_info_copy(sg_region, devInfo->region, MAX_SIZE_OF_REGION);                 // get region
 
 #ifdef AUTH_MODE_CERT
     ret |= device_info_copy(sg_device_cert_file_name, devInfo->dev_cert_file_name,
@@ -416,6 +434,7 @@ int HAL_GetDevInfo(void *pdevInfo)
 #ifdef DEBUG_DEV_INFO_USED
     ret = device_info_copy(devInfo->product_id, sg_product_id, MAX_SIZE_OF_PRODUCT_ID);      // get product ID
     ret |= device_info_copy(devInfo->device_name, sg_device_name, MAX_SIZE_OF_DEVICE_NAME);  // get dev name
+    ret |= device_info_copy(devInfo->region, sg_region, MAX_SIZE_OF_REGION);                 // get region
 
 #ifdef DEV_DYN_REG_ENABLED
     ret |= device_info_copy(devInfo->product_secret, sg_product_secret, MAX_SIZE_OF_PRODUCT_SECRET);  // get product ID

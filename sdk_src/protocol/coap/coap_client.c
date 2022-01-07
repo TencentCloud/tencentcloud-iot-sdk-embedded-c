@@ -261,7 +261,7 @@ int qcloud_iot_coap_init(CoAPClient *pClient, CoAPInitParams *pParams)
     }
 
     int size =
-        HAL_Snprintf(pClient->host_addr, HOST_STR_LENGTH, "%s.%s", pParams->product_id, QCLOUD_IOT_COAP_DEIRECT_DOMAIN);
+        HAL_Snprintf(pClient->host_addr, HOST_STR_LENGTH, "%s.%s", pParams->product_id, iot_get_coap_domain(pParams->region));
     if (size < 0 || size > HOST_STR_LENGTH - 1) {
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
     }

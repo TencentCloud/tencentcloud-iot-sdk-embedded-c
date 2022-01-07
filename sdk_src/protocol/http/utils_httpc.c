@@ -739,7 +739,7 @@ int qcloud_http_client_connect(HTTPClient *client, const char *url, int port, co
         qcloud_http_client_close(client);
     } else {
         /* reduce log print due to frequent log server connect/disconnect */
-        if (0 == strcmp(url, LOG_UPLOAD_SERVER_URL))
+        if (NULL != strstr(url, UPLOAD_LOG_URI_PATH))
             UPLOAD_DBG("http client connect success");
         else
             Log_d("http client connect success");

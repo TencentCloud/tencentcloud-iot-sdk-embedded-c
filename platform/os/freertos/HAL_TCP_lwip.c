@@ -81,7 +81,7 @@ uintptr_t HAL_TCP_Connect(const char *host, uint16_t port)
         Log_e("failed to connect with TCP server: %s:%s", STRING_PTR_PRINT_SANITY_CHECK(host), port_str);
     } else {
         /* reduce log print due to frequent log server connect/disconnect */
-        if (0 == strncmp(host, LOG_UPLOAD_SERVER_DOMAIN, HOST_STR_LENGTH))
+        if (NULL != strstr(host, LOG_UPLOAD_SERVER_POSTFIX))
             UPLOAD_DBG("connected with TCP server: %s:%s", host, port_str);
         else
             Log_i("connected with TCP server: %s:%s", STRING_PTR_PRINT_SANITY_CHECK(host), port_str);
@@ -258,6 +258,6 @@ int HAL_TCP_Read(uintptr_t fd, unsigned char *buf, uint32_t len, uint32_t timeou
 
     if (err_code == QCLOUD_ERR_TCP_READ_TIMEOUT && len_recv == 0)
         err_code = QCLOUD_ERR_TCP_NOTHING_TO_READ;
-
+        
     return (len == len_recv) ? QCLOUD_RET_SUCCESS : err_code;
 }
