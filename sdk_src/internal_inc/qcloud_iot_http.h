@@ -53,7 +53,7 @@ typedef struct qcloud_iot_http_header_post_sign {
 } QCLOUD_IOT_HTTP_HEADER_POST_SIGN;
 
 char *qcloud_iot_http_header_create(char *request_body_buf, int request_body_buf_len, const char *host, const char *uri,
-                                    char *accept_header, char *secretkey, void *privatekey);
+                                    char *accept_header, char *secretkey, void *privatekey, long timestamp);
 
 void qcloud_iot_http_header_destory(char *http_header);
 

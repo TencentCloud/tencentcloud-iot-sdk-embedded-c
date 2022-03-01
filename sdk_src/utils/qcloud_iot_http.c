@@ -198,10 +198,9 @@ int qcloud_iot_http_post_sign_calc(QCLOUD_IOT_HTTP_HEADER_POST_SIGN *post_sign, 
 }
 
 char *qcloud_iot_http_header_create(char *request_body_buf, int request_body_buf_len, const char *host, const char *uri,
-                                    char *accept_header, char *secretkey, void *privatekey)
+                                    char *accept_header, char *secretkey, void *privatekey, long timestamp)
 {
     int      nonce;
-    uint32_t timestamp;
     char *   sign     = NULL;
     int      sign_len = 0;
 
@@ -209,8 +208,6 @@ char *qcloud_iot_http_header_create(char *request_body_buf, int request_body_buf
 
     qcloud_srand_d(HAL_GetTimeMs());
     nonce     = qcloud_rand_d();
-    timestamp = HAL_Timer_current_sec();
-
     memset(&post_sign, 0, sizeof(QCLOUD_IOT_HTTP_HEADER_POST_SIGN));
     post_sign.host      = host;
     post_sign.uri       = uri;

@@ -46,7 +46,7 @@ extern "C" {
 #define LOG_LOW_BUFFER_THRESHOLD (LOG_UPLOAD_BUFFER_SIZE / 4)
 
 /* log upload buffer */
-static char *   sg_log_buffer  = NULL;
+static char    *sg_log_buffer  = NULL;
 static uint32_t sg_write_index = 0;
 
 #define SIGN_KEY_SIZE 24
@@ -60,8 +60,8 @@ static int   sg_log_buffer_head_len = 0;
 #define LOG_CHECK_HTTP_RET_CODE
 
 typedef struct {
-    const char *   url;
-    const char *   ca_crt;
+    const char    *url;
+    const char    *ca_crt;
     int            port;
     HTTPClient     http;      /* http client */
     HTTPClientData http_data; /* http client data */
@@ -73,15 +73,13 @@ static LogHTTPStruct *sg_http_c = NULL;
 typedef struct {
     const char *product_id;
     const char *device_name;
-    void *      mqtt_client;
+    void       *mqtt_client;
     bool        upload_only_in_comm_err;
 
     void *lock_buf;
     Timer upload_timer;
-#ifndef LOG_UPDATE_TIME_WHEN_UPLOAD
     Timer time_update_timer;
-#endif
-    long system_time;
+    long  system_time;
 
     LogSaveFunc    save_func;
     LogReadFunc    read_func;
@@ -139,18 +137,50 @@ static bool _get_json_ret_code(char *json)
 }
 #endif
 
+static long _get_system_time(void)
+{
+#ifdef SYSTEM_COMM
+#define LOG_TIME_UPDATE_INTERVAL (1800)  // 30min
+    static long last_time = 0, last_sys_time = 0;
+
+    if (sg_uploader->mqtt_client == NULL)
+        return 0;
+    long sys_time = 0;
+
+    if (!expired(&sg_uploader->time_update_timer)) {
+        sys_time = last_sys_time + (HAL_Timer_current_sec() - last_time);
+        return sys_time;
+    }
+
+    int rc = IOT_Get_SysTime(sg_uploader->mqtt_client, &sys_time);
+    if (rc == QCLOUD_RET_SUCCESS) {
+        last_sys_time = sys_time;
+        last_time     = HAL_Timer_current_sec();
+        countdown(&sg_uploader->time_update_timer, LOG_TIME_UPDATE_INTERVAL);
+        return sys_time;
+    } else {
+        countdown(&sg_uploader->time_update_timer, LOG_TIME_UPDATE_INTERVAL / 2);
+        return sys_time = last_sys_time + (HAL_Timer_current_sec() - last_time);
+    }
+#undef LOG_TIME_UPDATE_INTERVAL
+#else
+    return 1609430400;  // default timestamp = 1609430400
+#endif
+}
 static int _post_one_http_to_server(char *post_buf, size_t post_size)
 {
     int   rc       = 0;
     char  url[128] = {0};
     int   port;
+    long  timestamp      = _get_system_time();
     char *upload_log_uri = UPLOAD_LOG_URI_PATH;
 
     if (sg_http_c == NULL)
         return QCLOUD_ERR_INVAL;
 
-    sg_http_c->http.header = qcloud_iot_http_header_create(post_buf, post_size, sg_http_c->url, upload_log_uri,
-                                                           "application/json;", sg_sign_key, sg_sign_log_privatekey);
+    sg_http_c->http.header =
+        qcloud_iot_http_header_create(post_buf, post_size, sg_http_c->url, upload_log_uri, "application/json;",
+                                      sg_sign_key, sg_sign_log_privatekey, timestamp);
 
     sg_http_c->http_data.post_content_type = "application/json;charset=utf-8";
     sg_http_c->http_data.post_buf          = post_buf;
@@ -327,7 +357,7 @@ static int _handle_saved_log(void)
             return QCLOUD_ERR_FAILURE;
 
         size_t buf_size = whole_log_size + sg_log_buffer_head_len + 1;
-        char * log_buf  = HAL_Malloc(buf_size);
+        char  *log_buf  = HAL_Malloc(buf_size);
         if (log_buf != NULL) {
             /* read the whole log to buffer */
             size_t read_len = sg_uploader->read_func(log_buf + sg_log_buffer_head_len, whole_log_size);

@@ -209,7 +209,7 @@ static void _deal_transfer_back(char *in_data, uint32_t dataLen, char *out_data)
 
 static int _cert_file_save(const char *fileName, char *data, uint32_t dataLen)
 {
-    FILE *   fp;
+    FILE    *fp;
     char     filePath[FILE_PATH_MAX_LEN];
     uint32_t len;
     int      Ret = QCLOUD_ERR_FAILURE;
@@ -323,8 +323,8 @@ static int _parse_devinfo(char *jdoc, DeviceInfo *pDevInfo)
     char          key[UTILS_AES_BLOCK_LEN + 1];
     char          decodeBuff[DECODE_BUFF_LEN] = {0};
     unsigned char iv[16];
-    char *        payload  = NULL;
-    char *        response = NULL;
+    char         *payload  = NULL;
+    char         *response = NULL;
 
 #ifdef AUTH_MODE_CERT
     char *clientCert = NULL;
@@ -472,9 +472,9 @@ static int _post_reg_request_by_http(char *request_buf, DeviceInfo *pDevInfo)
     int         port;
     const char *ca_crt = NULL;
     char        respbuff[DYN_RESPONSE_BUFF_LEN];
-    char *      dynreg_uri = DYN_REG_SERVER_URL_PATH;
+    char       *dynreg_uri = DYN_REG_SERVER_URL_PATH;
     const char *url_format = "%s://%s%s";
-
+    long        timestamp  = 1609430400;  // default timestamp = 1609430400
 /*format URL*/
 #ifndef AUTH_WITH_NOTLS
     HAL_Snprintf(url, REG_URL_MAX_LEN, url_format, "https", iot_get_dyn_reg_domain(pDevInfo->region), dynreg_uri);
@@ -490,7 +490,7 @@ static int _post_reg_request_by_http(char *request_buf, DeviceInfo *pDevInfo)
 
     http_client.header =
         qcloud_iot_http_header_create(request_buf, strlen(request_buf), iot_get_dyn_reg_domain(pDevInfo->region),
-                                      dynreg_uri, "application/json;", pDevInfo->product_secret, NULL);
+                                      dynreg_uri, "application/json;", pDevInfo->product_secret, NULL, timestamp);
     http_data.post_content_type = "application/json; charset=utf-8";
     http_data.post_buf          = request_buf;
     http_data.post_buf_len      = strlen(request_buf);
@@ -528,7 +528,7 @@ int IOT_DynReg_Device(DeviceInfo *pDevInfo)
 {
     int         Ret;
     const char *http_request_body_format = NULL;
-    char *      clientCert               = NULL;
+    char       *clientCert               = NULL;
     if (strlen(pDevInfo->product_secret) < UTILS_AES_BLOCK_LEN) {
         Log_e("product key inllegal");
         return QCLOUD_ERR_FAILURE;
