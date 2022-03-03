@@ -13,6 +13,7 @@ set(EXTRACT_SRC OFF)
 
 # 编译工具链
 set(COMPILE_TOOLS "gcc")
+set(CMAKE_C_COMPILER $ENV{CROSS_COMPILE}gcc)
 set(PLATFORM 	  "linux")
 
 #set(COMPILE_TOOLS "MSVC") 
@@ -88,14 +89,6 @@ set(FEATURE_REMOTE_CONFIG_MQTT_ENABLED ON)
 
 # 设置CMAKE使用编译工具及编译选项
 if (PLATFORM STREQUAL "linux" AND COMPILE_TOOLS  STREQUAL "gcc")
-	set(CMAKE_C_COMPILER ${COMPILE_TOOLS}) 
-	if(${BUILD_TYPE} STREQUAL  "release")
-		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror -Wall -Wno-error=sign-compare -Wno-error=format -Os -pthread") # 编译选项
-	elseif(${BUILD_TYPE} STREQUAL  "debug")
-		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -Werror -Wall -Wno-error=sign-compare -Wno-error=format -Os -pthread") # 编译选项
-	endif()
-elseif (PLATFORM STREQUAL "linux" AND COMPILE_TOOLS  STREQUAL "arm-none-linux-gnueabi-gcc")
-	set(CMAKE_C_COMPILER ${COMPILE_TOOLS}) 
 	if(${BUILD_TYPE} STREQUAL  "release")
 		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror -Wall -Wno-error=sign-compare -Wno-error=format -Os -pthread") # 编译选项
 	elseif(${BUILD_TYPE} STREQUAL  "debug")
@@ -111,7 +104,6 @@ elseif (PLATFORM STREQUAL "windows" AND COMPILE_TOOLS STREQUAL "MSVC")
 	endif()
 else ()
 	#用户自定义
-	set(CMAKE_C_COMPILER ${COMPILE_TOOLS}) # 编译工具
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror -Wall -Wno-error=sign-compare -Wno-error=format -Os") 				   # 编译选项
 	message(WARNING "User defined platform or compile tools!")
 endif()
