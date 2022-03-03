@@ -128,33 +128,28 @@ set(FEATURE_RESOURCE_USE_HTTPS ON)
 # 设置CMAKE使用编译工具及编译选项
 # Set CMAKE to use compilation tools and compilation options
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
-if (PLATFORM STREQUAL "linux" AND COMPILE_TOOLS  STREQUAL "gcc")
-	set(CMAKE_C_COMPILER ${COMPILE_TOOLS}) 
+
+if ((NOT COMPILE_TOOLS STREQUAL "gcc") AND (NOT COMPILE_TOOLS STREQUAL "MSVC"))
+	#用户自定义
+	set(CMAKE_C_COMPILER ${COMPILE_TOOLS}) # 编译工具
+	message(WARNING "User defined platform or compile tools!")
+endif()
+
+if(CMAKE_COMPILER_IS_GNUCC)
 	if(${BUILD_TYPE} STREQUAL  "release")
-		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror -Wall -Wno-error=sign-compare -Wno-error=format -Os -pthread") # 编译选项 Compilation options
+		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror -Wall -Wno-error=sign-compare -Wno-error=format -std=gnu99 -Os -pthread") # 编译选项
 	elseif(${BUILD_TYPE} STREQUAL  "debug")
-		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -Werror -Wall -Wno-error=sign-compare -Wno-error=format -Os -pthread") # 编译选项 Compilation options
+		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -Werror -Wall -Wno-error=sign-compare -Wno-error=format -std=gnu99 -Os -pthread") # 编译选项
 	endif()
-elseif (PLATFORM STREQUAL "linux" AND COMPILE_TOOLS  STREQUAL "arm-none-linux-gnueabi-gcc")
-	set(CMAKE_C_COMPILER ${COMPILE_TOOLS}) 
-	if(${BUILD_TYPE} STREQUAL  "release")
-		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror -Wall -Wno-error=sign-compare -Wno-error=format -Os -pthread") # 编译选项 Compilation options
-	elseif(${BUILD_TYPE} STREQUAL  "debug")
-		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -Werror -Wall -Wno-error=sign-compare -Wno-error=format -Os -pthread") # 编译选项 Compilation options
-	endif()
-elseif (PLATFORM STREQUAL "windows" AND COMPILE_TOOLS STREQUAL "MSVC")
-	# 去除相应的警告 Remove the corresponding warning
+endif()
+
+if(CMAKE_COMPILER_IS_CLANG)
 	add_definitions(-D_CRT_SECURE_NO_WARNINGS -D_WINSOCK_DEPRECATED_NO_WARNINGS -D_USE_32BIT_TIME_T)
 	if(CMAKE_C_FLAGS MATCHES "/W[0-4]")
 		string(REGEX REPLACE "/W[0-4]" "/W2" CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
 	else()
 		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /W2")
 	endif()
-else ()
-	#用户自定义 Custom
-	set(CMAKE_C_COMPILER ${COMPILE_TOOLS}) # 编译工具 Compilation tools
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror -Wall -Wno-error=sign-compare -Wno-error=format -Os") 				   # 编译选项 Compilation option
-	message(WARNING "User defined platform or compile tools!")
 endif()
 
 # 解析配置

@@ -330,8 +330,11 @@ static int _mqtt_multi_thread_test(void *client)
     int   finished_thread_count = 0;    // record the number of finished publish threads
     int   rx_msg_count          = 0;    // record the times of successfull subscribe
     // thread data passed to publish thread
-    AppThreadData thread_data[MAX_PUB_THREAD_COUNT]       = {0};
-    ThreadParams  pub_thread_params[MAX_PUB_THREAD_COUNT] = {0};
+    AppThreadData thread_data[MAX_PUB_THREAD_COUNT];
+    ThreadParams  pub_thread_params[MAX_PUB_THREAD_COUNT];
+
+    memset(thread_data, 0, sizeof(thread_data));
+    memset(pub_thread_params, 0, sizeof(pub_thread_params));
 
     int rc          = QCLOUD_RET_SUCCESS;
     int test_result = 0;

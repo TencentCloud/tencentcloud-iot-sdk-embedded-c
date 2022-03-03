@@ -19,9 +19,9 @@ set(link_lib
 )
 endif()
 
-if (PLATFORM STREQUAL "linux" AND COMPILE_TOOLS  STREQUAL "gcc")
+if(CMAKE_COMPILER_IS_GNUCC)
 	set(lib -Wl,--start-group ${link_lib} -Wl,--end-group)
-elseif (PLATFORM STREQUAL "windows" AND COMPILE_TOOLS STREQUAL "MSVC")
+else ()
 	set(lib ${link_lib})
 endif()
 

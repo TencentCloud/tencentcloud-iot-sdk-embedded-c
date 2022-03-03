@@ -145,7 +145,8 @@ static void _shadow_client_thread_runner(void *ptr)
     SampleThreadData *thread_data = (SampleThreadData *)ptr;
     int               thread_id   = thread_data->thread_id;
 
-    DeviceInfo dev_info = {0};
+    DeviceInfo dev_info;
+    memset(&dev_info, 0, sizeof(DeviceInfo));
     if (HAL_GetDevInfoFromFile(thread_data->device_info_file, (void *)&dev_info)) {
         Log_e("invalid dev info file: %s", STRING_PTR_PRINT_SANITY_CHECK(thread_data->device_info_file));
         goto thread_exit;

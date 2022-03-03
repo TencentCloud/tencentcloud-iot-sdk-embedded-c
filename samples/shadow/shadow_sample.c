@@ -103,7 +103,8 @@ int demo_device_shadow()
     DeviceProperty shadow_property;
     int            current_update_count = 0;
 
-    DeviceInfo device_info = {0};
+    DeviceInfo device_info;
+    memset(&device_info, 0, sizeof(device_info));
     rc                     = HAL_GetDevInfo((void *)&device_info);
     if (QCLOUD_RET_SUCCESS != rc) {
         Log_e("get device info failed: %d", rc);

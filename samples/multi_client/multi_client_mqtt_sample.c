@@ -273,7 +273,8 @@ static void _mqtt_client_thread_runner(void *ptr)
     AppThreadData *app_data  = (AppThreadData *)ptr;
     int            thread_id = app_data->thread_id;
 
-    DeviceInfo dev_info = {0};
+    DeviceInfo dev_info;
+    memset(&dev_info, 0, sizeof(DeviceInfo));
     if (HAL_GetDevInfoFromFile(app_data->device_info_file, (void *)&dev_info)) {
         Log_e("invalid dev info file: %s", STRING_PTR_PRINT_SANITY_CHECK(app_data->device_info_file));
         goto thread_exit;
