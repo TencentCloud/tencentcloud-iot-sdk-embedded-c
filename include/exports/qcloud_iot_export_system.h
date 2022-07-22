@@ -39,6 +39,15 @@ int IOT_Get_SysTime(void* pClient, long* time);
  */
 int IOT_Sync_NTPTime(void* pClient);
 
+/**
+ * @brief enable mqtt ssh, subscribe topic
+ *
+ * @param pClient           MQTTClient pointer
+ * @return                  QCLOUD_RET_SUCCESS for success
+ *                          otherwise, failure
+ */
+int IOT_Ssh_enable(void* pClient);
+
 #ifdef __cplusplus
 }
 #endif

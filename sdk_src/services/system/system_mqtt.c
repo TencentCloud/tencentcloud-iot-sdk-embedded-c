@@ -27,6 +27,24 @@ extern "C" {
 #include "mqtt_client.h"
 #include "qcloud_iot_device.h"
 #include "qcloud_iot_export_system.h"
+#include "system_mqtt_ssh_proxy.h"
+
+static void _system_mqtt_ssh_message_callback(void *pClient, char *payload, void *pUserData)
+{
+    char *ssh_switch_str = LITE_json_value_of("switch", payload);
+
+    int ssh_switch = atoi(ssh_switch_str);
+
+    if (true == ssh_switch) {
+        IOT_QCLOUD_SSH_Start(pClient);
+    } else {
+        IOT_QCLOUD_SSH_Stop();
+    }
+
+    HAL_Free(ssh_switch_str);
+
+    return;
+}
 
 static void _system_mqtt_message_callback(void *pClient, MQTTMessage *message, void *pUserData)
 {
@@ -45,6 +63,14 @@ static void _system_mqtt_message_callback(void *pClient, MQTTMessage *message, v
     SysMQTTState *state = (SysMQTTState *)pUserData;
 
     Log_d("Recv Msg Topic:%s, payload:%s", STRING_PTR_PRINT_SANITY_CHECK(message->ptopic), rcv_buf);
+
+    char *type = LITE_json_value_of("type", rcv_buf);
+    if (type != NULL) {
+        if (0 == strcmp(type, "ssh")) {
+            _system_mqtt_ssh_message_callback(pClient, rcv_buf, pUserData);
+            goto end;
+        }
+    }
 
     char *value = LITE_json_value_of("time", rcv_buf);
     if (value != NULL)
@@ -77,6 +103,9 @@ static void _system_mqtt_message_callback(void *pClient, MQTTMessage *message, v
     }
     state->result_recv_ok = true;
     HAL_Free(value);
+
+end:
+    HAL_Free(type);
     return;
 }
 
@@ -299,6 +328,71 @@ int IOT_Sync_NTPTime(void *pClient)
         ret = QCLOUD_RET_SUCCESS;
     } else {
         ret = QCLOUD_ERR_FAILURE;
+    }
+
+    return ret;
+}
+
+int IOT_Ssh_state_report(void *pClient, int state)
+{
+    POINTER_SANITY_CHECK(pClient, QCLOUD_ERR_INVAL);
+
+    Qcloud_IoT_Client *mqtt_client = (Qcloud_IoT_Client *)pClient;
+    DeviceInfo *       dev_info    = &mqtt_client->device_info;
+    POINTER_SANITY_CHECK(dev_info, QCLOUD_ERR_INVAL);
+
+    char topic_name[128]      = {0};
+    char payload_content[128] = {0};
+
+    HAL_Snprintf(topic_name, sizeof(topic_name), "$sys/operation/%s/%s",
+                 STRING_PTR_PRINT_SANITY_CHECK(dev_info->product_id),
+                 STRING_PTR_PRINT_SANITY_CHECK(dev_info->device_name));
+    HAL_Snprintf(payload_content, sizeof(payload_content), "{\"type\": \"ssh\", \"switch\": %d}", state);
+
+    PublishParams pub_params = DEFAULT_PUB_PARAMS;
+    pub_params.qos           = QOS0;
+    pub_params.payload       = payload_content;
+    pub_params.payload_len   = strlen(payload_content);
+
+    return IOT_MQTT_Publish(mqtt_client, topic_name, &pub_params);
+}
+
+int IOT_Ssh_enable(void *pClient)
+{
+    int ret    = 0;
+    int cntSub = 0;
+
+    POINTER_SANITY_CHECK(pClient, QCLOUD_ERR_INVAL);
+    Qcloud_IoT_Client *mqtt_client = (Qcloud_IoT_Client *)pClient;
+
+    SysMQTTState *sys_state = &mqtt_client->sys_state;
+    // subscribe sys topic: $sys/operation/get/${productid}/${devicename}
+    // skip this if the subscription is done and valid
+    if (!sys_state->topic_sub_ok) {
+        for (cntSub = 0; cntSub < 3; cntSub++) {
+            ret = _iot_system_info_result_subscribe(mqtt_client);
+            if (ret < 0) {
+                Log_w("_iot_system_info_result_subscribe failed: %d, cnt: %d", ret, cntSub);
+                continue;
+            }
+
+            /* wait for sub ack */
+            ret = qcloud_iot_mqtt_yield_mt((Qcloud_IoT_Client *)pClient, 100);
+            if (ret || sys_state->topic_sub_ok) {
+                break;
+            }
+        }
+    }
+
+    // return failure if subscribe failed
+    if (!sys_state->topic_sub_ok) {
+        Log_e("Subscribe sys topic failed!");
+        return QCLOUD_ERR_FAILURE;
+    }
+
+    ret = IOT_Ssh_state_report(mqtt_client, 0);
+    if (ret < 0) {
+        Log_e("client publish ssh info failed :%d.", ret);
     }
 
     return ret;

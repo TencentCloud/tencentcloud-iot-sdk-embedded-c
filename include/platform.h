@@ -29,7 +29,7 @@ extern "C" {
 #include <direct.h>
 #include <limits.h>
 #include <process.h>
-typedef unsigned long ssize_t;
+typedef signed long ssize_t;
 #define getcwd(buffer, len) _getcwd(buffer, len)
 #endif
 

@@ -243,3 +243,23 @@ int HAL_TCP_Read(uintptr_t fd, unsigned char *buf, uint32_t len, uint32_t timeou
 
     return (0 != len_recv) ? 0 : err_code;
 }
+
+uint16_t HAL_htons(uint16_t value)
+{
+    return htons(value);
+}
+
+uint16_t HAL_ntohs(uint16_t value)
+{
+    return ntohs(value);
+}
+
+uint32_t HAL_htonl(uint32_t value)
+{
+    return htonl(value);
+}
+
+uint32_t HAL_ntohl(uint32_t value)
+{
+    return ntohl(value);
+}

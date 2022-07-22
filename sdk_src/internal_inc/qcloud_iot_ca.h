@@ -26,6 +26,8 @@ const char *iot_dynreg_https_ca_get();
 
 const char *iot_https_ca_get(void);
 
+const char *iot_wss_ssh_ca_get(void);
+
 const char *iot_get_mqtt_domain(const char *region);
 
 const char *iot_get_coap_domain(const char *region);
@@ -33,6 +35,9 @@ const char *iot_get_coap_domain(const char *region);
 const char *iot_get_dyn_reg_domain(const char *region);
 
 const char *iot_get_log_domain(const char *region);
+
+const char *iot_get_ssh_domain(const char *region);
+
 #ifdef __cplusplus
 }
 #endif

@@ -123,6 +123,9 @@ set(FEATURE_RESOURCE_SIGNAL_CHANNEL "MQTT")
 # Whether to use HTTPS for resource manage
 set(FEATURE_RESOURCE_USE_HTTPS ON)
 
+# 是否打开远程登录 SSH 功能
+# Whether to turn on Master Switch for the remote login ssh
+set(FEATURE_REMOTE_LOGIN_SSH ON)
 ######################CONFIG END######################################
 
 # 设置CMAKE使用编译工具及编译选项
@@ -195,6 +198,7 @@ option(AT_TCP_ENABLED "Enable AT_TCP" ${FEATURE_AT_TCP_ENABLED})
 option(BROADCAST_ENABLED "Enable BROADCAST" ${FEATURE_BROADCAST_ENABLED})
 option(RRPC_ENABLED "Enable RRPC" ${FEATURE_RRPC_ENABLED})
 option(REMOTE_CONFIG_MQTT "Enable REMOTE_CONFIG_MQTT" ${FEATURE_REMOTE_CONFIG_MQTT_ENABLED})
+option(REMOTE_LOGIN_SSH "Enable REMOTE_LOGIN_SSH" ${FEATURE_REMOTE_LOGIN_SSH})
 
 if (${FEATURE_AUTH_WITH_NOTLS} STREQUAL "OFF")
 if (${FEATURE_OTA_USE_HTTPS} STREQUAL "ON")
@@ -228,7 +232,8 @@ include_directories(${PROJECT_SOURCE_DIR}/include
 					${PROJECT_SOURCE_DIR}/include/exports 
 					${PROJECT_SOURCE_DIR}/platform/at_device/esp8266 
 					${PROJECT_SOURCE_DIR}/sdk_src/internal_inc
-					${PROJECT_SOURCE_DIR}/external_libs/mbedtls/include)
+					${PROJECT_SOURCE_DIR}/external_libs/mbedtls/include
+					${PROJECT_SOURCE_DIR}/external_libs/wslay/lib/includes)
 					
 file(GLOB src_include ${PROJECT_SOURCE_DIR}/include/*.h)
 file(GLOB src_inc_export ${PROJECT_SOURCE_DIR}/include/exports/*.h)
@@ -245,6 +250,13 @@ if(${EXTRACT_SRC} STREQUAL  "ON" AND  NOT DEFINED SAMPLE_ONLY)
 		file(GLOB src_at_inc ${PROJECT_SOURCE_DIR}/platform/at_device/${AT_DEVICE_NAME}/*.h)
 		file(COPY ${src_at_inc} DESTINATION ${PROJECT_SOURCE_DIR}/output/qcloud_iot_c_sdk/platform)
 	endif()
+
+	if(${FEATURE_REMOTE_LOGIN_SSH} STREQUAL "ON")
+		file(GLOB wslay_inc ${PROJECT_SOURCE_DIR}/external_libs/wslay/lib/*.h)
+		file(GLOB wslay_inc_wslay ${PROJECT_SOURCE_DIR}/external_libs/wslay/lib/includes/wslay/*.h)
+		file(COPY ${wslay_inc} DESTINATION ${PROJECT_SOURCE_DIR}/output/qcloud_iot_c_sdk/sdk_src/internal_inc)
+		file(COPY ${wslay_inc_wslay} DESTINATION ${PROJECT_SOURCE_DIR}/output/qcloud_iot_c_sdk/sdk_src/internal_inc/wslay)
+	endif()
 endif()
 
 # 添加源代码目录
@@ -253,6 +265,9 @@ if(NOT DEFINED SAMPLE_ONLY)
 	add_subdirectory(${PROJECT_SOURCE_DIR}/sdk_src)
 	add_subdirectory(${PROJECT_SOURCE_DIR}/platform)
 	add_subdirectory(${PROJECT_SOURCE_DIR}/external_libs/mbedtls)
+	if(${FEATURE_REMOTE_LOGIN_SSH} STREQUAL "ON")
+		add_subdirectory(${PROJECT_SOURCE_DIR}/external_libs/wslay)
+	endif()
 endif()
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/samples)

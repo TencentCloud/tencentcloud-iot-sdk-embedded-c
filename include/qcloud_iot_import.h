@@ -544,6 +544,38 @@ int HAL_TCP_Write(uintptr_t fd, const unsigned char *data, uint32_t len, uint32_
  */
 int HAL_TCP_Read(uintptr_t fd, unsigned char *data, uint32_t len, uint32_t timeout_ms, size_t *read_len);
 
+/**
+ * @brief short 16bit host byte order to net
+ *
+ * @param value         host byte order value
+ * @return              net byte order value
+ */
+uint16_t HAL_htons(uint16_t value);
+
+/**
+ * @brief short 16bit net byte order to host
+ *
+ * @param value         net byte order value
+ * @return              host byte order value
+ */
+uint16_t HAL_ntohs(uint16_t value);
+
+/**
+ * @brief long 32bit host byte order to net
+ *
+ * @param value         host byte order value
+ * @return              net byte order value
+ */
+uint32_t HAL_htonl(uint32_t value);
+
+/**
+ * @brief long 32bit net byte order to host
+ *
+ * @param value         net byte order value
+ * @return              host byte order value
+ */
+uint32_t HAL_ntohl(uint32_t value);
+
 /********** UDP network **********/
 #ifdef COAP_COMM_ENABLED
 /**

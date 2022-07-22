@@ -105,7 +105,8 @@ endif()
 
 if(${FEATURE_SYSTEM_COMM_ENABLED} STREQUAL "ON")
 	file(GLOB src_system ${CMAKE_CURRENT_SOURCE_DIR}/services/system/*.c)
-	list(APPEND src_sdk ${src_system})
+	file(GLOB src_system_ssh ${CMAKE_CURRENT_SOURCE_DIR}/services/ssh/*.c)
+	list(APPEND src_sdk ${src_system} ${src_system_ssh})
 endif()
 
 if(${FEATURE_REMOTE_CONFIG_MQTT_ENABLED} STREQUAL "ON")

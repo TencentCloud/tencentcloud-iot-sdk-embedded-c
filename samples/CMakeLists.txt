@@ -19,6 +19,10 @@ set(link_lib
 )
 endif()
 
+if(REMOTE_LOGIN_SSH STREQUAL "ON")
+	set(link_lib ${link_lib} wslay)
+endif()
+
 if(CMAKE_COMPILER_IS_GNUCC)
 	set(lib -Wl,--start-group ${link_lib} -Wl,--end-group)
 else ()
