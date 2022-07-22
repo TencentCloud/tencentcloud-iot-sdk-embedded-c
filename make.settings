@@ -115,3 +115,7 @@ FEATURE_RESOURCE_SIGNAL_CHANNEL         = MQTT
 # 资源管理使用 https 通信
 # Whether to use HTTPS for resource manage
 FEATURE_RESOURCE_USE_HTTPS              = y
+
+# 是否打开远程登录 SSH 功能
+# Whether to turn on Master Switch for the remote login ssh
+FEATURE_REMOTE_LOGIN_SSH                = y

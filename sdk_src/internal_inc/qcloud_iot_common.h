@@ -45,6 +45,10 @@
 #define UPLOAD_LOG_URI_PATH       "/device/reportlog"
 #define LOG_UPLOAD_SERVER_PORT    80
 
+#define REMOTE_WS_SSH_PATH "/ssh/device"
+#define LOCAL_SSH_PORT     22
+#define LOCAL_SSH_IP       "127.0.0.1"
+
 /* Max size of a host name */
 #define HOST_STR_LENGTH 64
 

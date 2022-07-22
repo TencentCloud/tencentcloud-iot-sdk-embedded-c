@@ -44,6 +44,9 @@ static char sg_product_id[MAX_SIZE_OF_PRODUCT_ID + 1]	 = "PRODUCT_ID";
 /* device name */
 static char sg_device_name[MAX_SIZE_OF_DEVICE_NAME + 1]  = "YOUR_DEV_NAME";
 
+/* region */
+static char sg_region[MAX_SIZE_OF_REGION + 1] = "china";
+
 #ifdef DEV_DYN_REG_ENABLED
 /* product secret for device dynamic Registration  */
 static char sg_product_secret[MAX_SIZE_OF_PRODUCT_SECRET + 1]  = "YOUR_PRODUCT_SECRET";
@@ -63,6 +66,7 @@ static char sg_device_secret[MAX_SIZE_OF_DEVICE_SECRET + 1] = "YOUR_IOT_PSK";
 2. 存放在配置文件中（编译选项DEBUG_DEV_INFO_USED = OFF），则在`device_info.json`文件修改设备信息，此方式下更改设备信息不需重新编译SDK，在Linux/Windows平台下开发推荐使用这种方式。
 ```
 {
+    "region":"china",
     "auth_mode":"KEY/CERT",
 
     "productId":"PRODUCT_ID",
@@ -99,7 +103,8 @@ static int _setup_connect_init_params(MQTTInitParams* initParams)
 	if(QCLOUD_ERR_SUCCESS != ret){
 		return ret;
 	}
-		
+	
+	initParams->region = sg_devInfo.region;
 	initParams->device_name = sg_devInfo.device_name;
 	initParams->product_id = sg_devInfo.product_id;
 	 ......

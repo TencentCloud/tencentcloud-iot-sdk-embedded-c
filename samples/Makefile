@@ -26,6 +26,11 @@ IOT_LIB_DIR = $(FINAL_DIR)/lib
 IOT_INC_CFLAGS = -I$(FINAL_DIR)/include -I$(FINAL_DIR)/include/exports  -I$(CURDIR)/../sdk_src/internal_inc
 
 LDFLAGS             := -Wl,--start-group $(IOT_LIB_DIR)/libiot_sdk.a
+
+ifneq (,$(filter -DREMOTE_LOGIN_SSH,$(CFLAGS)))
+LDFLAGS             += $(IOT_LIB_DIR)/libwslay.a
+endif
+
 ifeq ($(FEATURE_AUTH_WITH_NOTLS),n)
 LDFLAGS             += $(IOT_LIB_DIR)/libmbedtls.a $(IOT_LIB_DIR)/libmbedx509.a $(IOT_LIB_DIR)/libmbedcrypto.a
 endif

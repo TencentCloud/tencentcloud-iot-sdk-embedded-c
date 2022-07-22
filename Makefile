@@ -66,6 +66,10 @@ $(call CompLib_Map, SYSTEM_COMM_ENABLED, \
     $(SRC_DIR)/services/system \
 )
 
+$(call CompLib_Map, SYSTEM_COMM_ENABLED, \
+    $(SRC_DIR)/services/ssh \
+)
+
 $(call CompLib_Map, LOG_UPLOAD_ENABLED, \
     $(SRC_DIR)/services/log \
 )
@@ -169,6 +173,7 @@ COMP_LIB_COMPONENTS_INCLUDES := \
     $(EXP_INC_DIR) \
     $(INT_INC_DIR) \
     external_libs/mbedtls/include \
+    external_libs/wslay/lib/includes \
     
 IOTSDK_INCLUDE_FILES := \
 

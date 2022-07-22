@@ -1,9 +1,9 @@
 iot_sdk_objects = $(patsubst %.c,%.o, $(IOTSDK_SRC_FILES))
 iot_platform_objects = $(patsubst %.c,%.o, $(IOTPLATFORM_SRC_FILES))
 
-.PHONY: config mbedtls clean final-out samples tests
+.PHONY: config mbedtls wslay clean final-out samples tests
 
-all: config mbedtls ${COMP_LIB} ${PLATFORM_LIB} final-out samples tests 
+all: config mbedtls wslay ${COMP_LIB} ${PLATFORM_LIB} final-out samples tests 
 	$(call Compile_Result)
 
 ${COMP_LIB}: ${iot_sdk_objects}
@@ -25,7 +25,13 @@ ${PLATFORM_LIB}: ${iot_platform_objects}
 config:
 	$(TOP_Q) \
 	mkdir -p ${TEMP_DIR}
-	
+
+wslay:
+ifneq (,$(filter -DREMOTE_LOGIN_SSH,$(CFLAGS)))
+	$(TOP_Q) \
+	make -s -C $(THIRD_PARTY_PATH)/wslay lib -e CC=$(PLATFORM_CC) AR=$(PLATFORM_AR) CFLAGS="$(CFLAGS)"	
+endif
+
 mbedtls:
 ifeq (,$(filter -DAUTH_WITH_NOTLS,$(CFLAGS)))
 	$(TOP_Q) \
@@ -68,6 +74,11 @@ final-out :
 
 	$(TOP_Q) \
 	cp -rf $(TOP_DIR)/certs $(FINAL_DIR)/bin/
+
+ifneq (,$(filter -DREMOTE_LOGIN_SSH,$(CFLAGS)))
+	$(TOP_Q) \
+	mv $(THIRD_PARTY_PATH)/wslay/lib/libwslay.* ${FINAL_DIR}/lib
+endif
 	
 ifeq (,$(filter -DAUTH_WITH_NOTLS,$(CFLAGS)))
 	$(TOP_Q) \
@@ -96,6 +107,11 @@ ifeq ($(TLSDIR), $(wildcard $(THIRD_PARTY_PATH)/mbedtls))
 	$(TOP_Q) \
 	make -s -C $(THIRD_PARTY_PATH)/mbedtls clean
 endif
+endif
+
+ifneq (,$(filter -DREMOTE_LOGIN_SSH,$(CFLAGS)))
+	$(TOP_Q) \
+	make -s -C $(THIRD_PARTY_PATH)/wslay clean
 endif
 
 ifeq (,$(filter -DSDKTESTS_ENABLED,$(CFLAGS)))

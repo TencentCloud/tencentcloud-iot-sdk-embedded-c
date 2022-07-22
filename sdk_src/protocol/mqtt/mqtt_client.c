@@ -362,6 +362,12 @@ int qcloud_iot_mqtt_init(Qcloud_IoT_Client *pClient, MQTTInitParams *pParams)
     memset(pClient, 0x0, sizeof(Qcloud_IoT_Client));
 
     int rc = iot_device_info_set(&(pClient->device_info), product_id, device_name);
+
+    strncpy(pClient->device_info.region, pParams->region, MAX_SIZE_OF_REGION);
+#ifndef AUTH_MODE_CERT
+    strncpy(pClient->device_info.device_secret, pParams->device_secret, MAX_SIZE_OF_DEVICE_SECRET);
+#endif
+
     if (rc != QCLOUD_RET_SUCCESS) {
         Log_e("failed to set device info: %d", rc);
         return rc;

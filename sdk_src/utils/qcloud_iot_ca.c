@@ -182,6 +182,74 @@ static const char *iot_https_ca_crt = {
     "K1pp74P1S8SqtCr4fKGxhZSM9AyHDPSsQPhZSZg=\r\n"
     "-----END CERTIFICATE-----"};
 #endif
+
+#ifdef REMOTE_LOGIN_SSH
+static const char *iot_wss_ssh_ca_crt = {
+    "-----BEGIN CERTIFICATE-----\r\n"
+    "MIIErjCCA5agAwIBAgIQBYAmfwbylVM0jhwYWl7uLjANBgkqhkiG9w0BAQsFADBh\r\n"
+    "MQswCQYDVQQGEwJVUzEVMBMGA1UEChMMRGlnaUNlcnQgSW5jMRkwFwYDVQQLExB3\r\n"
+    "d3cuZGlnaWNlcnQuY29tMSAwHgYDVQQDExdEaWdpQ2VydCBHbG9iYWwgUm9vdCBD\r\n"
+    "QTAeFw0xNzEyMDgxMjI4MjZaFw0yNzEyMDgxMjI4MjZaMHIxCzAJBgNVBAYTAkNO\r\n"
+    "MSUwIwYDVQQKExxUcnVzdEFzaWEgVGVjaG5vbG9naWVzLCBJbmMuMR0wGwYDVQQL\r\n"
+    "ExREb21haW4gVmFsaWRhdGVkIFNTTDEdMBsGA1UEAxMUVHJ1c3RBc2lhIFRMUyBS\r\n"
+    "U0EgQ0EwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCgWa9X+ph+wAm8\r\n"
+    "Yh1Fk1MjKbQ5QwBOOKVaZR/OfCh+F6f93u7vZHGcUU/lvVGgUQnbzJhR1UV2epJa\r\n"
+    "e+m7cxnXIKdD0/VS9btAgwJszGFvwoqXeaCqFoP71wPmXjjUwLT70+qvX4hdyYfO\r\n"
+    "JcjeTz5QKtg8zQwxaK9x4JT9CoOmoVdVhEBAiD3DwR5fFgOHDwwGxdJWVBvktnoA\r\n"
+    "zjdTLXDdbSVC5jZ0u8oq9BiTDv7jAlsB5F8aZgvSZDOQeFrwaOTbKWSEInEhnchK\r\n"
+    "ZTD1dz6aBlk1xGEI5PZWAnVAba/ofH33ktymaTDsE6xRDnW97pDkimCRak6CEbfe\r\n"
+    "3dXw6OV5AgMBAAGjggFPMIIBSzAdBgNVHQ4EFgQUf9OZ86BHDjEAVlYijrfMnt3K\r\n"
+    "AYowHwYDVR0jBBgwFoAUA95QNVbRTLtm8KPiGxvDl7I90VUwDgYDVR0PAQH/BAQD\r\n"
+    "AgGGMB0GA1UdJQQWMBQGCCsGAQUFBwMBBggrBgEFBQcDAjASBgNVHRMBAf8ECDAG\r\n"
+    "AQH/AgEAMDQGCCsGAQUFBwEBBCgwJjAkBggrBgEFBQcwAYYYaHR0cDovL29jc3Au\r\n"
+    "ZGlnaWNlcnQuY29tMEIGA1UdHwQ7MDkwN6A1oDOGMWh0dHA6Ly9jcmwzLmRpZ2lj\r\n"
+    "ZXJ0LmNvbS9EaWdpQ2VydEdsb2JhbFJvb3RDQS5jcmwwTAYDVR0gBEUwQzA3Bglg\r\n"
+    "hkgBhv1sAQIwKjAoBggrBgEFBQcCARYcaHR0cHM6Ly93d3cuZGlnaWNlcnQuY29t\r\n"
+    "L0NQUzAIBgZngQwBAgEwDQYJKoZIhvcNAQELBQADggEBAK3dVOj5dlv4MzK2i233\r\n"
+    "lDYvyJ3slFY2X2HKTYGte8nbK6i5/fsDImMYihAkp6VaNY/en8WZ5qcrQPVLuJrJ\r\n"
+    "DSXT04NnMeZOQDUoj/NHAmdfCBB/h1bZ5OGK6Sf1h5Yx/5wR4f3TUoPgGlnU7EuP\r\n"
+    "ISLNdMRiDrXntcImDAiRvkh5GJuH4YCVE6XEntqaNIgGkRwxKSgnU3Id3iuFbW9F\r\n"
+    "UQ9Qqtb1GX91AJ7i4153TikGgYCdwYkBURD8gSVe8OAco6IfZOYt/TEwii1Ivi1C\r\n"
+    "qnuUlWpsF1LdQNIdfbW3TSe0BhQa7ifbVIfvPWHYOu3rkg1ZeMo6XRU9B4n5VyJY\r\n"
+    "RmE=\r\n"
+    "-----END CERTIFICATE-----\r\n"
+    "-----BEGIN CERTIFICATE-----\r\n"
+    "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\r\n"
+    "XDDejuLz3BQMFyy/AzO3rGPF\r\n"
+    "-----END CERTIFICATE-----"};
+#endif
 #endif
 
 const char *iot_ca_get()
@@ -225,10 +293,25 @@ const char *iot_https_ca_get()
 #endif
 }
 
+const char *iot_wss_ssh_ca_get()
+{
+#ifndef AUTH_WITH_NOTLS
+
+#ifdef REMOTE_LOGIN_SSH
+    return iot_wss_ssh_ca_crt;
+#else
+    return NULL;
+#endif
+
+#else
+    return NULL;
+#endif
+}
+
 static const char *iot_get_domain(const char *region, const RegionDomain *region_domain_array, const int domain_num)
 {
     const char *pDomain = region_domain_array[0].domain;
-    
+
     int i;
 
     if (region) {
@@ -262,6 +345,12 @@ const char *iot_get_dyn_reg_domain(const char *region)
 }
 
 const char *iot_get_log_domain(const char *region)
+{
+    return iot_get_domain(region, sg_iot_dynreg_log_domain,
+                          sizeof(sg_iot_dynreg_log_domain) / sizeof(sg_iot_dynreg_log_domain[0]));
+}
+
+const char *iot_get_ssh_domain(const char *region)
 {
     return iot_get_domain(region, sg_iot_dynreg_log_domain,
                           sizeof(sg_iot_dynreg_log_domain) / sizeof(sg_iot_dynreg_log_domain[0]));

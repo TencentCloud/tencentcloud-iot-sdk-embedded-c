@@ -19,4 +19,4 @@
 #cmakedefine RRPC_ENABLED
 #cmakedefine REMOTE_CONFIG_MQTT
 #cmakedefine RESOURCE_USE_HTTPS
-
+#cmakedefine REMOTE_LOGIN_SSH
