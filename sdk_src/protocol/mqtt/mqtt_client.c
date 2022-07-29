@@ -295,7 +295,7 @@ int IOT_MQTT_StartLoop(void *pClient)
     POINTER_SANITY_CHECK(pClient, QCLOUD_ERR_INVAL);
 
     Qcloud_IoT_Client *mqtt_client   = (Qcloud_IoT_Client *)pClient;
-    ThreadParams       thread_params = {0};
+    static ThreadParams       thread_params = {0};
     thread_params.thread_func        = _mqtt_yield_thread;
     thread_params.thread_name        = "MQTT_yield_thread";
     thread_params.user_arg           = pClient;

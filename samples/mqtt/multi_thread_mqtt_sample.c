@@ -331,7 +331,7 @@ static int _mqtt_multi_thread_test(void *client)
     int   rx_msg_count          = 0;    // record the times of successfull subscribe
     // thread data passed to publish thread
     AppThreadData thread_data[MAX_PUB_THREAD_COUNT];
-    ThreadParams  pub_thread_params[MAX_PUB_THREAD_COUNT];
+    static ThreadParams  pub_thread_params[MAX_PUB_THREAD_COUNT];
 
     memset(thread_data, 0, sizeof(thread_data));
     memset(pub_thread_params, 0, sizeof(pub_thread_params));
@@ -351,7 +351,7 @@ static int _mqtt_multi_thread_test(void *client)
     }
 
     /* create a thread to test subscribe and unsubscribe another topic */
-    ThreadParams sub_thread_params = {0};
+    static ThreadParams sub_thread_params = {0};
     sub_thread_params.thread_func  = _mqtt_sub_unsub_thread_runner;
     sub_thread_params.user_arg     = client;
 
