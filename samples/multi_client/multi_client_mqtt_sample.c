@@ -403,7 +403,7 @@ int main(int argc, char **argv)
     for (i = 0; i < MAX_MQTT_THREAD_COUNT; i++) {
         sg_thread_status[i] = 0;  // init thread status flag
 
-        ThreadParams thread_params = {0};
+        static ThreadParams thread_params = {0};
         thread_params.thread_func  = _mqtt_client_thread_runner;
         thread_params.user_arg     = &app_data[i];
 
