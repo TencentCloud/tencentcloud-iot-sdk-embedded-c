@@ -83,7 +83,7 @@ void *IOT_MQTT_Construct(MQTTInitParams *pParams)
     connect_params.keep_alive_interval = Min(pParams->keep_alive_interval_ms / 1000, 690);
     connect_params.clean_session       = pParams->clean_session;
     connect_params.auto_connect_enable = pParams->auto_connect_enable;
-#if defined(AUTH_WITH_NOTLS) && defined(AUTH_MODE_KEY)
+#if (defined(AUTH_WITH_NOTLS) || defined(WEBSOCKET_MQTT)) && defined(AUTH_MODE_KEY)
     if (pParams->device_secret == NULL) {
         Log_e("Device secret is null!");
         qcloud_iot_mqtt_fini(mqtt_client);
@@ -105,6 +105,8 @@ void *IOT_MQTT_Construct(MQTTInitParams *pParams)
         pParams->err_code = QCLOUD_ERR_INVAL;
         return NULL;
     }
+#elif defined(WEBSOCKET_MQTT) && defined(AUTH_MODE_CERT)
+    connect_params.private_key_file_path = mqtt_client->key_file_path;
 #endif
 
     rc = qcloud_iot_mqtt_connect(mqtt_client, &connect_params);
@@ -373,8 +375,12 @@ int qcloud_iot_mqtt_init(Qcloud_IoT_Client *pClient, MQTTInitParams *pParams)
         return rc;
     }
 
+#if QCLOUD_IOT_MQTT_DOMAIN_WITH_PREFIX
     int size =
         HAL_Snprintf(pClient->host_addr, HOST_STR_LENGTH, "%s.%s", product_id, iot_get_mqtt_domain(pParams->region));
+#else
+    int size = HAL_Snprintf(pClient->host_addr, HOST_STR_LENGTH, "%s", iot_get_mqtt_domain(pParams->region));
+#endif
     if (size < 0 || size > HOST_STR_LENGTH - 1) {
         IOT_FUNC_EXIT_RC(QCLOUD_ERR_FAILURE);
     }
@@ -452,7 +458,7 @@ int qcloud_iot_mqtt_init(Qcloud_IoT_Client *pClient, MQTTInitParams *pParams)
     pClient->network_stack.ssl_connect_params.key_file   = pClient->key_file_path;
     pClient->network_stack.ssl_connect_params.ca_crt     = iot_ca_get();
     pClient->network_stack.ssl_connect_params.ca_crt_len = strlen(pClient->network_stack.ssl_connect_params.ca_crt);
-#else
+#elif !(defined(WEBSOCKET_MQTT))
     if (pParams->device_secret != NULL) {
         size_t src_len = strlen(pParams->device_secret);
         size_t len;
@@ -468,21 +474,24 @@ int qcloud_iot_mqtt_init(Qcloud_IoT_Client *pClient, MQTTInitParams *pParams)
 
     memset(pClient->network_stack.ssl_connect_params.psk_id, 0, MAX_SIZE_OF_CLIENT_ID);
     HAL_Snprintf(pClient->network_stack.ssl_connect_params.psk_id, MAX_SIZE_OF_CLIENT_ID, "%s%s",
-                STRING_PTR_PRINT_SANITY_CHECK(pParams->product_id),
-                STRING_PTR_PRINT_SANITY_CHECK(pParams->device_name));
+                 STRING_PTR_PRINT_SANITY_CHECK(pParams->product_id),
+                 STRING_PTR_PRINT_SANITY_CHECK(pParams->device_name));
     pClient->network_stack.ssl_connect_params.ca_crt     = NULL;
     pClient->network_stack.ssl_connect_params.ca_crt_len = 0;
 #endif
 
-    pClient->network_stack.host = pClient->host_addr;
-    pClient->network_stack.port = MQTT_SERVER_PORT_TLS;
+#if defined(WEBSOCKET_MQTT)
+    pClient->network_stack.ssl_connect_params.ca_crt     = iot_wss_mqtt_ca_get();
+    pClient->network_stack.ssl_connect_params.ca_crt_len = strlen(pClient->network_stack.ssl_connect_params.ca_crt);
+#endif
+
     pClient->network_stack.ssl_connect_params.timeout_ms =
         (pClient->command_timeout_ms > QCLOUD_IOT_TLS_HANDSHAKE_TIMEOUT) ? pClient->command_timeout_ms
                                                                          : QCLOUD_IOT_TLS_HANDSHAKE_TIMEOUT;
-#else
-    pClient->network_stack.host = pClient->host_addr;
-    pClient->network_stack.port = MQTT_SERVER_PORT_NOTLS;
 #endif
+
+    pClient->network_stack.host = pClient->host_addr;
+    pClient->network_stack.port = iot_get_mqtt_port();
 
     // init network stack
     qcloud_iot_mqtt_network_init(&(pClient->network_stack));

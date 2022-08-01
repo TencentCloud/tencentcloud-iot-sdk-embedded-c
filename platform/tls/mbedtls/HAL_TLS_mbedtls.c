@@ -31,6 +31,7 @@ extern "C" {
 #include "mbedtls/net_sockets.h"
 #include "mbedtls/ssl.h"
 #include "mbedtls/sha256.h"
+#include "mbedtls/debug.h"
 
 #include "qcloud_iot_export_error.h"
 #include "qcloud_iot_export_log.h"
@@ -141,6 +142,15 @@ static void _free_mebedtls(TLSDataParams *pParams)
     HAL_Free(pParams);
 }
 
+#if defined(MBEDTLS_DEBUG_C)
+#define DEBUG_LEVEL 0
+static void _ssl_debug(void *ctx, int level, const char *file, int line, const char *str)
+{
+    Log_i("[mbedTLS]:[%s]:[%d]: %s\r\n", STRING_PTR_PRINT_SANITY_CHECK(file), line, STRING_PTR_PRINT_SANITY_CHECK(str));
+}
+
+#endif
+
 /**
  * @brief mbedtls SSL client init
  *
@@ -163,6 +173,10 @@ static int _mbedtls_client_init(TLSDataParams *pDataParams, TLSConnectParams *pC
     mbedtls_x509_crt_init(&(pDataParams->client_cert));
     mbedtls_pk_init(&(pDataParams->private_key));
 
+#if defined(MBEDTLS_DEBUG_C)
+    mbedtls_debug_set_threshold(DEBUG_LEVEL);
+    mbedtls_ssl_conf_dbg(&pDataParams->ssl_conf, _ssl_debug, NULL);
+#endif
     mbedtls_entropy_init(&(pDataParams->entropy));
     // custom parameter is NULL for now
     if ((ret = mbedtls_ctr_drbg_seed(&(pDataParams->ctr_drbg), mbedtls_entropy_func, &(pDataParams->entropy), NULL,

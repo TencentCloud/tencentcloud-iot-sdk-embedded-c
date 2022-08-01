@@ -18,6 +18,7 @@ extern "C" {
 #endif
 
 #include "mqtt_client_net.h"
+#include <string.h>
 
 // TODO: how to implement
 /**
@@ -47,6 +48,10 @@ int qcloud_iot_mqtt_network_init(Network *pNetwork)
 
 #ifdef AUTH_WITH_NOTLS
     pNetwork->type = NETWORK_TCP;
+#endif
+
+#ifdef WEBSOCKET_MQTT
+    pNetwork->type = NETWORK_WS_MQTT;
 #endif
 
     rc                     = network_init(pNetwork);

@@ -29,7 +29,13 @@ extern "C" {
  * Type of network interface
  */
 
-typedef enum { NETWORK_TCP = 0, NETWORK_UDP = 1, NETWORK_TLS = 2, NETWORK_DTLS = 3 } NETWORK_TYPE;
+typedef enum {
+    NETWORK_TCP     = 0,
+    NETWORK_UDP     = 1,
+    NETWORK_TLS     = 2,
+    NETWORK_DTLS    = 3,
+    NETWORK_WS_MQTT = 4,
+} NETWORK_TYPE;
 
 /**
  * @brief Define structure for network stack
@@ -119,6 +125,16 @@ void network_dtls_disconnect(Network *pNetwork);
 int  network_dtls_connect(Network *pNetwork);
 int  network_dtls_init(Network *pNetwork);
 #endif
+#endif
+
+#ifdef WEBSOCKET_MQTT
+int  network_websocket_mqtt_read(Network *pNetwork, unsigned char *data, size_t datalen, uint32_t timeout_ms,
+                                 size_t *read_len);
+int  network_websocket_mqtt_write(Network *pNetwork, unsigned char *data, size_t datalen, uint32_t timeout_ms,
+                                  size_t *written_len);
+void network_websocket_mqtt_disconnect(Network *pNetwork);
+int  network_websocket_mqtt_connect(Network *pNetwork);
+int  network_websocket_mqtt_init(Network *pNetwork);
 #endif
 
 #ifdef __cplusplus

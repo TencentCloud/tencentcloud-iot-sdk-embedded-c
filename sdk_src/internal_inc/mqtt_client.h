@@ -137,21 +137,28 @@ typedef struct {
 
     uint8_t auto_connect_enable;  // enable auto connection or not
 
-#ifdef AUTH_WITH_NOTLS
+#if defined(AUTH_WITH_NOTLS) || (defined(WEBSOCKET_MQTT) && defined(AUTH_MODE_KEY))
     char *device_secret;      // PSK
     int   device_secret_len;  // length of PSK
+#elif defined(WEBSOCKET_MQTT) && defined(AUTH_MODE_CERT)
+    char *private_key_file_path;  // device private key
 #endif
-
 } MQTTConnectParams;
 
 /**
  * default value of MQTT connect parameters structure
  */
-#ifdef AUTH_WITH_NOTLS
+#if defined(AUTH_WITH_NOTLS) || (defined(WEBSOCKET_MQTT) && defined(AUTH_MODE_KEY))
 #define DEFAULT_MQTTCONNECT_PARAMS                                            \
     {                                                                         \
         NULL, NULL, NULL, {0}, {'M', 'Q', 'T', 'C'}, 0, 4, 240, 1, 1, NULL, 0 \
     }
+#elif defined(WEBSOCKET_MQTT) && defined(AUTH_MODE_CERT)
+#define DEFAULT_MQTTCONNECT_PARAMS                                         \
+    {                                                                      \
+        NULL, NULL, NULL, {0}, {'M', 'Q', 'T', 'C'}, 0, 4, 240, 1, 1, NULL \
+    }
+
 #else
 #define DEFAULT_MQTTCONNECT_PARAMS                                   \
     {                                                                \
