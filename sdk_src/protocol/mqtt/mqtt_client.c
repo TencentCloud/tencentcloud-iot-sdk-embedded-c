@@ -296,14 +296,14 @@ int IOT_MQTT_StartLoop(void *pClient)
 {
     POINTER_SANITY_CHECK(pClient, QCLOUD_ERR_INVAL);
 
-    Qcloud_IoT_Client *mqtt_client   = (Qcloud_IoT_Client *)pClient;
-    static ThreadParams       thread_params = {0};
-    thread_params.thread_func        = _mqtt_yield_thread;
-    thread_params.thread_name        = "MQTT_yield_thread";
-    thread_params.user_arg           = pClient;
-    thread_params.stack_size         = 4096;
-    thread_params.priority           = 1;
-    mqtt_client->thread_running      = true;
+    Qcloud_IoT_Client * mqtt_client   = (Qcloud_IoT_Client *)pClient;
+    static ThreadParams thread_params = {0};
+    thread_params.thread_func         = _mqtt_yield_thread;
+    thread_params.thread_name         = "MQTT_yield_thread";
+    thread_params.user_arg            = pClient;
+    thread_params.stack_size          = 4096;
+    thread_params.priority            = 1;
+    mqtt_client->thread_running       = true;
 
     int rc = HAL_ThreadCreate(&thread_params);
     if (rc) {
@@ -458,7 +458,7 @@ int qcloud_iot_mqtt_init(Qcloud_IoT_Client *pClient, MQTTInitParams *pParams)
     pClient->network_stack.ssl_connect_params.key_file   = pClient->key_file_path;
     pClient->network_stack.ssl_connect_params.ca_crt     = iot_ca_get();
     pClient->network_stack.ssl_connect_params.ca_crt_len = strlen(pClient->network_stack.ssl_connect_params.ca_crt);
-#elif !(defined(WEBSOCKET_MQTT))
+#else
     if (pParams->device_secret != NULL) {
         size_t src_len = strlen(pParams->device_secret);
         size_t len;
@@ -480,7 +480,7 @@ int qcloud_iot_mqtt_init(Qcloud_IoT_Client *pClient, MQTTInitParams *pParams)
     pClient->network_stack.ssl_connect_params.ca_crt_len = 0;
 #endif
 
-#if defined(WEBSOCKET_MQTT)
+#if defined(WEBSOCKET_MQTT) && defined(AUTH_MODE_CERT)
     pClient->network_stack.ssl_connect_params.ca_crt     = iot_wss_mqtt_ca_get();
     pClient->network_stack.ssl_connect_params.ca_crt_len = strlen(pClient->network_stack.ssl_connect_params.ca_crt);
 #endif
