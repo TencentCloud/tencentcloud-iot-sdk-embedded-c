@@ -312,8 +312,8 @@ void HAL_TLS_Disconnect(uintptr_t handle)
 #if defined(MBEDTLS_X509_CRT_PARSE_C)
     mbedtls_x509_crt_free(&(pParams->client_cert));
     mbedtls_x509_crt_free(&(pParams->ca_cert));
-#endif
     mbedtls_pk_free(&(pParams->private_key));
+#endif
     mbedtls_ssl_free(&(pParams->ssl));
     mbedtls_ssl_config_free(&(pParams->ssl_conf));
     mbedtls_ctr_drbg_free(&(pParams->ctr_drbg));

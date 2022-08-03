@@ -135,7 +135,7 @@ set(FEATURE_REMOTE_LOGIN_WEBSOCKET_SSH OFF)
 
 # 设置CMAKE使用编译工具及编译选项
 # Set CMAKE to use compilation tools and compilation options
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC -DMBEDTLS_CONFIG_FILE=\\\"qcloud_iot_tls_psk_config.h\\\"")
 
 if ((NOT COMPILE_TOOLS STREQUAL "gcc") AND (NOT COMPILE_TOOLS STREQUAL "MSVC"))
 	#用户自定义
