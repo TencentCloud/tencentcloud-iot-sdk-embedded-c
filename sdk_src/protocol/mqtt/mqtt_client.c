@@ -480,9 +480,9 @@ int qcloud_iot_mqtt_init(Qcloud_IoT_Client *pClient, MQTTInitParams *pParams)
     pClient->network_stack.ssl_connect_params.ca_crt_len = 0;
 #endif
 
-#if defined(WEBSOCKET_MQTT) && defined(AUTH_MODE_CERT)
-    pClient->network_stack.ssl_connect_params.ca_crt     = iot_wss_mqtt_ca_get();
-    pClient->network_stack.ssl_connect_params.ca_crt_len = strlen(pClient->network_stack.ssl_connect_params.ca_crt);
+#if defined(WEBSOCKET_MQTT)
+    pClient->network_stack.ssl_connect_params.ca_crt     = NULL;
+    pClient->network_stack.ssl_connect_params.ca_crt_len = 0;
 #endif
 
     pClient->network_stack.ssl_connect_params.timeout_ms =

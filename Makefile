@@ -50,6 +50,11 @@ ifeq (,$(filter -DAUTH_WITH_NOTLS,$(CFLAGS)))
     $(SRC_DIR)/network/tls
 endif
 
+ifneq (,$(filter -DWEBSOCKET_CLIENT,$(CFLAGS)))
+	COMP_LIB_COMPONENTS += \
+    $(SRC_DIR)/protocol/websocket
+endif
+
 $(call CompLib_Map, MQTT_COMM_ENABLED, \
     $(SRC_DIR)/protocol/mqtt \
 )

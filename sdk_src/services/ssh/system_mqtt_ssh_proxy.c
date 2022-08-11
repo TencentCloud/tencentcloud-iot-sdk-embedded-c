@@ -59,14 +59,14 @@ typedef struct {
 
 typedef struct {
     UtilsIotWSClientCtx websocket_ctx;
-    Timer           ping_timer;
-    Timer           verify_timer;
-    int             ping_count;
-    int             verify_count;
-    bool            start;
-    bool            disconnect;
-    bool            wait_pong;
-    bool            verify_success;
+    Timer               ping_timer;
+    Timer               verify_timer;
+    int                 ping_count;
+    int                 verify_count;
+    bool                start;
+    bool                disconnect;
+    bool                wait_pong;
+    bool                verify_success;
 } QcloudWebsocketSsh;
 
 #define LOCAL_SSH_COUNT_MAX          5
@@ -624,19 +624,22 @@ static int _qcloud_websocket_conn(void *mqtt_client)
 {
     int ret = QCLOUD_RET_SUCCESS;
 
-    Network *network = &sg_websocketssh.websocket_ctx.network_stack;
+    Network *          network    = &sg_websocketssh.websocket_ctx.network_stack;
     Qcloud_IoT_Client *client     = (Qcloud_IoT_Client *)mqtt_client;
     char *             productid  = client->device_info.product_id;
     char *             devicename = client->device_info.device_name;
     char *             region     = client->device_info.region;
 
-    network->host       = iot_get_ws_ssh_domain(region);
-    network->port       = DYN_REG_SERVER_PORT;
+    network->host = iot_get_ws_ssh_domain(region);
+    network->port = DYN_REG_SERVER_PORT;
+    network->type = NETWORK_TCP;
 
 #ifndef AUTH_WITH_NOTLS
+    network->port = DYN_REG_SERVER_PORT_TLS;
+    network->type = NETWORK_TLS;
+
     memset(&network->ssl_connect_params, 0, sizeof(network->ssl_connect_params));
-    network->port       = DYN_REG_SERVER_PORT_TLS;
-    network->ssl_connect_params.ca_crt = iot_wss_ssh_ca_get();
+    network->ssl_connect_params.ca_crt     = iot_wss_ssh_ca_get();
     network->ssl_connect_params.ca_crt_len = strlen(network->ssl_connect_params.ca_crt);
 #endif
 
@@ -700,6 +703,8 @@ exit:
     IOT_Ssh_state_report(mqtt_client, false);
     memset(&sg_websocketssh, 0, sizeof(sg_websocketssh));
     sg_local_ssh_count = 1;
+
+    Log_d("qcloud_ssh thread exit !");
 }
 
 void IOT_QCLOUD_SSH_Stop()
@@ -709,6 +714,7 @@ void IOT_QCLOUD_SSH_Stop()
     while (sg_websocketssh.start) {
         HAL_SleepMs(500);
     }
+    Log_d("stop qcloud_ssh thread success!");
 }
 
 void IOT_QCLOUD_SSH_Start(void *mqtt_client)
