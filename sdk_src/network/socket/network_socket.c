@@ -214,7 +214,7 @@ int network_websocket_mqtt_connect(Network *pNetwork)
 }
 
 int network_websocket_mqtt_read(Network *pNetwork, unsigned char *data, size_t datalen, uint32_t timeout_ms,
-                           size_t *read_len)
+                                size_t *read_len)
 {
     POINTER_SANITY_CHECK(pNetwork, QCLOUD_ERR_INVAL);
 
@@ -256,7 +256,7 @@ int network_websocket_mqtt_read(Network *pNetwork, unsigned char *data, size_t d
 }
 
 int network_websocket_mqtt_write(Network *pNetwork, unsigned char *data, size_t datalen, uint32_t timeout_ms,
-                            size_t *written_len)
+                                 size_t *written_len)
 {
     POINTER_SANITY_CHECK(pNetwork, QCLOUD_ERR_INVAL);
 

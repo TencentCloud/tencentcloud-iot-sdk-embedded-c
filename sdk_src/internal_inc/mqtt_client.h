@@ -141,7 +141,7 @@ typedef struct {
     char *device_secret;      // PSK
     int   device_secret_len;  // length of PSK
 #elif defined(WEBSOCKET_MQTT) && defined(AUTH_MODE_CERT)
-    char *private_key_file_path;  // device private key
+    char *        private_key_file_path;  // device private key
 #endif
 } MQTTConnectParams;
 

@@ -53,9 +53,9 @@ typedef struct {
     mbedtls_ssl_context      ssl;
     mbedtls_ssl_config       ssl_conf;
 #if defined(MBEDTLS_X509_CRT_PARSE_C)
-    mbedtls_x509_crt         ca_cert;
-    mbedtls_x509_crt         client_cert;
-    mbedtls_pk_context       private_key;
+    mbedtls_x509_crt   ca_cert;
+    mbedtls_x509_crt   client_cert;
+    mbedtls_pk_context private_key;
 #endif
 } TLSDataParams;
 
@@ -134,7 +134,7 @@ int HAL_TLS_Calc_Sign_RSASHA256(void *private_key, char *inbuf, int inbuf_len, c
 static void _free_mebedtls(TLSDataParams *pParams)
 {
     mbedtls_net_free(&(pParams->socket_fd));
-#ifdef MBEDTLS_X509_CRT_PARSE_C    
+#ifdef MBEDTLS_X509_CRT_PARSE_C
     mbedtls_x509_crt_free(&(pParams->client_cert));
     mbedtls_x509_crt_free(&(pParams->ca_cert));
     mbedtls_pk_free(&(pParams->private_key));
@@ -178,7 +178,7 @@ static int _mbedtls_client_init(TLSDataParams *pDataParams, TLSConnectParams *pC
     mbedtls_x509_crt_init(&(pDataParams->ca_cert));
     mbedtls_x509_crt_init(&(pDataParams->client_cert));
     mbedtls_pk_init(&(pDataParams->private_key));
-#endif    
+#endif
 
 #if defined(MBEDTLS_DEBUG_C)
     mbedtls_debug_set_threshold(DEBUG_LEVEL);

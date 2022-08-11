@@ -156,7 +156,7 @@ static int _serialize_connect_packet(unsigned char *buf, size_t buf_len, MQTTCon
             rc = QCLOUD_ERR_MALLOC;
             goto err_exit;
         }
-		HAL_Snprintf(options->password, 51, "%s;hmacsha1", sign);
+        HAL_Snprintf(options->password, 51, "%s;hmacsha1", sign);
     }
 #elif defined(AUTH_MODE_CERT) && defined(WEBSOCKET_MQTT)
     /* rsa-sha256 */
@@ -177,7 +177,7 @@ static int _serialize_connect_packet(unsigned char *buf, size_t buf_len, MQTTCon
     HAL_TLS_Calc_Sign_RSASHA256(privatekey, options->username, strlen(options->username), sign);
 
     sign_len          = HAL_TLS_Get_RSASHA256_Result_Len(privatekey);
-    char *hex_sign = HAL_Malloc(sign_len * 2);
+    char *hex_sign    = HAL_Malloc(sign_len * 2);
     options->password = (char *)HAL_Malloc(sign_len * 2 + sizeof(";rsa-sha256"));
     if (NULL == hex_sign) {
         Log_e("malloc sign fail");

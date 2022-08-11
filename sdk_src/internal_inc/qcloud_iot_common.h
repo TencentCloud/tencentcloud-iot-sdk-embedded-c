@@ -34,7 +34,7 @@
 #define COAP_SERVER_PORT 5684
 
 /* WEBSOCKET MQTT server domain */
-#define QCLOUD_IOT_WEBSOCKET_MQTT_DIRECT_DOMAIN     "ap-guangzhou.iothub.tencentdevices.com"//"console.iotprivate.tencentcs.com/iotwss"
+#define QCLOUD_IOT_WEBSOCKET_MQTT_DIRECT_DOMAIN     "ap-guangzhou.iothub.tencentdevices.com"
 #define QCLOUD_IOT_WEBSOCKET_MQTT_US_EAST_DOMAIN    "us-east.iothub.tencentdevices.com"
 #define QCLOUD_IOT_WEBSOCKET_MQTT_EUROPE_DOMAIN     "europe.iothub.tencentdevices.com"
 #define QCLOUD_IOT_WEBSOCKET_MQTT_AP_BANGKOK_DOMAIN "ap-bangkok.iothub.tencentdevices.com"
@@ -61,8 +61,8 @@
 #define REMOTE_LOGIN_WEBSOCKET_SSH_EUROPE_URL     "europe.gateway.tencentdevices.com/ssh/device"
 #define REMOTE_LOGIN_WEBSOCKET_SSH_AP_BANGKOK_URL "ap-bangkok.gateway.tencentdevices.com/ssh/device"
 
-#define LOCAL_SSH_PORT     22
-#define LOCAL_SSH_IP       "127.0.0.1"
+#define LOCAL_SSH_PORT 22
+#define LOCAL_SSH_IP   "127.0.0.1"
 
 /* Max size of a host name */
 #define HOST_STR_LENGTH 64

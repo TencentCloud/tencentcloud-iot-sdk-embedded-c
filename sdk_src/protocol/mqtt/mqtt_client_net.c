@@ -18,7 +18,6 @@ extern "C" {
 #endif
 
 #include "mqtt_client_net.h"
-#include <string.h>
 
 // TODO: how to implement
 /**

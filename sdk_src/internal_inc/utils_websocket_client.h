@@ -29,7 +29,7 @@ typedef struct {
     Network network_stack;
 } UtilsIotWSClientCtx;
 
-int Utils_WSClient_connect(const char *protocol, UtilsIotWSClientCtx *ctx, const char *ws_custom_header);
+int  Utils_WSClient_connect(const char *protocol, UtilsIotWSClientCtx *ctx, const char *ws_custom_header);
 int  Utils_WSClient_send(UtilsIotWSClientCtx *ctx, char *data, int data_len);
 int  Utils_WSClient_recv(UtilsIotWSClientCtx *ctx);
 void Utils_WSClient_disconn(UtilsIotWSClientCtx *ctx);
