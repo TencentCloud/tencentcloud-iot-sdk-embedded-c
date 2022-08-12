@@ -52,6 +52,10 @@ FEATURE_AUTH_MODE				        = KEY
 # Whether access authentication uses TLS, certificate authentication must use TLS, key authentication can choose not to use TLS
 FEATURE_AUTH_WITH_NOTLS					= n
 
+# 是否打开 WEBSOCKET MQTT 功能
+# Whether to turn on Master Switch for the websocket-mqtt
+FEATURE_WEBSOCKET_MQTT                  = n
+
 # 是否使能设备动态注册
 # Whether to enable dynamic device registration
 FEATURE_DEV_DYN_REG_ENABLED             = n
@@ -118,4 +122,4 @@ FEATURE_RESOURCE_USE_HTTPS              = y
 
 # 是否打开远程登录 SSH 功能
 # Whether to turn on Master Switch for the remote login ssh
-FEATURE_REMOTE_LOGIN_SSH                = y
+FEATURE_REMOTE_LOGIN_WEBSOCKET_SSH                = y

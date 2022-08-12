@@ -94,6 +94,7 @@ static void _copy_shadow_init_params_to_mqtt(MQTTInitParams *pMqttInitParams, Sh
 {
     pMqttInitParams->device_name = shadowInitParams->device_name;
     pMqttInitParams->product_id  = shadowInitParams->product_id;
+    pMqttInitParams->region      = shadowInitParams->region;
 
 #ifdef AUTH_MODE_CERT
     memcpy(pMqttInitParams->cert_file, shadowInitParams->cert_file, FILE_PATH_MAX_LEN);

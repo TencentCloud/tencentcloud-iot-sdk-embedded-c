@@ -99,6 +99,18 @@ int network_init(Network *pNetwork)
             break;
 #endif
 #endif
+
+#ifdef WEBSOCKET_MQTT
+        case NETWORK_WS_MQTT:
+            pNetwork->init         = network_websocket_mqtt_init;
+            pNetwork->connect      = network_websocket_mqtt_connect;
+            pNetwork->read         = network_websocket_mqtt_read;
+            pNetwork->write        = network_websocket_mqtt_write;
+            pNetwork->disconnect   = network_websocket_mqtt_disconnect;
+            pNetwork->is_connected = is_network_connected;
+            pNetwork->handle       = 0;
+            break;
+#endif
         default:
             Log_e("unknown network type: %d", pNetwork->type);
             return QCLOUD_ERR_INVAL;

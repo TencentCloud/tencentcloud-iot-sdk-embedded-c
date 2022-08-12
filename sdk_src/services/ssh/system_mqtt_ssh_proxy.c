@@ -20,7 +20,7 @@ extern "C" {
 #include "qcloud_iot_export.h"
 #include "qcloud_iot_import.h"
 
-#if defined(SYSTEM_COMM) && defined(REMOTE_LOGIN_SSH)
+#if defined(SYSTEM_COMM) && defined(REMOTE_LOGIN_WEBSOCKET_SSH)
 #include <string.h>
 #include <time.h>
 
@@ -31,28 +31,12 @@ extern "C" {
 #include "utils_hmac.h"
 #include "qcloud_iot_device.h"
 #include "qcloud_iot_export_system.h"
+#include "utils_websocket_client.h"
 #include "system_mqtt_ssh_proxy.h"
 #include "qcloud_iot_ca.h"
 #include "wslay/wslay.h"
 
 #define WEBSOCKET_HANDSHAKE_MAX_TIMEOUT_SEC 10
-
-typedef struct {
-    const char *host;
-    int         port;
-    const char *uri;
-    const char *ca_crt_dir;
-    const char *custom_header;
-} IotWebsocketParams;
-
-typedef struct {
-    void *userdata;
-    void (*recv_data_err)(void *iotwsctx);
-    void (*send_data_err)(void *iotwsctx);
-    void (*proc_recv_msg_callback)(char *data, int datalen, void *iotwsctx);
-    wslay_event_context_ptr wslay_ctx;
-    Network                 network_stack;
-} IotWebsocketCtx;
 
 typedef enum {
     NEW_SESSION = 0,
@@ -74,15 +58,15 @@ typedef struct {
 } LocalSshNetworkStack;
 
 typedef struct {
-    IotWebsocketCtx websocket_ctx;
-    Timer           ping_timer;
-    Timer           verify_timer;
-    int             ping_count;
-    int             verify_count;
-    bool            start;
-    bool            disconnect;
-    bool            wait_pong;
-    bool            verify_success;
+    UtilsIotWSClientCtx websocket_ctx;
+    Timer               ping_timer;
+    Timer               verify_timer;
+    int                 ping_count;
+    int                 verify_count;
+    bool                start;
+    bool                disconnect;
+    bool                wait_pong;
+    bool                verify_success;
 } QcloudWebsocketSsh;
 
 #define LOCAL_SSH_COUNT_MAX          5
@@ -162,8 +146,8 @@ static int _network_tcp_recv(Network *network, char *buf, int buf_len, uint32_t 
     } else if (rc == QCLOUD_ERR_TCP_PEER_SHUTDOWN && recv_size > 0) {
         rc = QCLOUD_RET_SUCCESS;
     } else if (rc != QCLOUD_RET_SUCCESS) {
-        Log_e("Connection error %d, rc = %d (recv returned %d)", network->handle, rc, recv_size);
-        Log_e("Connection error %s:%d", network->host, network->port);
+        Log_e("recv error %d, rc = %d (recv returned %d)", network->handle, rc, recv_size);
+        Log_e("recv error %s:%d", network->host, network->port);
         return rc;
     }
 
@@ -177,201 +161,6 @@ static int _network_tcp_disconnect(Network *network)
 {
     network->disconnect(network);
     return QCLOUD_RET_SUCCESS;
-}
-
-static ssize_t _websocket_recv_callback(wslay_event_context_ptr ctx, uint8_t *data, size_t len, int flags,
-                                        void *user_data)
-{
-    IotWebsocketCtx *iot_ctx = (IotWebsocketCtx *)user_data;
-
-    int recv_len = _network_tcp_recv(&(iot_ctx->network_stack), (char *)data, len, TCP_READDATA_MAX_TIMEOUT_MS);
-    if (recv_len < QCLOUD_RET_SUCCESS) {
-        Log_e("recv error %d, %d", recv_len, wslay_event_get_close_received(ctx));
-        if (iot_ctx->recv_data_err) {
-            iot_ctx->recv_data_err(user_data);
-        }
-        return QCLOUD_ERR_FAILURE;
-    }
-    return recv_len;
-}
-
-static ssize_t _websocket_send_callback(wslay_event_context_ptr ctx, const uint8_t *data, size_t len, int flags,
-                                        void *user_data)
-{
-    IotWebsocketCtx *iot_ctx = (IotWebsocketCtx *)user_data;
-    int send_len = _network_tcp_send(&(iot_ctx->network_stack), (char *)data, len, TCP_SENDDATA_MAX_TIMEOUT_MS);
-
-    if (send_len < QCLOUD_RET_SUCCESS || wslay_event_get_close_sent(ctx)) {
-        Log_e("send error %d, %d", send_len, wslay_event_get_close_sent(ctx));
-        if (iot_ctx->send_data_err) {
-            iot_ctx->send_data_err(user_data);
-        }
-        return QCLOUD_ERR_FAILURE;
-    }
-
-    return send_len;
-}
-
-static int _websocket_genmask_callback(wslay_event_context_ptr ctx, uint8_t *buf, size_t len, void *user_data)
-{
-    srand((unsigned)time(NULL));
-    int nonce = rand() % 99999999999 + 10000;
-    HAL_Snprintf((char *)buf, len, "%0*d", len - 1, nonce);
-    return 0;
-}
-
-static void _websocket_on_msg_recv_callback(wslay_event_context_ptr ctx, const struct wslay_event_on_msg_recv_arg *arg,
-                                            void *user_data)
-{
-    IotWebsocketCtx *iot_ctx = (IotWebsocketCtx *)user_data;
-    // proc msg
-    if (arg->msg_length <= 0) {
-        return;
-    }
-
-    Log_d("%d, %s", arg->msg_length, (char *)arg->msg);
-
-    iot_ctx->proc_recv_msg_callback((char *)arg->msg, arg->msg_length, iot_ctx);
-}
-
-/* websocket connect */
-int IOT_WebSocket_connect(IotWebsocketParams *params, IotWebsocketCtx *ctx)
-{
-    char          header_buf[512];
-    unsigned char client_out_key[64];
-    size_t        out_len = 0;
-
-    if (QCLOUD_RET_SUCCESS != _network_tcp_init(&ctx->network_stack, params->host, params->port, params->ca_crt_dir)) {
-        return QCLOUD_ERR_FAILURE;
-    }
-
-    if (QCLOUD_RET_SUCCESS != _network_tcp_connect(&ctx->network_stack)) {
-        return QCLOUD_ERR_FAILURE;
-    }
-
-#define WEBSOCKET_HANDSHAKE_HEADER \
-    "GET %s HTTP/1.1\r\n"          \
-    "Host: %s:%d\r\n"              \
-    "Upgrade: websocket\r\n"       \
-    "Connection: Upgrade\r\n"      \
-    "%s"                           \
-    "Sec-WebSocket-Key: %s\r\n"    \
-    "Sec-WebSocket-Version: 13\r\n\r\n"
-
-    /* calc websocket client key */
-    qcloud_iot_utils_base64encode(client_out_key, sizeof(client_out_key), &out_len, (unsigned char *)"1234567890abcdef",
-                                  sizeof("1234567890abcdef") - 1);
-    int len = HAL_Snprintf(header_buf, sizeof(header_buf), WEBSOCKET_HANDSHAKE_HEADER,
-                           params->uri == NULL ? "/" : params->uri, params->host, params->port, params->custom_header,
-                           client_out_key);
-
-    if (len != _network_tcp_send(&ctx->network_stack, header_buf, len, 5000)) {
-        goto end;
-    }
-
-    int read_len = 0;
-    int count    = 0;
-    do {
-        read_len = _network_tcp_recv(&ctx->network_stack, header_buf, sizeof(header_buf), 500);
-        count++;
-    } while (count < (WEBSOCKET_HANDSHAKE_MAX_TIMEOUT_SEC * 1000 / 500) && read_len == 0);
-
-    if (count >= (WEBSOCKET_HANDSHAKE_MAX_TIMEOUT_SEC * 1000 / 500) || read_len <= 0) {
-        goto end;
-    }
-
-    int code = atoi(header_buf + 9);
-    Log_e("websocket resp code :%d", code);
-
-    char *resp = strstr(header_buf, "Sec-WebSocket-Accept: ");
-    if (!resp) {
-        goto end;
-    }
-    resp += sizeof("Sec-WebSocket-Accept: ") - 1;
-    char *resp_end = strstr(resp, "\r\n");
-    len            = resp_end - resp;
-
-    unsigned char sha1[20];
-    strcpy((char *)client_out_key + out_len, "258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
-    utils_sha1(client_out_key, out_len + sizeof("258EAFA5-E914-47DA-95CA-C5AB0DC85B11") - 1, sha1);
-
-    qcloud_iot_utils_base64encode(client_out_key, sizeof(client_out_key), &out_len, sha1, sizeof(sha1));
-
-    client_out_key[out_len] = '\0';
-    if (0 != strncmp((char *)client_out_key, resp, len)) {
-        goto end;
-    }
-
-    struct wslay_event_callbacks callbacks = {_websocket_recv_callback,
-                                              _websocket_send_callback,
-                                              _websocket_genmask_callback,
-                                              NULL, /* on_frame_recv_start_callback */
-                                              NULL, /* on_frame_recv_callback */
-                                              NULL, /* on_frame_recv_end_callback */
-                                              _websocket_on_msg_recv_callback};
-
-    wslay_event_context_client_init(&(ctx->wslay_ctx), &callbacks, ctx);
-
-    return QCLOUD_RET_SUCCESS;
-
-end:
-    _network_tcp_disconnect(&ctx->network_stack);
-    return QCLOUD_ERR_FAILURE;
-}
-
-/* websocket async send */
-static int IOT_WebSocket_send(IotWebsocketCtx *ctx, char *data, int data_len)
-{
-    Log_d("websocket send :%d", data_len);
-    struct wslay_event_msg ssh_msg;
-    ssh_msg.opcode     = WSLAY_BINARY_FRAME;
-    ssh_msg.msg        = (uint8_t *)data;
-    ssh_msg.msg_length = data_len;
-    if (WSLAY_ERR_NO_MORE_MSG == wslay_event_queue_msg(ctx->wslay_ctx, &ssh_msg)) {
-        if (ctx->send_data_err) {
-            ctx->send_data_err(ctx);
-        }
-        // wslay_status_code
-        Log_e(
-            "websocket send err, send code status:%d, recv code status:%d, close sent %d, write_enabled:%d, close "
-            "received: %d ",
-            wslay_event_get_status_code_sent(ctx->wslay_ctx), wslay_event_get_status_code_received(ctx->wslay_ctx),
-            wslay_event_get_close_sent(ctx->wslay_ctx), wslay_event_get_write_enabled(ctx->wslay_ctx),
-            wslay_event_get_close_received(ctx->wslay_ctx));
-
-        wslay_event_send(ctx->wslay_ctx);
-        return QCLOUD_ERR_FAILURE;
-    }
-
-    return wslay_event_send(ctx->wslay_ctx);
-}
-
-/* websocket async recv */
-static int IOT_WebSocket_recv(IotWebsocketCtx *ctx)
-{
-    if (wslay_event_get_close_received(ctx->wslay_ctx)) {
-        if (ctx->recv_data_err) {
-            ctx->recv_data_err(ctx);
-        }
-        // wslay_status_code
-        Log_e("websocket recv closed; send code status:%d, recv code status:%d",
-              wslay_event_get_status_code_sent(ctx->wslay_ctx), wslay_event_get_status_code_received(ctx->wslay_ctx));
-        wslay_event_send(ctx->wslay_ctx);
-        return QCLOUD_ERR_FAILURE;
-    }
-    return wslay_event_recv(ctx->wslay_ctx);
-}
-
-/* websocket disconnect */
-static void IOT_WebSocket_disconn(IotWebsocketCtx *ctx)
-{
-    if (ctx->network_stack.handle <= 0) {
-        return;
-    }
-
-    _network_tcp_disconnect(&(ctx->network_stack));
-    wslay_event_context_free(ctx->wslay_ctx);
-    memset(ctx, 0, sizeof(IotWebsocketCtx));
 }
 
 static int _local_ssh_init(LocalSshNetworkStack *local_ssh)
@@ -516,7 +305,7 @@ static void _websocket_ssh_send_rawdata(char *token, char *payload, int payload_
     memmove(sg_websocket_ssh_pakcet + header_len, payload, payload_len);
     // send to cloud
     if (QCLOUD_RET_SUCCESS !=
-        IOT_WebSocket_send(&sg_websocketssh.websocket_ctx, sg_websocket_ssh_pakcet, header_len + payload_len)) {
+        Utils_WSClient_send(&sg_websocketssh.websocket_ctx, sg_websocket_ssh_pakcet, header_len + payload_len)) {
         sg_websocketssh.disconnect = true;
     }
 }
@@ -594,7 +383,7 @@ static void _websocket_ssh_proc_newsession_resp(char *token, int ret)
     HAL_Snprintf(packet + header_len, sizeof(packet) - header_len, "%s", payload);
 
     Log_d("send packet:%s,%s", packet, token);
-    if (QCLOUD_RET_SUCCESS != IOT_WebSocket_send(&sg_websocketssh.websocket_ctx, packet, header_len + payload_len)) {
+    if (QCLOUD_RET_SUCCESS != Utils_WSClient_send(&sg_websocketssh.websocket_ctx, packet, header_len + payload_len)) {
         sg_websocketssh.disconnect = true;
     }
 }
@@ -625,7 +414,7 @@ static void _websocket_ssh_proc_releasesession_resp(char *token, int ret)
     HAL_Snprintf(packet + header_len, sizeof(packet) - header_len, "%s", payload);
 
     Log_d("send packet:%s", packet);
-    if (QCLOUD_RET_SUCCESS != IOT_WebSocket_send(&sg_websocketssh.websocket_ctx, packet, header_len + payload_len)) {
+    if (QCLOUD_RET_SUCCESS != Utils_WSClient_send(&sg_websocketssh.websocket_ctx, packet, header_len + payload_len)) {
         sg_websocketssh.disconnect = true;
     }
 }
@@ -660,7 +449,7 @@ static void _websocket_ssh_proc_ping()
     sg_websocketssh.ping_count++;
 
     Log_d("send packet:%s", packet);
-    if (QCLOUD_RET_SUCCESS != IOT_WebSocket_send(&sg_websocketssh.websocket_ctx, packet, header_len)) {
+    if (QCLOUD_RET_SUCCESS != Utils_WSClient_send(&sg_websocketssh.websocket_ctx, packet, header_len)) {
         sg_websocketssh.disconnect = true;
     }
 }
@@ -763,7 +552,7 @@ static int _websocket_ssh_proc_verifydevcie(void *mqtt_client)
 
     Log_d("send packet:%s", sg_websocket_ssh_pakcet);
     if (QCLOUD_RET_SUCCESS !=
-        IOT_WebSocket_send(&sg_websocketssh.websocket_ctx, sg_websocket_ssh_pakcet, payload_len + header_len)) {
+        Utils_WSClient_send(&sg_websocketssh.websocket_ctx, sg_websocket_ssh_pakcet, payload_len + header_len)) {
         sg_websocketssh.disconnect = true;
     }
 
@@ -835,29 +624,32 @@ static int _qcloud_websocket_conn(void *mqtt_client)
 {
     int ret = QCLOUD_RET_SUCCESS;
 
-    IotWebsocketParams params;
+    Network *          network    = &sg_websocketssh.websocket_ctx.network_stack;
     Qcloud_IoT_Client *client     = (Qcloud_IoT_Client *)mqtt_client;
     char *             productid  = client->device_info.product_id;
     char *             devicename = client->device_info.device_name;
     char *             region     = client->device_info.region;
 
-    params.host       = iot_get_ssh_domain(region);
-    params.uri        = REMOTE_WS_SSH_PATH;
-    params.port       = DYN_REG_SERVER_PORT;
-    params.ca_crt_dir = NULL;
+    network->host = iot_get_ws_ssh_domain(region);
+    network->port = DYN_REG_SERVER_PORT;
+    network->type = NETWORK_TCP;
+
 #ifndef AUTH_WITH_NOTLS
-    params.port       = DYN_REG_SERVER_PORT_TLS;
-    params.ca_crt_dir = iot_wss_ssh_ca_get();
+    network->port = DYN_REG_SERVER_PORT_TLS;
+    network->type = NETWORK_TLS;
+
+    memset(&network->ssl_connect_params, 0, sizeof(network->ssl_connect_params));
+    network->ssl_connect_params.ca_crt     = iot_wss_ssh_ca_get();
+    network->ssl_connect_params.ca_crt_len = strlen(network->ssl_connect_params.ca_crt);
 #endif
 
-    char custom_header[256];
-    HAL_Snprintf(custom_header, sizeof(custom_header), "Sec-Websocket-Protocol: %s+%s\r\n", productid, devicename);
-    params.custom_header = custom_header;
+    char protocol[256];
+    HAL_Snprintf(protocol, sizeof(protocol), "%s+%s", productid, devicename);
 
     sg_websocketssh.websocket_ctx.send_data_err          = NULL;
     sg_websocketssh.websocket_ctx.recv_data_err          = _qcloud_websocket_recv_data_error;
     sg_websocketssh.websocket_ctx.proc_recv_msg_callback = _qcloud_websocket_recv_msg_callback;
-    ret = IOT_WebSocket_connect(&params, &sg_websocketssh.websocket_ctx);
+    ret = Utils_WSClient_connect(protocol, &sg_websocketssh.websocket_ctx, NULL);
     if (ret != QCLOUD_RET_SUCCESS) {
         return ret;
     }
@@ -868,7 +660,7 @@ static int _qcloud_websocket_conn(void *mqtt_client)
 static int _qcloud_websocket_msg_yield()
 {
     // recv from websocket
-    int ret = IOT_WebSocket_recv(&sg_websocketssh.websocket_ctx);
+    int ret = Utils_WSClient_recv(&sg_websocketssh.websocket_ctx);
     if (ret == QCLOUD_RET_SUCCESS) {
         _websocket_ssh_proc_ping();
     } else {
@@ -882,11 +674,11 @@ static int _qcloud_websocket_msg_yield()
 static int _qcloud_websocket_disconnect()
 {
     int ret = QCLOUD_RET_SUCCESS;
-    IOT_WebSocket_disconn(&sg_websocketssh.websocket_ctx);
+    Utils_WSClient_disconn(&sg_websocketssh.websocket_ctx);
     return ret;
 }
 
-static void _qcloud_websocket_thread(void *mqtt_client)
+static void _qcloud_websocket_ssh_thread(void *mqtt_client)
 {
     if (QCLOUD_RET_SUCCESS != _qcloud_websocket_conn(mqtt_client)) {
         Log_e("qcloud websocekt connect failed");
@@ -911,6 +703,8 @@ exit:
     IOT_Ssh_state_report(mqtt_client, false);
     memset(&sg_websocketssh, 0, sizeof(sg_websocketssh));
     sg_local_ssh_count = 1;
+
+    Log_d("qcloud_ssh thread exit !");
 }
 
 void IOT_QCLOUD_SSH_Stop()
@@ -920,6 +714,7 @@ void IOT_QCLOUD_SSH_Stop()
     while (sg_websocketssh.start) {
         HAL_SleepMs(500);
     }
+    Log_d("stop qcloud_ssh thread success!");
 }
 
 void IOT_QCLOUD_SSH_Start(void *mqtt_client)
@@ -938,8 +733,8 @@ void IOT_QCLOUD_SSH_Start(void *mqtt_client)
     sg_websocketssh.disconnect = false;
 
     static ThreadParams thread_params = {0};
-    thread_params.thread_func         = _qcloud_websocket_thread;
-    thread_params.thread_name         = "qcloud_websocket";
+    thread_params.thread_func         = _qcloud_websocket_ssh_thread;
+    thread_params.thread_name         = "qcloud_websocket_ssh";
     thread_params.user_arg            = mqtt_client;
     thread_params.stack_size          = 8192;
     thread_params.priority            = 0;

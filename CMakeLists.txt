@@ -55,6 +55,10 @@ set(FEATURE_AUTH_MODE "KEY")
 # Whether access authentication uses TLS, certificate authentication must use TLS, key authentication can choose not to use TLS
 set(FEATURE_AUTH_WITH_NOTLS ON)
 
+# 是否打开 WEBSOCKET MQTT 功能
+# Whether to turn on Master Switch for the websocket-mqtt
+set(FEATURE_WEBSOCKET_MQTT OFF)
+
 # 是否打开多线程功能支持
 # Whether to turn on multi-threading support
 set(FEATURE_MULTITHREAD_ENABLED ON)
@@ -123,9 +127,10 @@ set(FEATURE_RESOURCE_SIGNAL_CHANNEL "MQTT")
 # Whether to use HTTPS for resource manage
 set(FEATURE_RESOURCE_USE_HTTPS ON)
 
-# 是否打开远程登录 SSH 功能
+# 是否打开远程登录 WEBSOCKET SSH 功能
 # Whether to turn on Master Switch for the remote login ssh
-set(FEATURE_REMOTE_LOGIN_SSH ON)
+set(FEATURE_REMOTE_LOGIN_WEBSOCKET_SSH ON)
+
 ######################CONFIG END######################################
 
 # 设置CMAKE使用编译工具及编译选项
@@ -198,7 +203,8 @@ option(AT_TCP_ENABLED "Enable AT_TCP" ${FEATURE_AT_TCP_ENABLED})
 option(BROADCAST_ENABLED "Enable BROADCAST" ${FEATURE_BROADCAST_ENABLED})
 option(RRPC_ENABLED "Enable RRPC" ${FEATURE_RRPC_ENABLED})
 option(REMOTE_CONFIG_MQTT "Enable REMOTE_CONFIG_MQTT" ${FEATURE_REMOTE_CONFIG_MQTT_ENABLED})
-option(REMOTE_LOGIN_SSH "Enable REMOTE_LOGIN_SSH" ${FEATURE_REMOTE_LOGIN_SSH})
+option(REMOTE_LOGIN_WEBSOCKET_SSH "Enable REMOTE_LOGIN_WEBSOCKET_SSH" ${FEATURE_REMOTE_LOGIN_WEBSOCKET_SSH})
+option(WEBSOCKET_MQTT "Enable WEBSOCKET_MQTT" ${FEATURE_WEBSOCKET_MQTT})
 
 if (${FEATURE_AUTH_WITH_NOTLS} STREQUAL "OFF")
 if (${FEATURE_OTA_USE_HTTPS} STREQUAL "ON")
@@ -218,6 +224,12 @@ else()
 	option(AT_UART_RECV_IRQ "Enable AT_UART_RECV_IRQ" OFF)
 	option(AT_OS_USED "Enable AT_UART_RECV_IRQ" OFF)
 	option(AT_DEBUG "Enable AT_DEBUG" OFF)
+endif()
+
+if(${FEATURE_WEBSOCKET_MQTT} STREQUAL "ON" OR ${FEATURE_REMOTE_LOGIN_WEBSOCKET_SSH} STREQUAL "ON")
+	option(WEBSOCKET_CLIENT "Enable WEBSOCKET_CLIENT" "ON")
+else()
+	option(WEBSOCKET_CLIENT "Enable WEBSOCKET_CLIENT" "OFF")
 endif()
 
 configure_file (
@@ -265,7 +277,7 @@ if(NOT DEFINED SAMPLE_ONLY)
 	add_subdirectory(${PROJECT_SOURCE_DIR}/sdk_src)
 	add_subdirectory(${PROJECT_SOURCE_DIR}/platform)
 	add_subdirectory(${PROJECT_SOURCE_DIR}/external_libs/mbedtls)
-	if(${FEATURE_REMOTE_LOGIN_SSH} STREQUAL "ON")
+	if(${WEBSOCKET_CLIENT} STREQUAL "ON")
 		add_subdirectory(${PROJECT_SOURCE_DIR}/external_libs/wslay)
 	endif()
 endif()

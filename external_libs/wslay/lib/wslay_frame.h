@@ -49,7 +49,7 @@ struct wslay_frame_opcode_memo {
 };
 
 struct wslay_frame_context {
-    uint8_t                        ibuf[4096];
+    uint8_t                        ibuf[512];
     uint8_t *                      ibufmark;
     uint8_t *                      ibuflimit;
     struct wslay_frame_opcode_memo iom;

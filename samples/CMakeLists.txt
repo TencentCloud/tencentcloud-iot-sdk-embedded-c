@@ -19,7 +19,7 @@ set(link_lib
 )
 endif()
 
-if(REMOTE_LOGIN_SSH STREQUAL "ON")
+if(WEBSOCKET_CLIENT STREQUAL "ON")
 	set(link_lib ${link_lib} wslay)
 endif()
 

@@ -7,7 +7,8 @@ set(src_sdk  ${src_utils})
 if(${FEATURE_MQTT_COMM_ENABLED} STREQUAL "ON")
 	# mqtt
 	file(GLOB src_mqtt ${CMAKE_CURRENT_SOURCE_DIR}/protocol/mqtt/*.c)
-	list(APPEND src_sdk ${src_mqtt})
+	file(GLOB src_websocket ${CMAKE_CURRENT_SOURCE_DIR}/protocol/websocket/*.c)
+	list(APPEND src_sdk ${src_mqtt} ${src_websocket})
 	
 	# shadow 
 	if(${FEATURE_MQTT_DEVICE_SHADOW} STREQUAL "ON")

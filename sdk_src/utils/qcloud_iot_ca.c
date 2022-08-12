@@ -38,6 +38,16 @@ static RegionDomain sg_iot_mqtt_coap_domain[] = {
     {.region = "ap-bangkok", .domain = QCLOUD_IOT_MQTT_COAP_AP_BANGKOK_DOMAIN}, /* Bangkok */
 };
 
+#ifdef WEBSOCKET_MQTT
+/*websocket mqtt domain*/
+static RegionDomain sg_iot_websocket_mqtt_domain[] = {
+    {.region = "china", .domain = QCLOUD_IOT_WEBSOCKET_MQTT_DIRECT_DOMAIN},          /* China */
+    {.region = "us-east", .domain = QCLOUD_IOT_WEBSOCKET_MQTT_US_EAST_DOMAIN},       /* Eastern US */
+    {.region = "europe", .domain = QCLOUD_IOT_WEBSOCKET_MQTT_EUROPE_DOMAIN},         /* Europe */
+    {.region = "ap-bangkok", .domain = QCLOUD_IOT_WEBSOCKET_MQTT_AP_BANGKOK_DOMAIN}, /* Bangkok */
+};
+#endif
+
 /*dynreg domain*/
 static RegionDomain sg_iot_dynreg_log_domain[] = {
     {.region = "china", .domain = DYNREG_LOG_SERVER_URL},                 /* China */
@@ -45,6 +55,16 @@ static RegionDomain sg_iot_dynreg_log_domain[] = {
     {.region = "europe", .domain = DYNREG_LOG_SERVER_EUROPE_URL},         /* Europe */
     {.region = "ap-bangkok", .domain = DYNREG_LOG_SERVER_AP_BANGKOK_URL}, /* Bangkok */
 };
+
+#ifdef REMOTE_LOGIN_WEBSOCKET_SSH
+/*websocket remote login ssh domain*/
+static RegionDomain sg_iot_websocket_ssh_domain[] = {
+    {.region = "china", .domain = REMOTE_LOGIN_WEBSOCKET_SSH_URL},                 /* China */
+    {.region = "us-east", .domain = REMOTE_LOGIN_WEBSOCKET_SSH_US_EAST_URL},       /* Eastern US */
+    {.region = "europe", .domain = REMOTE_LOGIN_WEBSOCKET_SSH_EUROPE_URL},         /* Europe */
+    {.region = "ap-bangkok", .domain = REMOTE_LOGIN_WEBSOCKET_SSH_AP_BANGKOK_URL}, /* Bangkok */
+};
+#endif
 
 #ifndef AUTH_WITH_NOTLS
 #if defined(DEV_DYN_REG_ENABLED)
@@ -183,7 +203,7 @@ static const char *iot_https_ca_crt = {
     "-----END CERTIFICATE-----"};
 #endif
 
-#ifdef REMOTE_LOGIN_SSH
+#ifdef REMOTE_LOGIN_WEBSOCKET_SSH
 static const char *iot_wss_ssh_ca_crt = {
     "-----BEGIN CERTIFICATE-----\r\n"
     "MIIErjCCA5agAwIBAgIQBYAmfwbylVM0jhwYWl7uLjANBgkqhkiG9w0BAQsFADBh\r\n"
@@ -250,6 +270,78 @@ static const char *iot_wss_ssh_ca_crt = {
     "XDDejuLz3BQMFyy/AzO3rGPF\r\n"
     "-----END CERTIFICATE-----"};
 #endif
+
+#ifdef WEBSOCKET_MQTT
+static const char *iot_wss_mqtt_ca_crt = {
+    "-----BEGIN CERTIFICATE-----\r\n"
+    "MIIG2zCCBcOgAwIBAgIQB1P3ab1jMWo1LRNkq5S8lTANBgkqhkiG9w0BAQsFADBy\r\n"
+    "MQswCQYDVQQGEwJDTjElMCMGA1UEChMcVHJ1c3RBc2lhIFRlY2hub2xvZ2llcywg\r\n"
+    "SW5jLjEdMBsGA1UECxMURG9tYWluIFZhbGlkYXRlZCBTU0wxHTAbBgNVBAMTFFRy\r\n"
+    "dXN0QXNpYSBUTFMgUlNBIENBMB4XDTIxMDkwNjAwMDAwMFoXDTIyMDkwNTIzNTk1\r\n"
+    "OVowMzExMC8GA1UEAwwoKi5hcC1ndWFuZ3pob3UuaW90aHViLnRlbmNlbnRkZXZp\r\n"
+    "Y2VzLmNvbTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAKVb9w80wUTt\r\n"
+    "tQbspCCJGgaL3AGsKnfXi0iXWb60N+UP/Gz4xW5DXNPVSKHpOS7eKs142lPyRX/P\r\n"
+    "Cf7d3tV/OVz8Hur2OW7HPRb4fSjXC7hQTJznq7e5GC1Qa80MhsqO9SmDmqVa5iZ6\r\n"
+    "6gCdlvz31vVbG31F/xDpVmE6bCnZQ0TTs9V8ZZs/UbkOWtc/gq8pKAhD9/6eaqJ7\r\n"
+    "oS3DkCyYRRBCUbcM0jUx8TTmWGNGYea5IY24T/FTKbeVZliZmS7iEPP4FBOAys1h\r\n"
+    "VVhBUecZnD3k2nMoV6SKIQt9WfeV86q0LYivRkgpVNLzm4Ew1Soz9+2cvC7Z77aR\r\n"
+    "Hc/vrwcJLQUCAwEAAaOCA6owggOmMB8GA1UdIwQYMBaAFH/TmfOgRw4xAFZWIo63\r\n"
+    "zJ7dygGKMB0GA1UdDgQWBBRoKH8kwb5UFaBQqttlWXFYGdwk2DCB0AYDVR0RBIHI\r\n"
+    "MIHFgigqLmFwLWd1YW5nemhvdS5pb3RodWIudGVuY2VudGRldmljZXMuY29tgiUq\r\n"
+    "LnVzLWVhc3QuaW90Y2xvdWQudGVuY2VudGRldmljZXMuY29tgiIqLmV1cm9wZS5p\r\n"
+    "b3RodWIudGVuY2VudGRldmljZXMuY29tgiYqLmFwLWJhbmdrb2suaW90aHViLnRl\r\n"
+    "bmNlbnRkZXZpY2VzLmNvbYImYXAtZ3Vhbmd6aG91LmlvdGh1Yi50ZW5jZW50ZGV2\r\n"
+    "aWNlcy5jb20wDgYDVR0PAQH/BAQDAgWgMB0GA1UdJQQWMBQGCCsGAQUFBwMBBggr\r\n"
+    "BgEFBQcDAjA+BgNVHSAENzA1MDMGBmeBDAECATApMCcGCCsGAQUFBwIBFhtodHRw\r\n"
+    "Oi8vd3d3LmRpZ2ljZXJ0LmNvbS9DUFMwgZIGCCsGAQUFBwEBBIGFMIGCMDQGCCsG\r\n"
+    "AQUFBzABhihodHRwOi8vc3RhdHVzZS5kaWdpdGFsY2VydHZhbGlkYXRpb24uY29t\r\n"
+    "MEoGCCsGAQUFBzAChj5odHRwOi8vY2FjZXJ0cy5kaWdpdGFsY2VydHZhbGlkYXRp\r\n"
+    "b24uY29tL1RydXN0QXNpYVRMU1JTQUNBLmNydDAJBgNVHRMEAjAAMIIBgAYKKwYB\r\n"
+    "BAHWeQIEAgSCAXAEggFsAWoAdgApeb7wnjk5IfBWc59jpXflvld9nGAK+PlNXSZc\r\n"
+    "JV3HhAAAAXu68FUsAAAEAwBHMEUCIBMWhGfG35EWzQpepoOnxMU3wAhHHgR6tZOu\r\n"
+    "8RAm5CSnAiEAsH00TzJxSK21iBs/Zbl5X9Gn35vqsVuPO+gMhz/pSo4AdwBRo7D1\r\n"
+    "/QF5nFZtuDd4jwykeswbJ8v3nohCmg3+1IsF5QAAAXu68FUUAAAEAwBIMEYCIQCH\r\n"
+    "NeLukMhB0RNd7Zm16YlsnAoLb5CAcJ68e5W9EJzZhAIhANOqk486D8etHA4p3nS9\r\n"
+    "+VZkZD3y9M4fi1Kv8yjeo7dlAHcAQcjKsd8iRkoQxqE6CUKHXk4xixsD6+tLx2jw\r\n"
+    "kGKWBvYAAAF7uvBUjwAABAMASDBGAiEAkif4MdoQ4E6DAIT0unnxRFyTwFP/myo/\r\n"
+    "ofYYXfPMPqQCIQDU/jXaShkd1XVxAZpwW332c1MpG5xCsCJbDnjjPa0OCzANBgkq\r\n"
+    "hkiG9w0BAQsFAAOCAQEASERgtLHdDfYDRfWpDHEX/Rbbx8Bv7agbk6+YWVF5YZ/z\r\n"
+    "75YsbD8btojrjgksKQaBe1aHAq8cOai8wFkcQsnmmDN7cEJplj3JzJpwFPXU2J0B\r\n"
+    "p8E59sA/DHzR1Z8DjGzyd70NKPa0Nf3w2EUYEpH0B5kGEhI5G0D3ybs66sXgNfcb\r\n"
+    "usW1QOjEhPQOJ3X5g5NItqZkjbZEQ41EOQV5qUa8/eHe7GayyE+EZNdY5aj5BVR0\r\n"
+    "YFLvrA5DVRa+DNbeqLWoQeVNb0kEjq0xnaaD3ohm9xmMYleRx0l8mhEEZ/5Hha1P\r\n"
+    "Zcrqjyw+6baShrOfotoFDlFE/wqf6FjhgeRkOb5QlA==\r\n"
+    "-----END CERTIFICATE-----\r\n"
+    "-----BEGIN CERTIFICATE-----\r\n"
+    "MIIErjCCA5agAwIBAgIQBYAmfwbylVM0jhwYWl7uLjANBgkqhkiG9w0BAQsFADBh\r\n"
+    "MQswCQYDVQQGEwJVUzEVMBMGA1UEChMMRGlnaUNlcnQgSW5jMRkwFwYDVQQLExB3\r\n"
+    "d3cuZGlnaWNlcnQuY29tMSAwHgYDVQQDExdEaWdpQ2VydCBHbG9iYWwgUm9vdCBD\r\n"
+    "QTAeFw0xNzEyMDgxMjI4MjZaFw0yNzEyMDgxMjI4MjZaMHIxCzAJBgNVBAYTAkNO\r\n"
+    "MSUwIwYDVQQKExxUcnVzdEFzaWEgVGVjaG5vbG9naWVzLCBJbmMuMR0wGwYDVQQL\r\n"
+    "ExREb21haW4gVmFsaWRhdGVkIFNTTDEdMBsGA1UEAxMUVHJ1c3RBc2lhIFRMUyBS\r\n"
+    "U0EgQ0EwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCgWa9X+ph+wAm8\r\n"
+    "Yh1Fk1MjKbQ5QwBOOKVaZR/OfCh+F6f93u7vZHGcUU/lvVGgUQnbzJhR1UV2epJa\r\n"
+    "e+m7cxnXIKdD0/VS9btAgwJszGFvwoqXeaCqFoP71wPmXjjUwLT70+qvX4hdyYfO\r\n"
+    "JcjeTz5QKtg8zQwxaK9x4JT9CoOmoVdVhEBAiD3DwR5fFgOHDwwGxdJWVBvktnoA\r\n"
+    "zjdTLXDdbSVC5jZ0u8oq9BiTDv7jAlsB5F8aZgvSZDOQeFrwaOTbKWSEInEhnchK\r\n"
+    "ZTD1dz6aBlk1xGEI5PZWAnVAba/ofH33ktymaTDsE6xRDnW97pDkimCRak6CEbfe\r\n"
+    "3dXw6OV5AgMBAAGjggFPMIIBSzAdBgNVHQ4EFgQUf9OZ86BHDjEAVlYijrfMnt3K\r\n"
+    "AYowHwYDVR0jBBgwFoAUA95QNVbRTLtm8KPiGxvDl7I90VUwDgYDVR0PAQH/BAQD\r\n"
+    "AgGGMB0GA1UdJQQWMBQGCCsGAQUFBwMBBggrBgEFBQcDAjASBgNVHRMBAf8ECDAG\r\n"
+    "AQH/AgEAMDQGCCsGAQUFBwEBBCgwJjAkBggrBgEFBQcwAYYYaHR0cDovL29jc3Au\r\n"
+    "ZGlnaWNlcnQuY29tMEIGA1UdHwQ7MDkwN6A1oDOGMWh0dHA6Ly9jcmwzLmRpZ2lj\r\n"
+    "ZXJ0LmNvbS9EaWdpQ2VydEdsb2JhbFJvb3RDQS5jcmwwTAYDVR0gBEUwQzA3Bglg\r\n"
+    "hkgBhv1sAQIwKjAoBggrBgEFBQcCARYcaHR0cHM6Ly93d3cuZGlnaWNlcnQuY29t\r\n"
+    "L0NQUzAIBgZngQwBAgEwDQYJKoZIhvcNAQELBQADggEBAK3dVOj5dlv4MzK2i233\r\n"
+    "lDYvyJ3slFY2X2HKTYGte8nbK6i5/fsDImMYihAkp6VaNY/en8WZ5qcrQPVLuJrJ\r\n"
+    "DSXT04NnMeZOQDUoj/NHAmdfCBB/h1bZ5OGK6Sf1h5Yx/5wR4f3TUoPgGlnU7EuP\r\n"
+    "ISLNdMRiDrXntcImDAiRvkh5GJuH4YCVE6XEntqaNIgGkRwxKSgnU3Id3iuFbW9F\r\n"
+    "UQ9Qqtb1GX91AJ7i4153TikGgYCdwYkBURD8gSVe8OAco6IfZOYt/TEwii1Ivi1C\r\n"
+    "qnuUlWpsF1LdQNIdfbW3TSe0BhQa7ifbVIfvPWHYOu3rkg1ZeMo6XRU9B4n5VyJY\r\n"
+    "RmE=\r\n"
+    "-----END CERTIFICATE-----\r\n"};
+
+#endif
 #endif
 
 const char *iot_ca_get()
@@ -297,8 +389,23 @@ const char *iot_wss_ssh_ca_get()
 {
 #ifndef AUTH_WITH_NOTLS
 
-#ifdef REMOTE_LOGIN_SSH
+#ifdef REMOTE_LOGIN_WEBSOCKET_SSH
     return iot_wss_ssh_ca_crt;
+#else
+    return NULL;
+#endif
+
+#else
+    return NULL;
+#endif
+}
+
+const char *iot_wss_mqtt_ca_get()
+{
+#ifndef AUTH_WITH_NOTLS
+
+#ifdef WEBSOCKET_MQTT
+    return iot_wss_mqtt_ca_crt;
 #else
     return NULL;
 #endif
@@ -328,8 +435,30 @@ static const char *iot_get_domain(const char *region, const RegionDomain *region
 
 const char *iot_get_mqtt_domain(const char *region)
 {
+#ifdef WEBSOCKET_MQTT
+    return iot_get_domain(region, sg_iot_websocket_mqtt_domain,
+                          sizeof(sg_iot_websocket_mqtt_domain) / sizeof(sg_iot_websocket_mqtt_domain[0]));
+#else
     return iot_get_domain(region, sg_iot_mqtt_coap_domain,
                           sizeof(sg_iot_mqtt_coap_domain) / sizeof(sg_iot_mqtt_coap_domain[0]));
+#endif
+}
+
+int iot_get_mqtt_port()
+{
+    int port = MQTT_SERVER_PORT_NOTLS;
+
+#ifndef AUTH_WITH_NOTLS
+    port = MQTT_SERVER_PORT_TLS;
+#endif
+
+#ifdef WEBSOCKET_MQTT
+    port = QCLOUD_IOT_WEBSOCKET_MQTT_SERVER_PORT_NOTLS;
+#ifndef AUTH_WITH_NOTLS
+    port = QCLOUD_IOT_WEBSOCKET_MQTT_SERVER_PORT_TLS;
+#endif
+#endif
+    return port;
 }
 
 const char *iot_get_coap_domain(const char *region)
@@ -350,10 +479,14 @@ const char *iot_get_log_domain(const char *region)
                           sizeof(sg_iot_dynreg_log_domain) / sizeof(sg_iot_dynreg_log_domain[0]));
 }
 
-const char *iot_get_ssh_domain(const char *region)
+const char *iot_get_ws_ssh_domain(const char *region)
 {
-    return iot_get_domain(region, sg_iot_dynreg_log_domain,
-                          sizeof(sg_iot_dynreg_log_domain) / sizeof(sg_iot_dynreg_log_domain[0]));
+#ifdef REMOTE_LOGIN_WEBSOCKET_SSH
+    return iot_get_domain(region, sg_iot_websocket_ssh_domain,
+                          sizeof(sg_iot_websocket_ssh_domain) / sizeof(sg_iot_websocket_ssh_domain[0]));
+#else
+    return NULL;
+#endif
 }
 
 #ifdef __cplusplus

@@ -27,7 +27,7 @@ config:
 	mkdir -p ${TEMP_DIR}
 
 wslay:
-ifneq (,$(filter -DREMOTE_LOGIN_SSH,$(CFLAGS)))
+ifneq (,$(filter -DWEBSOCKET_CLIENT,$(CFLAGS)))
 	$(TOP_Q) \
 	make -s -C $(THIRD_PARTY_PATH)/wslay lib -e CC=$(PLATFORM_CC) AR=$(PLATFORM_AR) CFLAGS="$(CFLAGS)"	
 endif
@@ -75,7 +75,7 @@ final-out :
 	$(TOP_Q) \
 	cp -rf $(TOP_DIR)/certs $(FINAL_DIR)/bin/
 
-ifneq (,$(filter -DREMOTE_LOGIN_SSH,$(CFLAGS)))
+ifneq (,$(filter -DWEBSOCKET_CLIENT,$(CFLAGS)))
 	$(TOP_Q) \
 	mv $(THIRD_PARTY_PATH)/wslay/lib/libwslay.* ${FINAL_DIR}/lib
 endif
@@ -109,7 +109,7 @@ ifeq ($(TLSDIR), $(wildcard $(THIRD_PARTY_PATH)/mbedtls))
 endif
 endif
 
-ifneq (,$(filter -DREMOTE_LOGIN_SSH,$(CFLAGS)))
+ifneq (,$(filter -DWEBSOCKET_CLIENT,$(CFLAGS)))
 	$(TOP_Q) \
 	make -s -C $(THIRD_PARTY_PATH)/wslay clean
 endif

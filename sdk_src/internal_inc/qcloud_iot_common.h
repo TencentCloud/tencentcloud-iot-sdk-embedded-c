@@ -20,6 +20,8 @@
 #define QCLOUD_IOT_DEVICE_SDK_APPID     "21010406"
 #define QCLOUD_IOT_DEVICE_SDK_APPID_LEN (sizeof(QCLOUD_IOT_DEVICE_SDK_APPID) - 1)
 
+#define QCLOUD_IOT_MQTT_DOMAIN_WITH_PREFIX 1
+
 /* MQTT server domain */
 #define QCLOUD_IOT_MQTT_COAP_DIRECT_DOMAIN     "iotcloud.tencentdevices.com"
 #define QCLOUD_IOT_MQTT_COAP_US_EAST_DOMAIN    "us-east.iotcloud.tencentdevices.com"
@@ -30,6 +32,15 @@
 #define MQTT_SERVER_PORT_NOTLS 1883
 
 #define COAP_SERVER_PORT 5684
+
+/* WEBSOCKET MQTT server domain */
+#define QCLOUD_IOT_WEBSOCKET_MQTT_DIRECT_DOMAIN     "ap-guangzhou.iothub.tencentdevices.com"
+#define QCLOUD_IOT_WEBSOCKET_MQTT_US_EAST_DOMAIN    "us-east.iothub.tencentdevices.com"
+#define QCLOUD_IOT_WEBSOCKET_MQTT_EUROPE_DOMAIN     "europe.iothub.tencentdevices.com"
+#define QCLOUD_IOT_WEBSOCKET_MQTT_AP_BANGKOK_DOMAIN "ap-bangkok.iothub.tencentdevices.com"
+
+#define QCLOUD_IOT_WEBSOCKET_MQTT_SERVER_PORT_TLS   443
+#define QCLOUD_IOT_WEBSOCKET_MQTT_SERVER_PORT_NOTLS 80
 
 /* server domain for dynamic registering device */
 #define DYNREG_LOG_SERVER_URL            "ap-guangzhou.gateway.tencentdevices.com"
@@ -45,9 +56,13 @@
 #define UPLOAD_LOG_URI_PATH       "/device/reportlog"
 #define LOG_UPLOAD_SERVER_PORT    80
 
-#define REMOTE_WS_SSH_PATH "/ssh/device"
-#define LOCAL_SSH_PORT     22
-#define LOCAL_SSH_IP       "127.0.0.1"
+#define REMOTE_LOGIN_WEBSOCKET_SSH_URL            "ap-guangzhou.gateway.tencentdevices.com/ssh/device"
+#define REMOTE_LOGIN_WEBSOCKET_SSH_US_EAST_URL    "us-east.gateway.tencentdevices.com/ssh/device"
+#define REMOTE_LOGIN_WEBSOCKET_SSH_EUROPE_URL     "europe.gateway.tencentdevices.com/ssh/device"
+#define REMOTE_LOGIN_WEBSOCKET_SSH_AP_BANGKOK_URL "ap-bangkok.gateway.tencentdevices.com/ssh/device"
+
+#define LOCAL_SSH_PORT 22
+#define LOCAL_SSH_IP   "127.0.0.1"
 
 /* Max size of a host name */
 #define HOST_STR_LENGTH 64

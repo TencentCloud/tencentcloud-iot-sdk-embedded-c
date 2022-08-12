@@ -27,7 +27,7 @@ IOT_INC_CFLAGS = -I$(FINAL_DIR)/include -I$(FINAL_DIR)/include/exports  -I$(CURD
 
 LDFLAGS             := -Wl,--start-group $(IOT_LIB_DIR)/libiot_sdk.a
 
-ifneq (,$(filter -DREMOTE_LOGIN_SSH,$(CFLAGS)))
+ifneq (,$(filter -DWEBSOCKET_CLIENT,$(CFLAGS)))
 LDFLAGS             += $(IOT_LIB_DIR)/libwslay.a
 endif
 

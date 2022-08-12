@@ -24,6 +24,7 @@ extern "C" {
 #include "mqtt_client.h"
 #include "qcloud_iot_common.h"
 #include "utils_hmac.h"
+#include "utils_md5.h"
 
 #define MQTT_CONNECT_FLAG_USERNAME    0x80
 #define MQTT_CONNECT_FLAG_PASSWORD    0x40
@@ -93,9 +94,12 @@ static void _copy_connect_params(MQTTConnectParams *destination, MQTTConnectPara
     destination->keep_alive_interval = source->keep_alive_interval;
     destination->clean_session       = source->clean_session;
     destination->auto_connect_enable = source->auto_connect_enable;
-#ifdef AUTH_WITH_NOTLS
+
+#if defined(AUTH_WITH_NOTLS) || (defined(WEBSOCKET_MQTT) && defined(AUTH_MODE_KEY))
     destination->device_secret     = source->device_secret;
     destination->device_secret_len = source->device_secret_len;
+#elif defined(WEBSOCKET_MQTT) && defined(AUTH_MODE_CERT)
+    destination->private_key_file_path = source->private_key_file_path;
 #endif
 }
 
@@ -141,7 +145,7 @@ static int _serialize_connect_packet(unsigned char *buf, size_t buf_len, MQTTCon
     HAL_Snprintf(options->username, username_len, "%s;%s;%s;%ld", options->client_id, QCLOUD_IOT_DEVICE_SDK_APPID,
                  options->conn_id, cur_timesec);
 
-#if defined(AUTH_WITH_NOTLS) && defined(AUTH_MODE_KEY)
+#if (defined(AUTH_WITH_NOTLS) || defined(WEBSOCKET_MQTT)) && defined(AUTH_MODE_KEY)
     if (options->device_secret != NULL && options->username != NULL) {
         char sign[41] = {0};
         utils_hmac_sha1(options->username, strlen(options->username), sign, options->device_secret,
@@ -154,6 +158,41 @@ static int _serialize_connect_packet(unsigned char *buf, size_t buf_len, MQTTCon
         }
         HAL_Snprintf(options->password, 51, "%s;hmacsha1", sign);
     }
+#elif defined(AUTH_MODE_CERT) && defined(WEBSOCKET_MQTT)
+    /* rsa-sha256 */
+    char *privatekey = HAL_TLS_Get_PrivateKey_FromFile(options->private_key_file_path);
+    if (privatekey == NULL) {
+        Log_e("private key get fail");
+        return QCLOUD_ERR_FAILURE;
+    }
+    int   sign_len = HAL_TLS_Get_RSASHA256_Result_Len(privatekey);
+    char *sign     = HAL_Malloc(sign_len);
+
+    if (NULL == sign) {
+        // HAL_Free(sign_string);
+        Log_e("malloc sign fail");
+        return QCLOUD_ERR_FAILURE;
+    }
+
+    HAL_TLS_Calc_Sign_RSASHA256(privatekey, options->username, strlen(options->username), sign);
+
+    sign_len          = HAL_TLS_Get_RSASHA256_Result_Len(privatekey);
+    char *hex_sign    = HAL_Malloc(sign_len * 2);
+    options->password = (char *)HAL_Malloc(sign_len * 2 + sizeof(";rsa-sha256"));
+    if (NULL == hex_sign) {
+        Log_e("malloc sign fail");
+        return QCLOUD_ERR_FAILURE;
+    }
+
+    memset(hex_sign, 0, sign_len * 2);
+    for (int i = 0; i < sign_len; ++i) {
+        hex_sign[i * 2]     = utils_hb2hex(sign[i] >> 4);
+        hex_sign[i * 2 + 1] = utils_hb2hex(sign[i]);
+    }
+
+    HAL_Snprintf(options->password, sign_len * 2 + sizeof(";rsa-sha256"), "%s;rsa-sha256", hex_sign);
+    HAL_Free(sign);
+    HAL_TLS_Destory_PrivateKey(privatekey);
 #endif
 
     rem_len = _get_packet_connect_rem_len(options);
@@ -188,7 +227,7 @@ static int _serialize_connect_packet(unsigned char *buf, size_t buf_len, MQTTCon
     flags |= (options->clean_session) ? MQTT_CONNECT_FLAG_CLEAN_SES : 0;
     flags |= (options->username != NULL) ? MQTT_CONNECT_FLAG_USERNAME : 0;
 
-#if defined(AUTH_WITH_NOTLS) && defined(AUTH_MODE_KEY)
+#if (defined(AUTH_WITH_NOTLS) && defined(AUTH_MODE_KEY)) || defined(WEBSOCKET_MQTT)
     flags |= MQTT_CONNECT_FLAG_PASSWORD;
 #endif
 
