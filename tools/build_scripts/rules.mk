@@ -25,6 +25,7 @@ ${PLATFORM_LIB}: ${iot_platform_objects}
 config:
 	$(TOP_Q) \
 	mkdir -p ${TEMP_DIR}
+	$(TOP_Q) echo '' > $(TOP_DIR)/include/config.h
 
 wslay:
 ifneq (,$(filter -DWEBSOCKET_CLIENT,$(CFLAGS)))
@@ -50,7 +51,6 @@ ifeq (,$(filter -DAUTH_WITH_NOTLS,$(CFLAGS)))
 endif
 
 ${iot_sdk_objects}:%.o:%.c
-	$(TOP_Q) echo '' > $(TOP_DIR)/include/config.h
 	$(call Brief_Log,"CC")
 	$(TOP_Q) \
 	$(PLATFORM_CC) $(CFLAGS) -c $^ -o $@
