@@ -289,7 +289,8 @@ int qcloud_iot_coap_init(CoAPClient *pClient, CoAPInitParams *pParams)
     pClient->network_stack.ssl_connect_params.ca_crt_len = strlen(pClient->network_stack.ssl_connect_params.ca_crt);
 
 #else
-    pClient->network_stack.ssl_connect_params.psk_id = pClient->device_info.client_id;
+    strncpy(pClient->network_stack.ssl_connect_params.psk_id, pClient->device_info.client_id, MAX_SIZE_OF_CLIENT_ID);
+    pClient->network_stack.ssl_connect_params.psk_id[MAX_SIZE_OF_CLIENT_ID] = '\0';
     if (pParams->device_secret != NULL) {
         size_t src_len = strlen(pParams->device_secret);
         size_t len;
