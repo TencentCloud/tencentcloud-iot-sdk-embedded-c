@@ -24,8 +24,8 @@
 /* default MQTT/CoAP timeout value when connect/pub/sub (unit: ms) */
 #define QCLOUD_IOT_MQTT_COMMAND_TIMEOUT (5 * 1000)
 
-/* default MQTT keep alive interval (unit: ms) */
-#define QCLOUD_IOT_MQTT_KEEP_ALIVE_INTERNAL (240 * 1000)
+/* default MQTT keep alive interval, in case of celular work, 60 * 1000 recommended (unit: ms) */
+#define QCLOUD_IOT_MQTT_KEEP_ALIVE_INTERNAL (120 * 1000)
 
 /* default MQTT Tx buffer size, MAX: 16*1024 */
 #define QCLOUD_IOT_MQTT_TX_BUF_LEN (2048)
