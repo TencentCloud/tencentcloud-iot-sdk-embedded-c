@@ -244,7 +244,7 @@ struct Timer {
 #if defined(__linux__) && defined(__GLIBC__)
     struct timeval end_time;
 #else
-    uintptr_t end_time;
+    uint64_t end_time;
 #endif
 };
 
