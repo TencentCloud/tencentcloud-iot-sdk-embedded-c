@@ -51,7 +51,7 @@ int HAL_Timer_set_systime_ms(size_t timestamp_ms)
     return -1;
 }
 
-uint32_t HAL_GetTimeMs(void)
+uint64_t HAL_GetTimeMs(void)
 {
     return HAL_GetTick();
 }
@@ -77,7 +77,7 @@ char *HAL_Timer_current(void)
 
 bool HAL_Timer_expired(Timer *timer)
 {
-    uint32_t now_ts;
+    uint64_t now_ts;
 
     now_ts = HAL_GetTimeMs();
 

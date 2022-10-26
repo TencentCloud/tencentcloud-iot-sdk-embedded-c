@@ -77,12 +77,12 @@ int HAL_Timer_set_systime_ms(size_t timestamp_ms)
 #endif
 }
 
-uint32_t HAL_GetTimeMs(void)
+uint64_t HAL_GetTimeMs(void)
 {
 #if defined PLATFORM_HAS_TIME_FUNCS
     struct timeval tv;
     gettimeofday(&tv, NULL);
-    return tv.tv_sec * 1000 + tv.tv_usec / 1000;
+    return (uint64_t)tv.tv_sec * 1000 + tv.tv_usec / 1000;
 
 #elif defined PLATFORM_HAS_CMSIS
     return HAL_GetTick();
@@ -115,7 +115,7 @@ char *HAL_Timer_current(char *time_str)
 
 bool HAL_Timer_expired(Timer *timer)
 {
-    uint32_t now_ts;
+    uint64_t now_ts;
 
     now_ts = HAL_GetTimeMs();
 
