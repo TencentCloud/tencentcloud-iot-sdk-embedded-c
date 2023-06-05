@@ -211,7 +211,7 @@ static void _qcloud_iot_resource_callback(void *pcontext, char *msg, uint32_t ms
         _qcloud_iot_resource_cb_proc_uploadresult(msg, resource_handle);
     } else if (0 == strcmp(json_type, "report_upload_progress_rsp")) {
         if (qcloud_lib_get_json_key_value(msg, "result_code", &json_value) != QCLOUD_RET_SUCCESS) {
-            Log_e("Get upload progress failed! %s");
+            Log_e("Get upload progress failed!");
             goto End;
         }
         resource_handle->upload.result_code = atoi(json_value);
@@ -220,7 +220,7 @@ static void _qcloud_iot_resource_callback(void *pcontext, char *msg, uint32_t ms
 
     } else if (0 == strcmp(json_type, "report_download_progress_rsp")) {
         if (qcloud_lib_get_json_key_value(msg, "result_code", &json_value) != QCLOUD_RET_SUCCESS) {
-            Log_e("Get download progress failed! %s");
+            Log_e("Get download progress failed!");
             goto End;
         }
         resource_handle->download.result_code = atoi(json_value);
