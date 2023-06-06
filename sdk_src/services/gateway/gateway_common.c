@@ -749,7 +749,7 @@ int subdev_bind_hmac_sha1_cal(DeviceInfo *pDevInfo, char *signout, int max_signl
         return ret;
     }
 #else
-    strncpy(key, pDevInfo->device_secret, strlen(pDevInfo->device_secret));
+    strncpy(key, pDevInfo->device_secret, BIND_SIGN_KEY_SIZE);
 #endif
 
     /*cal hmac sha1*/
