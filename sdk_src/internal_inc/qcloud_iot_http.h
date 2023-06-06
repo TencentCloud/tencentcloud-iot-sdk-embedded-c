@@ -23,7 +23,7 @@ extern "C" {
 #define QCLOUD_HTTP_HEADER_FORMAT \
     "Accept: %s*/*\r\n"           \
     "X-TC-Algorithm: %s\r\n"      \
-    "X-TC-Timestamp: %d\r\n"      \
+    "X-TC-Timestamp: %ld\r\n"      \
     "X-TC-Nonce: %d\r\n"          \
     "X-TC-Signature: %s\r\n"
 

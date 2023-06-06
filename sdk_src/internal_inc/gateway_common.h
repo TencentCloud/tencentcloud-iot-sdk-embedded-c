@@ -49,7 +49,7 @@
 /* The format of bind cmd payload */
 #define GATEWAY_PAYLOAD_OP_FMT                                                    \
     "{\"type\":\"%s\",\"payload\":{\"devices\":[{\"product_id\":\"%s\","          \
-    "\"device_name\":\"%s\",\"signature\":\"%s\",\"random\":%d,\"timestamp\":%d," \
+    "\"device_name\":\"%s\",\"signature\":\"%s\",\"random\":%d,\"timestamp\":%ld," \
     "\"signmethod\":\"%s\",\"authtype\":\"%s\"}]}}"
 
 /* Subdevice    seesion status */
