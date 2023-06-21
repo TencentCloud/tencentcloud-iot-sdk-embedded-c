@@ -71,6 +71,7 @@ static int _rrpc_get_process_id(char *processIdBuffer, size_t sizeOfBuffer, cons
 
     strncpy(processIdBuffer, p, topic_len - (p - topic));
     Log_i("len=%u, process id=%.*s", topic_len - (p - topic), topic_len - (p - topic), processIdBuffer);
+    processIdBuffer[topic_len - (p - topic)] = '\0';
 
     IOT_FUNC_EXIT_RC(QCLOUD_RET_SUCCESS);
 }
