@@ -77,7 +77,7 @@ Host: 7CN3UQ4VGT.ap-guangzhou.iothub.tencentdevices.com:443
 Upgrade: websocket
 Connection: Upgrade
 Sec-Websocket-Protocol: mqtt
-Sec-WebSocket-Key: MTIzNDU2Nzg5MGFiY2RlZg==
+Sec-WebSocket-Key: xxxxxx
 Sec-WebSocket-Version: 13
 
 
