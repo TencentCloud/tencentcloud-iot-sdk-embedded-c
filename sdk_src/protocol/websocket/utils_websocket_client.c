@@ -146,7 +146,7 @@ static int _websocket_genmask_callback(wslay_event_context_ptr ctx, uint8_t *buf
 {
     srand((unsigned)time(NULL));
     int nonce = rand() % 99999999999 + 10000;
-    HAL_Snprintf((char *)buf, len, "%0*d", len - 1, nonce);
+    HAL_Snprintf((char *)buf, len, "%0*d", (int)(len - 1), nonce);
     return 0;
 }
 
